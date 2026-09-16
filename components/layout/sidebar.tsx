@@ -64,7 +64,10 @@ export function SidebarContent({ profile, menuItems, onClose }: SidebarProps) {
         {menuItems.map((item) => {
           const Icon = ICON_MAP[item.icon] ?? LayoutDashboard
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-          const itemLabel = t.nav[item.key as keyof typeof t.nav] ?? item.label
+          const itemLabel =
+            item.key === 'rentals'
+              ? (t.nav.rentalLeads ?? t.nav.rentals ?? item.label)
+              : (t.nav[item.key as keyof typeof t.nav] ?? item.label)
 
           return (
             <Link

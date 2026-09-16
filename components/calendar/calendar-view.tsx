@@ -264,8 +264,16 @@ export function CalendarView() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
+    <div className="space-y-6">
+      {/* Page Title & Subtitle */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t.calendar.title}</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {t.calendar.subtitle}
+        </p>
+      </div>
+
+      {/* Navigation and Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Month nav */}
         <div className="flex items-center gap-2">

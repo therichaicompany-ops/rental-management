@@ -69,6 +69,7 @@ export interface TranslationDictionary {
     landlords: string
     locations: string
     rentalLeads: string
+    rentals: string
     rentPayments: string
     opening: string
     documents: string
@@ -314,5 +315,34 @@ export interface TranslationDictionary {
     selectLanguage: string
     languageDescription: string
     saveChanges: string
+    accountInfo: string
+    accountDesc: string
+    fullName: string
+    role: string
+    accountStatus: string
+    activeStatus: string
+    storage: string
+    storageDesc: string
+    storageBucketDesc: string
+    securityType: string
+    securityPrivate: string
+    maxFileSize: string
+    systemStatus: string
+    systemStatusDesc: string
+    rolePermissions: string
+    roles: {
+      ownerTitle: string
+      ownerDesc: string
+      adminTitle: string
+      adminDesc: string
+      accountingTitle: string
+      accountingDesc: string
+      operationTitle: string
+      operationDesc: string
+      staffTitle: string
+      staffDesc: string
+      viewerTitle: string
+      viewerDesc: string
+    }
   }
 }
