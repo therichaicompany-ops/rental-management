@@ -49,7 +49,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative">
+    <div className="min-h-screen min-h-dvh bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative">
       {/* Top right language switcher */}
       <div className="absolute top-4 right-4 z-10">
         <LanguageSwitcher variant="outline" className="bg-slate-800/80 text-white border-slate-700 hover:bg-slate-700" />
@@ -57,7 +57,7 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 space-y-6">
           {/* Logo */}
           <div className="text-center space-y-3">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-500 shadow-lg mx-auto">

@@ -333,41 +333,43 @@ export function CalendarView() {
       </div>
 
       {/* Calendar grid */}
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        {/* Day headers */}
-        <div className="grid grid-cols-7 border-b bg-muted/40">
-          {daysShort.map((d, i) => (
-            <div
-              key={d}
-              className={`py-2 text-center text-xs font-semibold ${
-                i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-muted-foreground'
-              }`}
-            >
-              {d}
-            </div>
-          ))}
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-24 gap-3 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">{t.common.loading}</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-7">
-            {grid.map((cell) => (
-              <DayCell
-                key={cell.date}
-                date={cell.date}
-                isCurrentMonth={cell.isCurrentMonth}
-                isToday={cell.date === today}
-                events={eventsByDate.get(cell.date) ?? []}
-                enabledTypes={enabledTypes}
-                locale={locale}
-              />
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden overflow-x-auto">
+        <div className="min-w-[560px] sm:min-w-0">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 border-b bg-muted/40">
+            {daysShort.map((d, i) => (
+              <div
+                key={d}
+                className={`py-2 text-center text-xs font-semibold ${
+                  i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-muted-foreground'
+                }`}
+              >
+                {d}
+              </div>
             ))}
           </div>
-        )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-24 gap-3 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">{t.common.loading}</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-7">
+              {grid.map((cell) => (
+                <DayCell
+                  key={cell.date}
+                  date={cell.date}
+                  isCurrentMonth={cell.isCurrentMonth}
+                  isToday={cell.date === today}
+                  events={eventsByDate.get(cell.date) ?? []}
+                  enabledTypes={enabledTypes}
+                  locale={locale}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Event count summary */}

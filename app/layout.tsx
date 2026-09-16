@@ -1,8 +1,19 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Noto_Sans_Myanmar } from 'next/font/google'
 import './globals.css'
 import { I18nProvider } from '@/lib/i18n/context'
 import { getServerLocale } from '@/lib/i18n/server'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
+  ],
+}
 
 const inter = Inter({
   subsets: ['latin'],
@@ -31,7 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale} className={`${inter.variable} ${notoSansMyanmar.variable}`}>
-      <body className="min-h-screen antialiased font-sans">
+      <body className="min-h-screen min-h-dvh antialiased font-sans">
         <I18nProvider initialLocale={locale}>
           {children}
         </I18nProvider>
