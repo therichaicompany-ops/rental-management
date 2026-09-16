@@ -29,6 +29,8 @@ import {
 import type { UserRole, UserProfile } from '@/lib/types/auth'
 import { canWrite } from '@/lib/auth/permissions'
 
+import { useI18n } from '@/lib/i18n/context'
+
 interface EligibleContract {
   id: string
   contract_no: string
@@ -55,10 +57,20 @@ export function OpeningListView({
   userRole,
 }: OpeningListViewProps) {
   const allowWrite = canWrite(userRole)
+  const { t, locale } = useI18n()
+  const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
 
   const [activeTab, setActiveTab] = React.useState<TabType>('all')
   const [searchTerm, setSearchTerm] = React.useState('')
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
+
+  const getProjectStatusLabel = (status: string): string => {
+    if (status === 'not_started') return t.opening.stages.s1
+    if (status === 'in_progress') return t.opening.currentStage
+    if (status === 'ready_to_open') return t.opening.targetOpenDate
+    if (status === 'opened') return t.opening.stages.s8
+    return PROJECT_STATUS_LABELS[status as OpeningProjectStatus] || status
+  }
 
   // KPIs
   const stats = React.useMemo(() => {
@@ -105,10 +117,10 @@ export function OpeningListView({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            ติดตามการเปิดสาขา (Branch Opening Workflow)
+            {t.opening.title}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            บริหารจัดการและติดตาม 13 ขั้นตอนการเปิดสาขา พร้อมตรวจสอบงานย่อยและเช็คลิสต์
+            {t.opening.subtitle}
           </p>
         </div>
 
@@ -118,7 +130,7 @@ export function OpeningListView({
             className="bg-primary-600 hover:bg-primary-700 text-white shrink-0"
           >
             <Plus className="mr-2 h-4 w-4" />
-            สร้างโครงการเปิดสาขา
+            {t.opening.newProject}
           </Button>
         )}
       </div>
@@ -127,38 +139,38 @@ export function OpeningListView({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">โครงการทั้งหมด</span>
+            <span className="text-xs font-medium text-slate-500">{t.opening.title}</span>
             <Building2 className="h-4 w-4 text-slate-400" />
           </div>
           <p className="text-2xl font-bold text-slate-900 mt-2">{stats.total}</p>
-          <span className="text-xs text-slate-400">โครงการในระบบ</span>
+          <span className="text-xs text-slate-400">{t.common.total} {t.common.items}</span>
         </div>
 
         <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-800">กำลังดำเนินการ</span>
+            <span className="text-xs font-semibold text-amber-800">{t.opening.currentStage}</span>
             <Clock className="h-4 w-4 text-amber-500" />
           </div>
           <p className="text-2xl font-bold text-amber-700 mt-2">{stats.inProgress}</p>
-          <span className="text-xs text-amber-600">อยู่ระหว่างเตรียมเปิดสาขา</span>
+          <span className="text-xs text-amber-600">{t.opening.currentStage}</span>
         </div>
 
         <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-200 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-blue-800">พร้อมเปิดสาขา</span>
+            <span className="text-xs font-semibold text-blue-800">{t.opening.targetOpenDate}</span>
             <AlertCircle className="h-4 w-4 text-blue-500" />
           </div>
           <p className="text-2xl font-bold text-blue-700 mt-2">{stats.readyToOpen}</p>
-          <span className="text-xs text-blue-600">พร้อมเปิดให้บริการ</span>
+          <span className="text-xs text-blue-600">{t.opening.targetOpenDate}</span>
         </div>
 
         <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-200 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-800">เปิดสาขาเรียบร้อย</span>
+            <span className="text-xs font-semibold text-emerald-800">{t.opening.stages.s8}</span>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </div>
           <p className="text-2xl font-bold text-emerald-700 mt-2">{stats.opened}</p>
-          <span className="text-xs text-emerald-600">เปิดดำเนินการแล้ว</span>
+          <span className="text-xs text-emerald-600">{t.opening.stages.s8}</span>
         </div>
       </div>
 
@@ -172,7 +184,7 @@ export function OpeningListView({
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          ทั้งหมด ({projects.length})
+          {t.common.all} ({projects.length})
         </button>
 
         <button
@@ -183,7 +195,7 @@ export function OpeningListView({
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          กำลังดำเนินการ ({stats.inProgress})
+          {t.opening.currentStage} ({stats.inProgress})
         </button>
 
         <button
@@ -194,7 +206,7 @@ export function OpeningListView({
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          พร้อมเปิด ({stats.readyToOpen})
+          {t.opening.targetOpenDate} ({stats.readyToOpen})
         </button>
 
         <button
@@ -205,7 +217,7 @@ export function OpeningListView({
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          เปิดเรียบร้อย ({stats.opened})
+          {t.opening.stages.s8} ({stats.opened})
         </button>
       </div>
 
@@ -214,7 +226,7 @@ export function OpeningListView({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="ค้นหารหัสโครงการ, สาขา, จังหวัด หรือเลขที่สัญญา..."
+            placeholder={`${t.common.search} (${t.opening.projectName}, ${t.locations.title})...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 bg-white"
@@ -226,12 +238,8 @@ export function OpeningListView({
       {filteredProjects.length === 0 ? (
         <div className="space-y-4">
           <EmptyState
-            title="ไม่พบโครงการเปิดสาขา"
-            message={
-              searchTerm || activeTab !== 'all'
-                ? 'ไม่พบโครงการที่ตรงกับเงื่อนไขการค้นหา ลองปรับตัวกรองใหม่'
-                : 'ยังไม่มีโครงการเปิดสาขาในระบบ คุณสามารถสร้างโครงการจากสัญญาเช่าที่ตกลงแล้วได้'
-            }
+            title={t.common.noData}
+            message={t.common.noDataDesc}
           />
           {allowWrite && eligibleContracts.length > 0 && (
             <div className="flex justify-center">
@@ -240,7 +248,7 @@ export function OpeningListView({
                 className="bg-primary-600 hover:bg-primary-700 text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
-                สร้างโครงการเปิดสาขา
+                {t.opening.newProject}
               </Button>
             </div>
           )}
@@ -251,14 +259,14 @@ export function OpeningListView({
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">รหัสโครงการ</th>
-                  <th className="px-4 py-3">สถานที่ / สาขา</th>
-                  <th className="px-4 py-3">สัญญาเช่า</th>
-                  <th className="px-4 py-3">ขั้นตอนปัจจุบัน (Stage)</th>
-                  <th className="px-4 py-3">วันเป้าหมายเปิด</th>
-                  <th className="px-4 py-3">ความคืบหน้างาน (Tasks)</th>
-                  <th className="px-4 py-3 text-center">สถานะ</th>
-                  <th className="px-4 py-3 text-right">จัดการ</th>
+                  <th className="px-4 py-3">{t.opening.projectName}</th>
+                  <th className="px-4 py-3">{t.locations.title}</th>
+                  <th className="px-4 py-3">{t.contracts.title}</th>
+                  <th className="px-4 py-3">{t.opening.currentStage}</th>
+                  <th className="px-4 py-3">{t.opening.targetOpenDate}</th>
+                  <th className="px-4 py-3">{t.opening.progress}</th>
+                  <th className="px-4 py-3 text-center">{t.common.status}</th>
+                  <th className="px-4 py-3 text-right">{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">

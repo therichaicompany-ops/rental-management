@@ -5,6 +5,8 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+import { useI18n } from '@/lib/i18n/context'
+
 interface ConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -22,12 +24,15 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmText = 'ยืนยันการลบ',
-  cancelText = 'ยกเลิก',
+  confirmText,
+  cancelText,
   variant = 'danger',
   loading = false,
   onConfirm,
 }: ConfirmDialogProps) {
+  const { t } = useI18n()
+  const resolvedConfirmText = confirmText ?? (variant === 'danger' ? t.common.confirmDelete : t.common.confirm)
+  const resolvedCancelText = cancelText ?? t.common.cancel
   return (
     <DialogPrimitive.Root open={open} onOpenChange={loading ? undefined : onOpenChange}>
       <DialogPrimitive.Portal>
@@ -54,7 +59,7 @@ export function ConfirmDialog({
               onClick={() => onOpenChange(false)}
               disabled={loading}
             >
-              {cancelText}
+              {resolvedCancelText}
             </Button>
             <Button
               type="button"
@@ -64,7 +69,7 @@ export function ConfirmDialog({
               className="min-w-[100px]"
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {confirmText}
+              {resolvedConfirmText}
             </Button>
           </div>
         </DialogPrimitive.Content>

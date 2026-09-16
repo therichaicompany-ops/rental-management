@@ -1,5 +1,8 @@
+'use client'
+
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/context'
 
 interface LoadingStateProps {
   message?: string
@@ -8,10 +11,13 @@ interface LoadingStateProps {
 }
 
 export function LoadingState({
-  message = 'กำลังโหลด...',
+  message,
   className,
   fullPage = false,
 }: LoadingStateProps) {
+  const { t } = useI18n()
+  const resolvedMessage = message ?? t.common.loading
+
   return (
     <div
       className={cn(
@@ -21,7 +27,7 @@ export function LoadingState({
       )}
     >
       <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-      <p className="text-sm">{message}</p>
+      <p className="text-sm">{resolvedMessage}</p>
     </div>
   )
 }

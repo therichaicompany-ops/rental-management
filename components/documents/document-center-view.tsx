@@ -31,6 +31,8 @@ import {
   type DocumentEntityType,
   type DocumentType,
 } from '@/lib/types/documents'
+import { useI18n } from '@/lib/i18n/context'
+import type { Locale } from '@/lib/i18n/types'
 import type { UserRole } from '@/lib/types/auth'
 import { hasFullAccess } from '@/lib/auth/permissions'
 
@@ -44,8 +46,9 @@ function formatBytes(bytes: number | null): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('th-TH', {
+function formatDate(iso: string, loc: Locale): string {
+  const l = loc === 'th' ? 'th-TH' : loc === 'my' ? 'my-MM' : 'en-US'
+  return new Date(iso).toLocaleDateString(l, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -60,16 +63,74 @@ function FileIcon({ mimeType }: { mimeType: string | null }) {
   return <File className="h-4 w-4 text-slate-400 shrink-0" />
 }
 
-const ENTITY_TYPE_OPTIONS: { value: DocumentEntityType; label: string }[] = [
-  { value: 'lead', label: ENTITY_TYPE_LABELS.lead },
-  { value: 'contract', label: ENTITY_TYPE_LABELS.contract },
-  { value: 'rent_payment', label: ENTITY_TYPE_LABELS.rent_payment },
-  { value: 'opening_project', label: ENTITY_TYPE_LABELS.opening_project },
-  { value: 'task', label: ENTITY_TYPE_LABELS.task },
-  { value: 'customer', label: ENTITY_TYPE_LABELS.customer },
-  { value: 'location', label: ENTITY_TYPE_LABELS.location },
-  { value: 'payment_transaction', label: ENTITY_TYPE_LABELS.payment_transaction },
-]
+const DOC_TYPE_TRANSLATIONS: Record<Locale, Record<DocumentType, string>> = {
+  th: {
+    RENTAL_CONTRACT: 'สัญญาเช่า',
+    TRANSFER_SLIP: 'สลิปโอนเงิน',
+    MAP: 'แผนที่',
+    VAT_DOCUMENT: 'เอกสาร VAT',
+    BRANCH_DOCUMENT: 'เอกสารสาขา',
+    EMPLOYMENT_DOCUMENT: 'เอกสารแรงงาน',
+    SIGNBOARD: 'ป้ายบริษัท',
+    PRE_OPEN_DOCUMENT: 'เอกสารก่อนเปิดร้าน',
+    OTHER: 'อื่นๆ',
+  },
+  en: {
+    RENTAL_CONTRACT: 'Rental Contract',
+    TRANSFER_SLIP: 'Transfer Slip',
+    MAP: 'Map',
+    VAT_DOCUMENT: 'VAT Document',
+    BRANCH_DOCUMENT: 'Branch Document',
+    EMPLOYMENT_DOCUMENT: 'Employment Document',
+    SIGNBOARD: 'Company Signboard',
+    PRE_OPEN_DOCUMENT: 'Pre-opening Document',
+    OTHER: 'Other',
+  },
+  my: {
+    RENTAL_CONTRACT: 'ငှားရမ်းမှုစာချုပ်',
+    TRANSFER_SLIP: 'ငွေလွှဲပြေစာ',
+    MAP: 'မြေပုံ',
+    VAT_DOCUMENT: 'အခွန် (VAT) စာရွက်စာတမ်း',
+    BRANCH_DOCUMENT: 'ရုံးခွဲ စာရွက်စာတမ်း',
+    EMPLOYMENT_DOCUMENT: 'အလုပ်သမား စာရွက်စာတမ်း',
+    SIGNBOARD: 'ကုမ္ပဏီဆိုင်းဘုတ်',
+    PRE_OPEN_DOCUMENT: 'ဆိုင်မဖွင့်မီ စာရွက်စာတမ်း',
+    OTHER: 'အခြား',
+  },
+}
+
+const ENTITY_TYPE_TRANSLATIONS: Record<Locale, Record<DocumentEntityType, string>> = {
+  th: {
+    lead: 'งานเช่า (Lead)',
+    contract: 'สัญญาเช่า',
+    rent_payment: 'ค่าเช่า',
+    opening_project: 'เปิดสาขา',
+    task: 'งาน',
+    customer: 'ลูกค้า',
+    location: 'สถานที่',
+    payment_transaction: 'ธุรกรรมการเงิน',
+  },
+  en: {
+    lead: 'Rental Lead',
+    contract: 'Contract',
+    rent_payment: 'Rent Payment',
+    opening_project: 'Branch Opening',
+    task: 'Task',
+    customer: 'Customer',
+    location: 'Location',
+    payment_transaction: 'Payment Transaction',
+  },
+  my: {
+    lead: 'ငှားရမ်းမှုအလားအလာ (Lead)',
+    contract: 'စာချုပ်',
+    rent_payment: 'အိမ်ငှားခပေးချေမှု',
+    opening_project: 'ဆိုင်ခွဲဖွင့်လှစ်ခြင်း',
+    task: 'လုပ်ငန်းတာဝန်',
+    customer: 'ဖောက်သည်',
+    location: 'နေရာတည်နေရာ',
+    payment_transaction: 'ငွေပေးချေမှုမှတ်တမ်း',
+  },
+}
 
 // ----------------------------------------------------------------
 // Main Component
@@ -83,6 +144,7 @@ export function DocumentCenterView({
   userRole,
   uploaderProfiles,
 }: DocumentCenterViewProps) {
+  const { t, locale } = useI18n()
   const canDelete = hasFullAccess(userRole)
 
   // ---- State ----
@@ -102,6 +164,9 @@ export function DocumentCenterView({
   const [downloadingId, setDownloadingId] = React.useState<string | null>(null)
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null)
+
+  const docTypeTranslations = DOC_TYPE_TRANSLATIONS[locale] || DOC_TYPE_TRANSLATIONS.th
+  const entityTypeTranslations = ENTITY_TYPE_TRANSLATIONS[locale] || ENTITY_TYPE_TRANSLATIONS.th
 
   // ---- Fetch ----
   React.useEffect(() => {
@@ -167,6 +232,12 @@ export function DocumentCenterView({
     search || filterDocType || filterEntityType || filterUploadedBy || filterDateFrom || filterDateTo
   )
 
+  const dateFromLabel = locale === 'th' ? 'วันที่ตั้งแต่' : locale === 'my' ? 'စတင်သည့်ရက်စွဲ' : 'Date From'
+  const dateToLabel = locale === 'th' ? 'ถึงวันที่' : locale === 'my' ? 'ပြီးဆုံးသည့်ရက်စွဲ' : 'Date To'
+  const allDocTypesLabel = `${t.common.all} ${t.documents.documentType}`
+  const allEntitiesLabel = `${t.common.all} Entity`
+  const allUploadersLabel = `${t.common.all}`
+
   // ----------------------------------------------------------------
   // Render
   // ----------------------------------------------------------------
@@ -175,9 +246,9 @@ export function DocumentCenterView({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Document Center</h1>
+          <h1 className="text-2xl font-bold">{t.documents.title}</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            จัดการเอกสารทั้งหมดในระบบ
+            {t.documents.subtitle}
           </p>
         </div>
       </div>
@@ -186,7 +257,7 @@ export function DocumentCenterView({
       <div className="rounded-xl border bg-card shadow-sm p-4 space-y-3">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Filter className="h-4 w-4" />
-          ตัวกรอง
+          {t.common.filter}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -197,7 +268,7 @@ export function DocumentCenterView({
               id="doc-search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ค้นหาชื่อไฟล์..."
+              placeholder={`${t.common.search} ${t.documents.fileName}...`}
               className="pl-9"
             />
           </div>
@@ -209,10 +280,10 @@ export function DocumentCenterView({
             onChange={(e) => setFilterDocType(e.target.value as DocumentType | '')}
             className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">ทุกประเภทเอกสาร</option>
+            <option value="">{allDocTypesLabel}</option>
             {DOCUMENT_TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {docTypeTranslations[opt.value] ?? opt.label}
               </option>
             ))}
           </select>
@@ -224,10 +295,10 @@ export function DocumentCenterView({
             onChange={(e) => setFilterEntityType(e.target.value as DocumentEntityType | '')}
             className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">ทุก Entity</option>
-            {ENTITY_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
+            <option value="">{allEntitiesLabel}</option>
+            {(Object.keys(entityTypeTranslations) as DocumentEntityType[]).map((key) => (
+              <option key={key} value={key}>
+                {entityTypeTranslations[key]}
               </option>
             ))}
           </select>
@@ -239,7 +310,7 @@ export function DocumentCenterView({
             onChange={(e) => setFilterUploadedBy(e.target.value)}
             className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">ทุกคน</option>
+            <option value="">{allUploadersLabel}</option>
             {uploaderProfiles.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.full_name}
@@ -249,7 +320,7 @@ export function DocumentCenterView({
 
           {/* Date from */}
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">วันที่ตั้งแต่</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{dateFromLabel}</label>
             <input
               id="filter-date-from"
               type="date"
@@ -261,7 +332,7 @@ export function DocumentCenterView({
 
           {/* Date to */}
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">ถึงวันที่</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{dateToLabel}</label>
             <input
               id="filter-date-to"
               type="date"
@@ -282,7 +353,7 @@ export function DocumentCenterView({
                 className="gap-1.5 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
-                ล้างตัวกรอง
+                {t.common.reset}
               </Button>
             </div>
           )}
@@ -292,7 +363,7 @@ export function DocumentCenterView({
       {/* Result count */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {loading ? 'กำลังโหลด...' : `พบ ${filtered.length.toLocaleString()} รายการ`}
+          {loading ? t.common.loading : `${t.common.total} ${filtered.length.toLocaleString()} ${t.common.items}`}
         </span>
       </div>
 
@@ -301,25 +372,27 @@ export function DocumentCenterView({
         {loading ? (
           <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">กำลังโหลดเอกสาร...</span>
+            <span className="text-sm">{t.common.loading}</span>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
             <FileText className="h-10 w-10 opacity-30" />
-            <p className="text-sm">ไม่พบเอกสาร</p>
+            <p className="text-sm">{locale === 'th' ? 'ไม่พบเอกสาร' : locale === 'my' ? 'စာရွက်စာတမ်း မရှိပါ' : 'No documents found'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">ชื่อไฟล์</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">ประเภทเอกสาร</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t.documents.fileName}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t.documents.documentType}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Entity</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden lg:table-cell">ขนาด</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden lg:table-cell">วันที่อัปโหลด</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden xl:table-cell">ผู้อัปโหลด</th>
-                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">จัดการ</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden lg:table-cell">{t.documents.fileSize}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden lg:table-cell">
+                    {locale === 'th' ? 'วันที่อัปโหลด' : locale === 'my' ? 'တင်သည့်ရက်စွဲ' : 'Upload Date'}
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden xl:table-cell">{t.documents.uploadedBy}</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -335,19 +408,19 @@ export function DocumentCenterView({
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="secondary" className="text-[11px]">
-                        {DOCUMENT_TYPE_LABELS[doc.document_type] ?? doc.document_type}
+                        {docTypeTranslations[doc.document_type] ?? doc.document_type}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       <span className="text-xs text-muted-foreground">
-                        {ENTITY_TYPE_LABELS[doc.entity_type] ?? doc.entity_type}
+                        {entityTypeTranslations[doc.entity_type] ?? doc.entity_type}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
                       {formatBytes(doc.file_size)}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">
-                      {formatDate(doc.created_at)}
+                      {formatDate(doc.created_at, locale)}
                     </td>
                     <td className="px-4 py-3 hidden xl:table-cell text-muted-foreground truncate max-w-[160px]">
                       {doc.profiles?.full_name ?? '-'}
@@ -359,7 +432,7 @@ export function DocumentCenterView({
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="ดูตัวอย่าง"
+                          title={locale === 'th' ? 'ดูตัวอย่าง' : locale === 'my' ? 'အစမ်းကြည့်' : 'Preview'}
                           onClick={() => setPreviewDoc(doc)}
                         >
                           <Eye className="h-4 w-4" />
@@ -369,7 +442,7 @@ export function DocumentCenterView({
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="ดาวน์โหลด"
+                          title={locale === 'th' ? 'ดาวน์โหลด' : locale === 'my' ? 'ဒေါင်းလုဒ်' : 'Download'}
                           disabled={downloadingId === doc.id}
                           onClick={() => handleDownload(doc)}
                         >
@@ -385,7 +458,7 @@ export function DocumentCenterView({
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="ลบ"
+                            title={t.common.delete}
                             disabled={deletingId === doc.id}
                             onClick={() => setConfirmDeleteId(doc.id)}
                           >
@@ -421,14 +494,14 @@ export function DocumentCenterView({
       <ConfirmDialog
         open={!!confirmDeleteId}
         onOpenChange={(open) => { if (!open) setConfirmDeleteId(null) }}
-        title="ลบเอกสาร"
+        title={t.common.confirmDelete}
         description={
           confirmDeleteId
-            ? `ต้องการลบไฟล์ "${docs.find((d) => d.id === confirmDeleteId)?.file_name ?? ''}" ใช่หรือไม่? ไม่สามารถกู้คืนได้`
-            : 'ต้องการลบเอกสารนี้ใช่หรือไม่?'
+            ? `${t.common.confirmDeleteDesc} "${docs.find((d) => d.id === confirmDeleteId)?.file_name ?? ''}"`
+            : t.common.confirmDeleteDesc
         }
-        confirmText="ยืนยันลบ"
-        cancelText="ยกเลิก"
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         variant="danger"
         loading={!!deletingId}
         onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId) }}

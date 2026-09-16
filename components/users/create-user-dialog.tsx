@@ -16,25 +16,48 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { ROLE_LABELS, type UserRole } from '@/lib/types/auth'
+import { type UserRole } from '@/lib/types/auth'
 import { createUserAction } from '@/lib/actions/users'
+import { useI18n } from '@/lib/i18n/context'
+import type { Locale } from '@/lib/i18n/types'
 
 interface CreateUserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const ROLES: { value: UserRole; label: string; desc: string }[] = [
-  { value: 'staff', label: ROLE_LABELS.staff, desc: 'จัดการข้อมูลทั่วไป' },
-  { value: 'operation', label: ROLE_LABELS.operation, desc: 'ดูแลงานเปิดสาขาและสถานที่' },
-  { value: 'accounting', label: ROLE_LABELS.accounting, desc: 'ดูแลสัญญาและค่าเช่า' },
-  { value: 'hr', label: ROLE_LABELS.hr, desc: 'จัดการบุคลากร' },
-  { value: 'viewer', label: ROLE_LABELS.viewer, desc: 'ดูข้อมูลอย่างเดียว' },
-  { value: 'admin', label: ROLE_LABELS.admin, desc: 'ผู้ดูแลระบบ จัดการผู้ใช้ได้' },
-  { value: 'owner', label: ROLE_LABELS.owner, desc: 'เจ้าของระบบ สิทธิ์สูงสุด' },
-]
+const ROLE_OPTIONS: Record<Locale, { value: UserRole; label: string; desc: string }[]> = {
+  th: [
+    { value: 'staff', label: 'พนักงาน', desc: 'จัดการข้อมูลทั่วไป' },
+    { value: 'operation', label: 'ฝ่ายปฏิบัติการ', desc: 'ดูแลงานเปิดสาขาและสถานที่' },
+    { value: 'accounting', label: 'บัญชี', desc: 'ดูแลสัญญาและค่าเช่า' },
+    { value: 'hr', label: 'HR', desc: 'จัดการบุคลากร' },
+    { value: 'viewer', label: 'ผู้ดูข้อมูล', desc: 'ดูข้อมูลอย่างเดียว' },
+    { value: 'admin', label: 'ผู้ดูแลระบบ', desc: 'ผู้ดูแลระบบ จัดการผู้ใช้ได้' },
+    { value: 'owner', label: 'เจ้าของระบบ', desc: 'เจ้าของระบบ สิทธิ์สูงสุด' },
+  ],
+  en: [
+    { value: 'staff', label: 'Staff', desc: 'General data management' },
+    { value: 'operation', label: 'Operations', desc: 'Branch opening and location management' },
+    { value: 'accounting', label: 'Accounting', desc: 'Contracts and rent payments' },
+    { value: 'hr', label: 'HR', desc: 'Personnel management' },
+    { value: 'viewer', label: 'Viewer', desc: 'Read-only access' },
+    { value: 'admin', label: 'Administrator', desc: 'System admin, user management' },
+    { value: 'owner', label: 'System Owner', desc: 'Full system permissions' },
+  ],
+  my: [
+    { value: 'staff', label: 'ဝန်ထမ်း', desc: 'အထွေထွေ အချက်အလက် စီမံခန့်ခွဲမှု' },
+    { value: 'operation', label: 'လုပ်ငန်းဆောင်ရွက်ရေး', desc: 'ဆိုင်ခွဲဖွင့်လှစ်ခြင်းနှင့် နေရာစီမံမှု' },
+    { value: 'accounting', label: 'စာရင်းကိုင်', desc: 'စာချုပ်များနှင့် ငှားရမ်းခများ' },
+    { value: 'hr', label: 'လူ့စွမ်းအားအရင်းအမြစ်', desc: 'ဝန်ထမ်း စီမံခန့်ခွဲမှု' },
+    { value: 'viewer', label: 'ကြည့်ရှုသူ', desc: 'ကြည့်ရှုခွင့်သာ' },
+    { value: 'admin', label: 'အက်ဒမင်', desc: 'စနစ်အုပ်ချုပ်သူ၊ အသုံးပြုသူ စီမံခန့်ခွဲမှု' },
+    { value: 'owner', label: 'စနစ်ပိုင်ရှင်', desc: 'အပြည့်အဝ လုပ်ပိုင်ခွင့်' },
+  ],
+}
 
 export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
+  const { t, locale } = useI18n()
   const router = useRouter()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -45,6 +68,8 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
   const [phone, setPhone] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const roles = ROLE_OPTIONS[locale] || ROLE_OPTIONS.th
 
   const resetForm = () => {
     setFullName('')
@@ -69,15 +94,15 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
     setErrorMsg(null)
 
     if (!fullName.trim()) {
-      setErrorMsg('กรุณากรอกชื่อ-นามสกุล')
+      setErrorMsg(locale === 'th' ? 'กรุณากรอกชื่อ-นามสกุล' : locale === 'my' ? 'အမည် အပြည့်အစုံ ထည့်သွင်းပါ' : 'Please enter full name')
       return
     }
     if (!email.trim() || !email.includes('@')) {
-      setErrorMsg('กรุณากรอกอีเมลที่ถูกต้อง')
+      setErrorMsg(locale === 'th' ? 'กรุณากรอกอีเมลที่ถูกต้อง' : locale === 'my' ? 'မှန်ကန်သော အီးမေးလ် ထည့်သွင်းပါ' : 'Please enter a valid email address')
       return
     }
     if (!password || password.length < 6) {
-      setErrorMsg('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร')
+      setErrorMsg(locale === 'th' ? 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' : locale === 'my' ? 'စကားဝှက်သည် အနည်းဆုံး ၆ လုံး ရှိရမည်' : 'Password must be at least 6 characters')
       return
     }
 
@@ -93,7 +118,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       })
 
       if (!res.success) {
-        setErrorMsg(res.error || 'เกิดข้อผิดพลาดในการสร้างผู้ใช้งาน')
+        setErrorMsg(res.error || (locale === 'th' ? 'เกิดข้อผิดพลาดในการสร้างผู้ใช้งาน' : 'Error creating user'))
         return
       }
 
@@ -114,10 +139,14 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
             <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">
               <UserPlus className="w-5 h-5" />
             </div>
-            <DialogTitle className="text-xl font-bold text-slate-900">เพิ่มผู้ใช้งานใหม่</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-slate-900">{t.users.addNew}</DialogTitle>
           </div>
           <DialogDescription className="text-sm text-slate-500">
-            สร้างบัญชีผู้ใช้งานสำหรับเข้าสู่ระบบบริหารงานเช่าและเปิดสาขา
+            {locale === 'th'
+              ? 'สร้างบัญชีผู้ใช้งานสำหรับเข้าสู่ระบบบริหารงานเช่าและเปิดสาขา'
+              : locale === 'my'
+              ? 'စနစ်သို့ ဝင်ရောက်ရန် အသုံးပြုသူအကောင့် ဖန်တီးပါ'
+              : 'Create a user account for accessing the system'}
           </DialogDescription>
         </DialogHeader>
 
@@ -131,11 +160,11 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
           {/* ชื่อ-นามสกุล */}
           <div className="space-y-1.5">
             <Label htmlFor="create-full-name">
-              ชื่อ-นามสกุล <span className="text-red-500">*</span>
+              {t.users.fullName} <span className="text-red-500">*</span>
             </Label>
             <Input
               id="create-full-name"
-              placeholder="เช่น สมชาย ใจดี"
+              placeholder={locale === 'th' ? 'เช่น สมชาย ใจดี' : locale === 'my' ? 'ဥပမာ မောင်မောင်' : 'e.g. John Doe'}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
@@ -146,7 +175,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="create-email">
-                Email (ล็อกอิน) <span className="text-red-500">*</span>
+                {t.users.email} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="create-email"
@@ -158,7 +187,9 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="create-phone">เบอร์โทรศัพท์</Label>
+              <Label htmlFor="create-phone">
+                {locale === 'th' ? 'เบอร์โทรศัพท์' : locale === 'my' ? 'ဖုန်းနံပါတ်' : 'Phone Number'}
+              </Label>
               <Input
                 id="create-phone"
                 placeholder="081-234-5678"
@@ -171,13 +202,13 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
           {/* Password */}
           <div className="space-y-1.5">
             <Label htmlFor="create-password">
-              รหัสผ่านเริ่มต้น <span className="text-red-500">*</span>
+              {locale === 'th' ? 'รหัสผ่านเริ่มต้น' : locale === 'my' ? 'စကားဝှက်' : 'Password'} <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
               <Input
                 id="create-password"
                 type={showPassword ? 'text' : 'password'}
-                placeholder="อย่างน้อย 6 ตัวอักษร"
+                placeholder={locale === 'th' ? 'อย่างน้อย 6 ตัวอักษร' : locale === 'my' ? 'အနည်းဆုံး ၆ လုံး' : 'At least 6 characters'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -196,13 +227,13 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
           {/* Role & Department */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="create-role">ตำแหน่ง / สิทธิ์ <span className="text-red-500">*</span></Label>
+              <Label htmlFor="create-role">{t.users.role} <span className="text-red-500">*</span></Label>
               <Select
                 id="create-role"
                 value={role}
                 onChange={(e) => setRole(e.target.value as UserRole)}
               >
-                {ROLES.map((r) => (
+                {roles.map((r) => (
                   <option key={r.value} value={r.value}>
                     {r.label}
                   </option>
@@ -210,10 +241,12 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="create-department">แผนก</Label>
+              <Label htmlFor="create-department">
+                {locale === 'th' ? 'แผนก' : locale === 'my' ? 'ဌာန' : 'Department'}
+              </Label>
               <Input
                 id="create-department"
-                placeholder="เช่น การเงิน, จัดซื้อ, สาขา"
+                placeholder={locale === 'th' ? 'เช่น การเงิน, จัดซื้อ, สาขา' : locale === 'my' ? 'ဥပမာ ဘဏ္ဍာရေး' : 'e.g. Finance, Operations'}
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
               />
@@ -227,7 +260,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               onClick={() => handleClose(false)}
               disabled={isSubmitting}
             >
-              ยกเลิก
+              {t.common.cancel}
             </Button>
             <Button
               type="submit"
@@ -237,12 +270,12 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  กำลังสร้าง...
+                  {t.common.saving}
                 </>
               ) : (
                 <>
                   <UserPlus className="h-4 w-4" />
-                  สร้างผู้ใช้งาน
+                  {t.common.create}
                 </>
               )}
             </Button>

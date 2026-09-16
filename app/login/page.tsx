@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,18 +9,23 @@ import { loginAction } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-const loginSchema = z.object({
-  email: z.string().min(1, 'กรุณากรอก Email').email('รูปแบบ Email ไม่ถูกต้อง'),
-  password: z.string().min(1, 'กรุณากรอก Password'),
-})
-
-type LoginFormValues = z.infer<typeof loginSchema>
+import { LanguageSwitcher } from '@/components/layout/language-switcher'
+import { useI18n } from '@/lib/i18n/context'
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const { t } = useI18n()
+
+  const loginSchema = useMemo(() => {
+    return z.object({
+      email: z.string().min(1, t.auth.requiredEmail).email(t.auth.invalidEmail),
+      password: z.string().min(1, t.auth.requiredPassword),
+    })
+  }, [t])
+
+  type LoginFormValues = z.infer<typeof loginSchema>
 
   const {
     register,
@@ -44,7 +49,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative">
+      {/* Top right language switcher */}
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSwitcher variant="outline" className="bg-slate-800/80 text-white border-slate-700 hover:bg-slate-700" />
+      </div>
+
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6">
@@ -54,8 +64,8 @@ export default function LoginPage() {
               <Building2 className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">ระบบบริหารงานเช่าและเปิดสาขา</h1>
-              <p className="text-sm text-muted-foreground mt-1">กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+              <h1 className="text-xl font-bold text-foreground">{t.auth.loginTitle}</h1>
+              <p className="text-sm text-muted-foreground mt-1">{t.auth.loginSubtitle}</p>
             </div>
           </div>
 
@@ -70,12 +80,12 @@ export default function LoginPage() {
 
             {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.email}</Label>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="กรอก Email ของคุณ"
+                placeholder={t.auth.emailPlaceholder}
                 disabled={isPending}
                 {...register('email')}
                 className={errors.email ? 'border-red-400 focus-visible:ring-red-400' : ''}
@@ -87,13 +97,13 @@ export default function LoginPage() {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.auth.password}</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  placeholder="กรอก Password ของคุณ"
+                  placeholder={t.auth.passwordPlaceholder}
                   disabled={isPending}
                   {...register('password')}
                   className={errors.password ? 'border-red-400 focus-visible:ring-red-400 pr-10' : 'pr-10'}
@@ -103,7 +113,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword((v) => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
-                  aria-label={showPassword ? 'ซ่อน Password' : 'แสดง Password'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -120,14 +130,14 @@ export default function LoginPage() {
               disabled={isPending}
               id="login-submit"
             >
-              {isPending ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+              {isPending ? t.auth.loggingIn : t.auth.login}
             </Button>
           </form>
         </div>
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-400 mt-6">
-          &copy; {new Date().getFullYear()} ระบบบริหารงานเช่าและเปิดสาขา
+          &copy; {new Date().getFullYear()} {t.common.systemName} {t.common.systemSubtitle}
         </p>
       </div>
     </div>

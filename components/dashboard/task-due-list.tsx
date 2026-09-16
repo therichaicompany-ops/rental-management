@@ -1,24 +1,11 @@
+'use client'
+
 import * as React from 'react'
 import Link from 'next/link'
 import { CalendarClock, AlertCircle, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useI18n } from '@/lib/i18n/context'
 import type { DueTask } from '@/lib/actions/dashboard'
-
-const STATUS_LABELS: Record<string, string> = {
-  todo: 'รอทำ',
-  in_progress: 'กำลังทำ',
-  waiting: 'รอดำเนินการ',
-  done: 'เสร็จแล้ว',
-  skipped: 'ข้ามไป',
-  cancelled: 'ยกเลิก',
-}
-
-function formatDate(s: string): string {
-  return new Date(s).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-  })
-}
 
 function isOverdue(d: string): boolean {
   return d < new Date().toISOString().slice(0, 10)
@@ -33,22 +20,39 @@ interface TaskDueListProps {
 }
 
 export function TaskDueList({ tasks }: TaskDueListProps) {
+  const { t, locale } = useI18n()
+  const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
+
+  function formatDate(s: string): string {
+    return new Date(s).toLocaleDateString(intlLocale, {
+      day: 'numeric',
+      month: 'short',
+    })
+  }
+
+  const getStatusLabel = (status: string) => {
+    if (status === 'todo') return t.opening.checklist
+    if (status === 'in_progress') return t.opening.currentStage
+    if (status === 'done') return t.common.success
+    return status
+  }
+
   if (tasks.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
-        ไม่มีงานที่ครบกำหนดในช่วงนี้
+        {t.dashboard.noUrgentTasks}
       </p>
     )
   }
 
   return (
     <div className="divide-y divide-border">
-      {tasks.map((t) => {
-        const overdue = isOverdue(t.due_date)
-        const today = isToday(t.due_date)
+      {tasks.map((task) => {
+        const overdue = isOverdue(task.due_date)
+        const today = isToday(task.due_date)
 
         return (
-          <div key={t.id} className="flex items-start gap-3 py-3 hover:bg-muted/30 px-1 rounded transition-colors">
+          <div key={task.id} className="flex items-start gap-3 py-3 hover:bg-muted/30 px-1 rounded transition-colors">
             <div className="mt-0.5 shrink-0">
               {overdue ? (
                 <AlertCircle className="h-4 w-4 text-red-500" />
@@ -60,11 +64,11 @@ export function TaskDueList({ tasks }: TaskDueListProps) {
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{t.task_name}</p>
+              <p className="text-sm font-medium truncate">{task.task_name}</p>
               <div className="flex flex-wrap gap-x-2 text-xs text-muted-foreground mt-0.5">
-                <span className="truncate">{t.location_name}</span>
-                {t.assigned_name && (
-                  <span className="text-muted-foreground/70">· {t.assigned_name}</span>
+                <span className="truncate">{task.location_name}</span>
+                {task.assigned_name && (
+                  <span className="text-muted-foreground/70">· {task.assigned_name}</span>
                 )}
               </div>
             </div>
@@ -75,21 +79,21 @@ export function TaskDueList({ tasks }: TaskDueListProps) {
                   overdue ? 'text-red-600' : today ? 'text-orange-600' : 'text-slate-600'
                 }`}
               >
-                {formatDate(t.due_date)}
+                {formatDate(task.due_date)}
               </span>
               <Badge
                 variant="outline"
                 className="text-[9px] px-1.5 py-0"
               >
-                {STATUS_LABELS[t.status] ?? t.status}
+                {getStatusLabel(task.status)}
               </Badge>
             </div>
 
             <Link
-              href={`/opening/${t.opening_project_id}`}
+              href={`/opening/${task.opening_project_id}`}
               className="shrink-0 self-center text-primary hover:underline text-xs ml-1"
             >
-              ดู
+              {t.common.view}
             </Link>
           </div>
         )

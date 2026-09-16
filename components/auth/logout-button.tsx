@@ -4,6 +4,7 @@ import { logoutAction } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import { LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 
 interface LogoutButtonProps {
   variant?: 'default' | 'ghost' | 'outline'
@@ -12,6 +13,7 @@ interface LogoutButtonProps {
 
 export function LogoutButton({ variant = 'ghost', showIcon = true }: LogoutButtonProps) {
   const [isPending, setIsPending] = useState(false)
+  const { t } = useI18n()
 
   async function handleLogout() {
     setIsPending(true)
@@ -29,7 +31,7 @@ export function LogoutButton({ variant = 'ghost', showIcon = true }: LogoutButto
         id="logout-button"
       >
         {showIcon && <LogOut className="h-4 w-4" />}
-        {isPending ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ'}
+        {isPending ? '...' : t.auth.logout}
       </Button>
     </form>
   )

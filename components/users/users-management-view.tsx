@@ -26,9 +26,41 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
-import { ROLE_LABELS, type UserProfile, type UserRole } from '@/lib/types/auth'
+import { type UserProfile, type UserRole } from '@/lib/types/auth'
 import { CreateUserDialog } from '@/components/users/create-user-dialog'
 import { toggleUserStatusAction, updateUserRoleAction } from '@/lib/actions/users'
+import { useI18n } from '@/lib/i18n/context'
+import type { Locale } from '@/lib/i18n/types'
+
+const ROLE_TRANSLATIONS: Record<Locale, Record<UserRole, string>> = {
+  th: {
+    owner: 'เจ้าของระบบ',
+    admin: 'ผู้ดูแลระบบ',
+    accounting: 'บัญชี',
+    hr: 'HR',
+    operation: 'ฝ่ายปฏิบัติการ',
+    staff: 'พนักงาน',
+    viewer: 'ผู้ดูข้อมูล',
+  },
+  en: {
+    owner: 'System Owner',
+    admin: 'Administrator',
+    accounting: 'Accounting',
+    hr: 'HR',
+    operation: 'Operations',
+    staff: 'Staff',
+    viewer: 'Viewer',
+  },
+  my: {
+    owner: 'စနစ်ပိုင်ရှင်',
+    admin: 'အက်ဒမင်',
+    accounting: 'စာရင်းကိုင်',
+    hr: 'လူ့စွမ်းအားအရင်းအမြစ်',
+    operation: 'လုပ်ငန်းဆောင်ရွက်ရေး',
+    staff: 'ဝန်ထမ်း',
+    viewer: 'ကြည့်ရှုသူ',
+  },
+}
 
 interface UsersManagementViewProps {
   initialProfiles: UserProfile[]
@@ -39,12 +71,15 @@ export function UsersManagementView({
   initialProfiles,
   currentUserId,
 }: UsersManagementViewProps) {
+  const { t, locale } = useI18n()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [actionError, setActionError] = useState<string | null>(null)
+
+  const roles = ROLE_TRANSLATIONS[locale] || ROLE_TRANSLATIONS.th
 
   // Filter profiles
   const filteredProfiles = initialProfiles.filter((p) => {
@@ -62,12 +97,19 @@ export function UsersManagementView({
 
   const handleToggleStatus = (userId: string, currentStatus: boolean) => {
     if (userId === currentUserId) {
-      alert('ไม่สามารถปิดการใช้งานบัญชีของคุณเองได้')
+      alert(locale === 'th' ? 'ไม่สามารถปิดการใช้งานบัญชีของคุณเองได้' : locale === 'my' ? 'သင့်ကိုယ်ပိုင်အကောင့်ကို ပိတ်၍မရပါ' : 'Cannot deactivate your own account')
       return
     }
 
-    const actionText = currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน'
-    if (!confirm(`คุณต้องการ ${actionText} บัญชีผู้ใช้นี้ใช่หรือไม่?`)) {
+    const actionText = currentStatus
+      ? (locale === 'th' ? 'ปิดใช้งาน' : locale === 'my' ? 'ပိတ်ရန်' : 'deactivate')
+      : (locale === 'th' ? 'เปิดใช้งาน' : locale === 'my' ? 'ဖွင့်ရန်' : 'activate')
+    const confirmMsg = locale === 'th'
+      ? `คุณต้องการ ${actionText} บัญชีผู้ใช้นี้ใช่หรือไม่?`
+      : locale === 'my'
+      ? `ဤအကောင့်ကို ${actionText} လိုပါသလား?`
+      : `Are you sure you want to ${actionText} this user account?`
+    if (!confirm(confirmMsg)) {
       return
     }
 
@@ -75,7 +117,7 @@ export function UsersManagementView({
     startTransition(async () => {
       const res = await toggleUserStatusAction(userId, currentStatus)
       if (!res.success) {
-        setActionError(res.error || 'เกิดข้อผิดพลาดในการเปลี่ยนสถานะ')
+        setActionError(res.error || (locale === 'th' ? 'เกิดข้อผิดพลาดในการเปลี่ยนสถานะ' : 'Error updating status'))
       } else {
         router.refresh()
       }
@@ -84,7 +126,7 @@ export function UsersManagementView({
 
   const handleUpdateRole = (userId: string, newRole: UserRole) => {
     if (userId === currentUserId) {
-      alert('ไม่สามารถเปลี่ยนตำแหน่งของตนเองได้')
+      alert(locale === 'th' ? 'ไม่สามารถเปลี่ยนตำแหน่งของตนเองได้' : locale === 'my' ? 'သင့်ကိုယ်ပိုင်ရာထူးကို ပြောင်းလဲ၍မရပါ' : 'Cannot change your own role')
       return
     }
 
@@ -92,7 +134,7 @@ export function UsersManagementView({
     startTransition(async () => {
       const res = await updateUserRoleAction(userId, newRole)
       if (!res.success) {
-        setActionError(res.error || 'เกิดข้อผิดพลาดในการเปลี่ยนตำแหน่ง')
+        setActionError(res.error || (locale === 'th' ? 'เกิดข้อผิดพลาดในการเปลี่ยนตำแหน่ง' : 'Error updating role'))
       } else {
         router.refresh()
       }
@@ -104,22 +146,22 @@ export function UsersManagementView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">ผู้ใช้งานระบบ</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">{t.users.title}</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            จัดการบัญชีผู้ใช้งาน กำหนดสิทธิ์ และควบคุมการเข้าถึงระบบ
+            {t.users.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-sm text-slate-600 font-medium">
             <Users className="h-4 w-4 text-slate-500" />
-            <span>ทั้งหมด {initialProfiles.length} คน</span>
+            <span>{t.common.total} {initialProfiles.length} {t.common.items}</span>
           </div>
           <Button
             onClick={() => setIsCreateOpen(true)}
             className="bg-orange-500 hover:bg-orange-600 text-white gap-2 shadow-sm font-medium"
           >
             <UserPlus className="h-4 w-4" />
-            เพิ่มผู้ใช้งาน
+            {t.users.addNew}
           </Button>
         </div>
       </div>
@@ -131,7 +173,7 @@ export function UsersManagementView({
             onClick={() => setActionError(null)}
             className="text-red-500 hover:text-red-700 text-xs font-semibold"
           >
-            ปิด
+            {locale === 'th' ? 'ปิด' : locale === 'my' ? 'ပိတ်' : 'Close'}
           </button>
         </div>
       )}
@@ -141,7 +183,7 @@ export function UsersManagementView({
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="ค้นหาตามชื่อ, อีเมล, แผนก หรือเบอร์โทร..."
+            placeholder={`${t.common.search} ${t.users.fullName}, ${t.users.email}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 bg-slate-50 border-slate-200 text-sm h-9"
@@ -153,10 +195,10 @@ export function UsersManagementView({
             onChange={(e) => setRoleFilter(e.target.value)}
             className="h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 w-full sm:w-auto"
           >
-            <option value="all">ทุกตำแหน่ง</option>
-            {Object.entries(ROLE_LABELS).map(([key, label]) => (
+            <option value="all">{t.common.all} {t.users.role}</option>
+            {(Object.keys(roles) as UserRole[]).map((key) => (
               <option key={key} value={key}>
-                {label}
+                {roles[key]}
               </option>
             ))}
           </select>
@@ -168,11 +210,13 @@ export function UsersManagementView({
         {filteredProfiles.length === 0 ? (
           <div className="text-center py-12 px-4">
             <Users className="mx-auto h-12 w-12 text-slate-300" />
-            <h3 className="mt-2 text-sm font-semibold text-slate-900">ไม่พบผู้ใช้งาน</h3>
+            <h3 className="mt-2 text-sm font-semibold text-slate-900">
+              {locale === 'th' ? 'ไม่พบผู้ใช้งาน' : locale === 'my' ? 'အသုံးပြုသူ မရှိပါ' : 'No users found'}
+            </h3>
             <p className="mt-1 text-sm text-slate-500">
               {searchQuery || roleFilter !== 'all'
-                ? 'ลองปรับเปลี่ยนเงื่อนไขการค้นหา'
-                : 'ยังไม่มีผู้ใช้งานในระบบ'}
+                ? (locale === 'th' ? 'ลองปรับเปลี่ยนเงื่อนไขการค้นหา' : locale === 'my' ? 'ရှာဖွေမှု အခြေအနေများကို ပြောင်းလဲကြည့်ပါ' : 'Try adjusting your search criteria')
+                : (locale === 'th' ? 'ยังไม่มีผู้ใช้งานในระบบ' : locale === 'my' ? 'စနစ်တွင် အသုံးပြုသူ မရှိသေးပါ' : 'No users in the system yet')}
             </p>
           </div>
         ) : (
@@ -180,13 +224,13 @@ export function UsersManagementView({
             <table className="w-full text-sm" id="users-table">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                  <th className="px-4 py-3 font-semibold text-slate-700">ผู้ใช้งาน</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">Email</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">ตำแหน่ง / สิทธิ์</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">แผนก</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">เบอร์โทร</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700">สถานะ</th>
-                  <th className="px-4 py-3 text-right font-semibold text-slate-700">การจัดการ</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{t.users.fullName}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{t.users.email}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{t.users.role}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{locale === 'th' ? 'แผนก' : locale === 'my' ? 'ဌာန' : 'Department'}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{locale === 'th' ? 'เบอร์โทร' : locale === 'my' ? 'ဖုန်း' : 'Phone'}</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700">{t.users.status}</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-700">{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -204,10 +248,10 @@ export function UsersManagementView({
                           </div>
                           <div>
                             <div className="font-medium text-slate-900 flex items-center gap-1.5">
-                              {profile.full_name || 'ไม่ระบุชื่อ'}
+                              {profile.full_name || (locale === 'th' ? 'ไม่ระบุชื่อ' : locale === 'my' ? 'အမည်မဖော်ပြထား' : 'No Name')}
                               {isSelf && (
                                 <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-normal">
-                                  คุณ
+                                  {locale === 'th' ? 'คุณ' : locale === 'my' ? 'သင်' : 'You'}
                                 </span>
                               )}
                             </div>
@@ -227,7 +271,7 @@ export function UsersManagementView({
                           }
                         >
                           <ShieldCheck className="w-3 h-3 mr-1 inline" />
-                          {ROLE_LABELS[profile.role] || profile.role}
+                          {roles[profile.role] || profile.role}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-slate-600">
@@ -254,12 +298,12 @@ export function UsersManagementView({
                         {profile.is_active ? (
                           <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-xs font-medium border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                            ใช้งาน
+                            {locale === 'th' ? 'ใช้งาน' : locale === 'my' ? 'အသုံးပြုဆဲ' : 'Active'}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full text-xs font-medium border border-slate-200">
                             <XCircle className="w-3 h-3 text-slate-400" />
-                            ปิดใช้งาน
+                            {locale === 'th' ? 'ปิดใช้งาน' : locale === 'my' ? 'ပိတ်ထားသည်' : 'Inactive'}
                           </span>
                         )}
                       </td>
@@ -277,16 +321,16 @@ export function UsersManagementView({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 shadow-lg">
                             <DropdownMenuLabel className="text-xs text-slate-400">
-                              เปลี่ยนตำแหน่ง
+                              {locale === 'th' ? 'เปลี่ยนตำแหน่ง' : locale === 'my' ? 'ရာထူး ပြောင်းရန်' : 'Change Role'}
                             </DropdownMenuLabel>
-                            {Object.entries(ROLE_LABELS).map(([key, label]) => (
+                            {(Object.keys(roles) as UserRole[]).map((key) => (
                               <DropdownMenuItem
                                 key={key}
                                 disabled={profile.role === key || (isSelf && key !== 'owner')}
-                                onClick={() => handleUpdateRole(profile.id, key as UserRole)}
+                                onClick={() => handleUpdateRole(profile.id, key)}
                                 className="text-xs cursor-pointer"
                               >
-                                {label} {profile.role === key && '✓'}
+                                {roles[key]} {profile.role === key && '✓'}
                               </DropdownMenuItem>
                             ))}
                             <DropdownMenuSeparator />
@@ -297,7 +341,9 @@ export function UsersManagementView({
                                 profile.is_active ? 'text-red-600 focus:text-red-600' : 'text-emerald-600 focus:text-emerald-600'
                               }`}
                             >
-                              {profile.is_active ? 'ปิดการใช้งาน' : 'เปิดใช้งานบัญชี'}
+                              {profile.is_active
+                                ? (locale === 'th' ? 'ปิดการใช้งาน' : locale === 'my' ? 'ပိတ်ရန်' : 'Deactivate')
+                                : (locale === 'th' ? 'เปิดใช้งานบัญชี' : locale === 'my' ? 'ဖွင့်ရန်' : 'Activate')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

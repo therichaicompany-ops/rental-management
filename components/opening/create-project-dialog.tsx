@@ -24,6 +24,35 @@ import {
 } from '@/lib/types/opening'
 import type { UserProfile } from '@/lib/types/auth'
 import { createOpeningProjectAction } from '@/lib/actions/opening'
+import { useI18n } from '@/lib/i18n/context'
+import type { Locale } from '@/lib/i18n/types'
+
+const PROJECT_STATUS_TRANSLATIONS: Record<Locale, Record<string, string>> = {
+  th: {
+    not_started: 'ยังไม่เริ่ม',
+    in_progress: 'กำลังดำเนินการ',
+    on_hold: 'พักไว้',
+    ready_to_open: 'พร้อมเปิด',
+    opened: 'เปิดแล้ว',
+    cancelled: 'ยกเลิก',
+  },
+  en: {
+    not_started: 'Not Started',
+    in_progress: 'In Progress',
+    on_hold: 'On Hold',
+    ready_to_open: 'Ready to Open',
+    opened: 'Opened',
+    cancelled: 'Cancelled',
+  },
+  my: {
+    not_started: 'မစတင်ရသေး',
+    in_progress: 'လုပ်ဆောင်ဆဲ',
+    on_hold: 'ဆိုင်းငံ့ထား',
+    ready_to_open: 'ဖွင့်လှစ်ရန် အဆင်သင့်',
+    opened: 'ဖွင့်လှစ်ပြီး',
+    cancelled: 'ပယ်ဖျက်ပြီး',
+  },
+}
 
 interface EligibleContract {
   id: string
@@ -50,8 +79,11 @@ export function CreateProjectDialog({
   staffProfiles = [],
   defaultContractId = '',
 }: CreateProjectDialogProps) {
+  const { t, locale } = useI18n()
   const router = useRouter()
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
+
+  const statusTranslations = PROJECT_STATUS_TRANSLATIONS[locale] || PROJECT_STATUS_LABELS
 
   const {
     register,
@@ -107,10 +139,14 @@ export function CreateProjectDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-slate-900">
             <Building2 className="h-5 w-5 text-primary-600" />
-            สร้างโครงการเปิดสาขาใหม่
+            {t.opening.newProject}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            สร้างโครงการเพื่อติดตาม 13 ขั้นตอนการเปิดสาขาและสร้างงานย่อยอัตโนมัติตามสัญญา
+            {locale === 'th'
+              ? 'สร้างโครงการเพื่อติดตาม 13 ขั้นตอนการเปิดสาขาและสร้างงานย่อยอัตโนมัติตามสัญญา'
+              : locale === 'my'
+              ? 'ဆိုင်ခွဲဖွင့်လှစ်ခြင်း အဆင့်များကို ခြေရာခံရန် စီမံကိန်း ဖန်တီးပါ'
+              : 'Create project to track branch opening stages and auto-generate tasks'}
           </DialogDescription>
         </DialogHeader>
 
@@ -123,10 +159,16 @@ export function CreateProjectDialog({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              สัญญาเช่าที่เกี่ยวข้อง <span className="text-rose-500">*</span>
+              {t.contracts.title} <span className="text-rose-500">*</span>
             </label>
             <Select {...register('contract_id')}>
-              <option value="">-- เลือกสัญญาเช่า (สถานะ Agreed / Active) --</option>
+              <option value="">
+                {locale === 'th'
+                  ? '-- เลือกสัญญาเช่า (สถานะ Agreed / Active) --'
+                  : locale === 'my'
+                  ? '-- စာချုပ် ရွေးချယ်ပါ --'
+                  : '-- Select Contract (Agreed / Active) --'}
+              </option>
               {contracts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.contract_no} - {c.locations?.location_name} ({c.locations?.province})
@@ -140,10 +182,10 @@ export function CreateProjectDialog({
 
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              รหัสโครงการ (Project No.)
+              {t.opening.projectName}
             </label>
             <Input
-              placeholder="ปล่อยว่างเพื่อให้ระบบสร้างให้อัตโนมัติ"
+              placeholder={locale === 'th' ? 'ปล่อยว่างเพื่อให้ระบบสร้างให้อัตโนมัติ' : locale === 'my' ? 'အလိုအလျောက် သတ်မှတ်ရန် ကွက်လပ်ထားပါ' : 'Leave blank for auto-generation'}
               {...register('project_no')}
             />
           </div>
@@ -151,19 +193,19 @@ export function CreateProjectDialog({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                วันเป้าหมายเปิดสาขา (Target Open Date)
+                {t.opening.targetOpenDate}
               </label>
               <Input type="date" {...register('target_open_date')} />
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                สถานะโครงการ
+                {t.common.status}
               </label>
               <Select {...register('status')}>
                 {Object.entries(PROJECT_STATUS_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>
-                    {label}
+                    {statusTranslations[val] ?? label}
                   </option>
                 ))}
               </Select>
@@ -173,10 +215,12 @@ export function CreateProjectDialog({
           {staffProfiles.length > 0 && (
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                ผู้รับผิดชอบโครงการ
+                {locale === 'th' ? 'ผู้รับผิดชอบโครงการ' : locale === 'my' ? 'စီမံကိန်း တာဝန်ခံ' : 'Assigned To'}
               </label>
               <Select {...register('assigned_to')}>
-                <option value="">-- ไม่ระบุผู้รับผิดชอบ --</option>
+                <option value="">
+                  {locale === 'th' ? '-- ไม่ระบุผู้รับผิดชอบ --' : locale === 'my' ? '-- တာဝန်ခံ မသတ်မှတ်ထား --' : '-- Unassigned --'}
+                </option>
                 {staffProfiles.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.full_name || p.email}
@@ -188,11 +232,11 @@ export function CreateProjectDialog({
 
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
-              หมายเหตุโครงการ
+              {locale === 'th' ? 'หมายเหตุโครงการ' : locale === 'my' ? 'မှတ်ချက်' : 'Notes'}
             </label>
             <Textarea
               rows={2}
-              placeholder="ระบุข้อกำหนดเพิ่มเติม หรือเป้าหมายในการเปิดสาขานี้..."
+              placeholder={locale === 'th' ? 'ระบุข้อกำหนดเพิ่มเติม หรือเป้าหมายในการเปิดสาขานี้...' : locale === 'my' ? 'နောက်ထပ် လိုအပ်ချက်များ ရေးပါ...' : 'Additional notes or requirements...'}
               {...register('note')}
             />
           </div>
@@ -204,14 +248,14 @@ export function CreateProjectDialog({
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
-              ยกเลิก
+              {t.common.cancel}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
               className="bg-primary-600 hover:bg-primary-700 text-white"
             >
-              {isSubmitting ? 'กำลังสร้าง...' : 'สร้างโครงการเปิดสาขา'}
+              {isSubmitting ? t.common.saving : t.opening.newProject}
             </Button>
           </DialogFooter>
         </form>

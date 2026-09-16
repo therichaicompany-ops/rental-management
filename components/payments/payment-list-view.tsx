@@ -24,6 +24,8 @@ import {
 } from '@/lib/types/contracts-payments'
 import type { UserRole } from '@/lib/types/auth'
 
+import { useI18n } from '@/lib/i18n/context'
+
 interface PaymentListViewProps {
   payments: RentPaymentWithRelations[]
   userRole?: UserRole
@@ -32,11 +34,23 @@ interface PaymentListViewProps {
 type TabType = 'all' | 'payable' | 'receivable' | 'overdue' | 'paid'
 
 export function PaymentListView({ payments }: PaymentListViewProps) {
+  const { t, locale } = useI18n()
+  const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
 
   const [activeTab, setActiveTab] = React.useState<TabType>('all')
   const [searchTerm, setSearchTerm] = React.useState('')
   const [periodFilter, setPeriodFilter] = React.useState<string>('all')
   const [statusFilter, setStatusFilter] = React.useState<string>('all')
+
+  const getPaymentStatusLabel = (status: string): string => {
+    const map: Record<string, string> = {
+      pending: t.payments.statuses.pending,
+      partial: t.payments.statuses.partial,
+      overdue: t.payments.statuses.overdue,
+      paid: t.payments.statuses.paid,
+    }
+    return map[status] ?? (PAYMENT_STATUS_LABELS[status as RentPaymentStatus] || status)
+  }
 
   // Extract distinct billing periods
   const billingPeriods = React.useMemo(() => {
@@ -128,10 +142,10 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            ค่าเช่า & การชำระเงิน (Rent Payments)
+            {t.payments.title}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            ติดตามค่างวดรายเดือน ทั้งบริษัทจ่ายให้เจ้าของ และรับเงินจากลูกค้า พร้อมระบบบันทึกชำระเงิน
+            {t.payments.subtitle}
           </p>
         </div>
       </div>
@@ -140,46 +154,46 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-700">ค้างชำระ (Overdue)</span>
+            <span className="text-xs font-semibold text-rose-700">{t.payments.statuses.overdue}</span>
             <AlertTriangle className="h-4 w-4 text-rose-500" />
           </div>
           <p className="text-xl font-bold text-rose-700 mt-2">
-            ฿{kpis.overdueTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            ฿{kpis.overdueTotal.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
           </p>
-          <span className="text-xs text-rose-600">{kpis.overdueCount} งวดที่เกินกำหนด</span>
+          <span className="text-xs text-rose-600">{kpis.overdueCount} {t.common.items}</span>
         </div>
 
         <div className="bg-indigo-50/60 border border-indigo-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-indigo-700">บริษัทต้องจ่าย (Payable)</span>
+            <span className="text-xs font-semibold text-indigo-700">{t.payments.statuses.pending}</span>
             <ArrowUpRight className="h-4 w-4 text-indigo-500" />
           </div>
           <p className="text-xl font-bold text-indigo-700 mt-2">
-            ฿{kpis.payableTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            ฿{kpis.payableTotal.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
           </p>
-          <span className="text-xs text-indigo-600">ยอดรวมค่าเช่าจ่ายเจ้าของ</span>
+          <span className="text-xs text-indigo-600">{t.landlords.title}</span>
         </div>
 
         <div className="bg-teal-50/60 border border-teal-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-teal-700">ลูกค้าต้องจ่าย (Receivable)</span>
+            <span className="text-xs font-semibold text-teal-700">{t.customers.title}</span>
             <ArrowDownLeft className="h-4 w-4 text-teal-500" />
           </div>
           <p className="text-xl font-bold text-teal-700 mt-2">
-            ฿{kpis.receivableTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            ฿{kpis.receivableTotal.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
           </p>
-          <span className="text-xs text-teal-600">ยอดรวมค่าเช่ารับลูกค้า</span>
+          <span className="text-xs text-teal-600">{t.customers.title}</span>
         </div>
 
         <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-emerald-700">ชำระแล้วทั้งหมด (Paid)</span>
+            <span className="text-xs font-semibold text-emerald-700">{t.payments.statuses.paid}</span>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </div>
           <p className="text-xl font-bold text-emerald-700 mt-2">
-            ฿{kpis.paidTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            ฿{kpis.paidTotal.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
           </p>
-          <span className="text-xs text-emerald-600">ยอดเงินที่ทำรายการแล้ว</span>
+          <span className="text-xs text-emerald-600">{t.payments.statuses.paid}</span>
         </div>
       </div>
 
@@ -193,7 +207,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          งวดทั้งหมด ({payments.length})
+          {t.common.all} ({payments.length})
         </button>
 
         <button
@@ -204,7 +218,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          บริษัทต้องจ่าย ({payments.filter((p) => p.payment_type === 'payable').length})
+          {t.landlords.title} ({payments.filter((p) => p.payment_type === 'payable').length})
         </button>
 
         <button
@@ -215,7 +229,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          ลูกค้าต้องจ่าย ({payments.filter((p) => p.payment_type === 'receivable').length})
+          {t.customers.title} ({payments.filter((p) => p.payment_type === 'receivable').length})
         </button>
 
         <button
@@ -226,7 +240,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          ค้างชำระ ({kpis.overdueCount})
+          {t.payments.statuses.overdue} ({kpis.overdueCount})
         </button>
 
         <button
@@ -237,7 +251,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          ชำระแล้ว ({payments.filter((p) => p.status === 'paid').length})
+          {t.payments.statuses.paid} ({payments.filter((p) => p.status === 'paid').length})
         </button>
       </div>
 
@@ -246,7 +260,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="ค้นหาสัญญา, สถานที่, ผู้ให้เช่า หรือผู้เช่า..."
+            placeholder={`${t.common.search} (${t.contracts.contractNumber}, ${t.locations.title})...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 bg-white"
@@ -255,30 +269,30 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
 
         {billingPeriods.length > 0 && (
           <select
-            aria-label="กรองงวดเดือน"
+            aria-label="Filter billing period"
             value={periodFilter}
             onChange={(e) => setPeriodFilter(e.target.value)}
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            <option value="all">ทุกงวดเดือน</option>
+            <option value="all">{t.common.all} ({t.payments.paymentMonth})</option>
             {billingPeriods.map((bp) => (
               <option key={bp} value={bp}>
-                งวด {bp}
+                {bp}
               </option>
             ))}
           </select>
         )}
 
         <select
-          aria-label="กรองสถานะงวดชำระ"
+          aria-label="Filter payment status"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
-          <option value="all">สถานะทั้งหมด</option>
-          {Object.entries(PAYMENT_STATUS_LABELS).map(([val, label]) => (
+          <option value="all">{t.common.all} ({t.common.status})</option>
+          {Object.entries(PAYMENT_STATUS_LABELS).map(([val]) => (
             <option key={val} value={val}>
-              {label}
+              {getPaymentStatusLabel(val)}
             </option>
           ))}
         </select>
@@ -288,16 +302,12 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
       {filteredPayments.length === 0 ? (
         <div className="space-y-4">
           <EmptyState
-            title="ไม่พบข้อมูลงวดชำระค่าเช่า"
-            message={
-              searchTerm || periodFilter !== 'all' || statusFilter !== 'all'
-                ? 'ไม่พบงวดชำระที่ตรงกับเงื่อนไขการค้นหา ลองปรับตัวกรองใหม่'
-                : 'ยังไม่มีงวดชำระค่าเช่าในระบบ คุณสามารถสร้างงวดได้ที่หน้ารายละเอียดสัญญาเช่า'
-            }
+            title={t.common.noData}
+            message={t.common.noDataDesc}
           />
           <div className="flex justify-center">
             <Button asChild className="bg-primary-600 hover:bg-primary-700 text-white">
-              <Link href="/contracts">ไปยังสัญญาเช่า</Link>
+              <Link href="/contracts">{t.contracts.title}</Link>
             </Button>
           </div>
         </div>
@@ -307,16 +317,16 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">งวดเดือน</th>
-                  <th className="px-4 py-3">สัญญา & สถานที่</th>
-                  <th className="px-4 py-3">ประเภท</th>
-                  <th className="px-4 py-3">คู่สัญญา</th>
-                  <th className="px-4 py-3">วันครบกำหนด</th>
-                  <th className="px-4 py-3 text-right">ยอดสุทธิ (Net)</th>
-                  <th className="px-4 py-3 text-right">ชำระแล้ว</th>
-                  <th className="px-4 py-3 text-right">คงเหลือ</th>
-                  <th className="px-4 py-3 text-center">สถานะ</th>
-                  <th className="px-4 py-3 text-right">จัดการ</th>
+                  <th className="px-4 py-3">{t.payments.paymentMonth}</th>
+                  <th className="px-4 py-3">{t.contracts.title} & {t.locations.title}</th>
+                  <th className="px-4 py-3">{t.common.status}</th>
+                  <th className="px-4 py-3">{t.landlords.title} / {t.customers.title}</th>
+                  <th className="px-4 py-3">{t.payments.dueDate}</th>
+                  <th className="px-4 py-3 text-right">{t.payments.amount}</th>
+                  <th className="px-4 py-3 text-right">{t.payments.paidAmount}</th>
+                  <th className="px-4 py-3 text-right">{t.payments.remainingAmount}</th>
+                  <th className="px-4 py-3 text-center">{t.common.status}</th>
+                  <th className="px-4 py-3 text-right">{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -428,7 +438,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
                           variant="outline"
                           className={`${badgeVariant.bg} ${badgeVariant.text} ${badgeVariant.border} text-[10px] font-medium`}
                         >
-                          {PAYMENT_STATUS_LABELS[p.status as RentPaymentStatus] || p.status}
+                          {getPaymentStatusLabel(p.status)}
                         </Badge>
                       </td>
 
@@ -441,7 +451,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
                           className="h-7 px-2.5 text-xs text-primary-700 bg-primary-50/50 border-primary-200 hover:bg-primary-100"
                         >
                           <Link href={`/rent-payments/${p.id}`}>
-                            บันทึกชำระ
+                            {t.payments.recordPayment}
                             <ExternalLink className="ml-1 h-3 w-3" />
                           </Link>
                         </Button>

@@ -1,17 +1,11 @@
+'use client'
+
 import * as React from 'react'
 import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useI18n } from '@/lib/i18n/context'
 import type { ActiveProject } from '@/lib/actions/dashboard'
-
-const STATUS_LABELS: Record<string, string> = {
-  not_started: 'ยังไม่เริ่ม',
-  in_progress: 'กำลังดำเนินการ',
-  on_hold: 'พักไว้',
-  ready_to_open: 'พร้อมเปิด',
-  opened: 'เปิดแล้ว',
-  cancelled: 'ยกเลิก',
-}
 
 const STATUS_COLORS: Record<string, string> = {
   not_started: 'bg-slate-50 text-slate-600 border-slate-200',
@@ -22,24 +16,35 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-slate-50 text-slate-400 border-slate-100',
 }
 
-function formatDate(s: string | null): string {
-  if (!s) return '-'
-  return new Date(s).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
-}
-
 interface OpeningSummaryTableProps {
   projects: ActiveProject[]
 }
 
 export function OpeningSummaryTable({ projects }: OpeningSummaryTableProps) {
+  const { t, locale } = useI18n()
+  const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
+
+  function formatDate(s: string | null): string {
+    if (!s) return '-'
+    return new Date(s).toLocaleDateString(intlLocale, {
+      day: 'numeric',
+      month: 'short',
+      year: '2-digit',
+    })
+  }
+
+  const getStatusLabel = (status: string) => {
+    if (status === 'not_started') return t.opening.stages.s1
+    if (status === 'in_progress') return t.opening.currentStage
+    if (status === 'ready_to_open') return t.opening.targetOpenDate
+    if (status === 'opened') return t.opening.stages.s8
+    return status
+  }
+
   if (projects.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
-        ไม่มีโครงการเปิดสาขาที่กำลังดำเนินการ
+        {t.common.noData}
       </p>
     )
   }
@@ -49,11 +54,11 @@ export function OpeningSummaryTable({ projects }: OpeningSummaryTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40">
-            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">โครงการ</th>
-            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">Stage ปัจจุบัน</th>
-            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">วันเปิดร้าน</th>
-            <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">ความคืบหน้า</th>
-            <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">สถานะ</th>
+            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{t.opening.projectName}</th>
+            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">{t.opening.currentStage}</th>
+            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">{t.opening.targetOpenDate}</th>
+            <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">{t.opening.progress}</th>
+            <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">{t.common.status}</th>
             <th className="px-3 py-2.5"></th>
           </tr>
         </thead>
@@ -91,7 +96,7 @@ export function OpeningSummaryTable({ projects }: OpeningSummaryTableProps) {
                 </td>
                 <td className="px-3 py-2.5 text-center">
                   <Badge variant="outline" className={`text-[10px] ${color}`}>
-                    {STATUS_LABELS[p.status] ?? p.status}
+                    {getStatusLabel(p.status)}
                   </Badge>
                 </td>
                 <td className="px-3 py-2.5 text-center">

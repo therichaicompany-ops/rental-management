@@ -16,6 +16,7 @@ import {
   type NegotiationLogFormValues,
 } from '@/lib/types/rental-leads'
 import { createNegotiationLogAction } from '@/lib/actions/rental-leads'
+import { useI18n } from '@/lib/i18n/context'
 
 interface AddNegotiationDialogProps {
   open: boolean
@@ -28,6 +29,7 @@ export function AddNegotiationDialog({
   onOpenChange,
   leadId,
 }: AddNegotiationDialogProps) {
+  const { t, locale } = useI18n()
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
@@ -87,10 +89,14 @@ export function AddNegotiationDialog({
               </div>
               <div>
                 <DialogPrimitive.Title className="text-base font-semibold text-slate-900 leading-none">
-                  บันทึกการเจรจาต่อรอง
+                  {t.rentalLeads.addNegotiation}
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="text-xs text-slate-500 mt-1">
-                  บันทึกประวัติการโทรคุย เสนอราคา หรือผลการติดตามงานเช่า
+                  {locale === 'th'
+                    ? 'บันทึกประวัติการโทรคุย เสนอราคา หรือผลการติดตามงานเช่า'
+                    : locale === 'my'
+                    ? 'ဖုန်းခေါ်ဆိုမှု၊ ဈေးနှုန်းကမ်းလှမ်းမှု သို့မဟုတ် နောက်ဆက်တွဲ ရလဒ်များကို မှတ်တမ်းတင်ပါ'
+                    : 'Record call history, price proposals, or follow-up results'}
                 </DialogPrimitive.Description>
               </div>
             </div>
@@ -115,7 +121,9 @@ export function AddNegotiationDialog({
             {/* Row 1: Date & Method */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="contact_date">วันและเวลาที่ติดต่อ *</Label>
+                <Label htmlFor="contact_date">
+                  {locale === 'th' ? 'วันและเวลาที่ติดต่อ *' : locale === 'my' ? 'ဆက်သွယ်သည့် ရက်စွဲနှင့် အချိန် *' : 'Contact Date & Time *'}
+                </Label>
                 <Input
                   id="contact_date"
                   type="datetime-local"
@@ -127,14 +135,16 @@ export function AddNegotiationDialog({
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="contact_method">ช่องทางการติดต่อ *</Label>
+                <Label htmlFor="contact_method">
+                  {locale === 'th' ? 'ช่องทางการติดต่อ *' : locale === 'my' ? 'ဆက်သွယ်သည့် နည်းလမ်း *' : 'Contact Method *'}
+                </Label>
                 <Select id="contact_method" {...register('contact_method')}>
-                  <option value="phone">📞 โทรศัพท์</option>
+                  <option value="phone">📞 {locale === 'th' ? 'โทรศัพท์' : locale === 'my' ? 'ဖုန်း' : 'Phone'}</option>
                   <option value="line">💬 LINE</option>
-                  <option value="onsite">🏢 ลงพื้นที่ / พบตัวจริง</option>
+                  <option value="onsite">🏢 {locale === 'th' ? 'ลงพื้นที่ / พบตัวจริง' : locale === 'my' ? 'နေရာသို့ သွားရောက်တွေ့ဆုံခြင်း' : 'On-site Meeting'}</option>
                   <option value="facebook">🌐 Facebook / Social</option>
-                  <option value="email">✉️ อีเมล</option>
-                  <option value="other">📌 ช่องทางอื่นๆ</option>
+                  <option value="email">✉️ {locale === 'th' ? 'อีเมล' : locale === 'my' ? 'အီးမေးလ်' : 'Email'}</option>
+                  <option value="other">📌 {locale === 'th' ? 'ช่องทางอื่นๆ' : locale === 'my' ? 'အခြား နည်းလမ်း' : 'Other'}</option>
                 </Select>
                 {errors.contact_method && (
                   <p className="text-xs text-red-500">{errors.contact_method.message}</p>
@@ -145,10 +155,12 @@ export function AddNegotiationDialog({
             {/* Row 2: Contact Person & Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="contact_person">ชื่อผู้ที่คุยด้วย</Label>
+                <Label htmlFor="contact_person">
+                  {locale === 'th' ? 'ชื่อผู้ที่คุยด้วย' : locale === 'my' ? 'ဆက်သွယ်ပြောဆိုသူ အမည်' : 'Contact Person'}
+                </Label>
                 <Input
                   id="contact_person"
-                  placeholder="เช่น เจ้าของตึก / ผู้จัดการพื้นที่"
+                  placeholder={locale === 'th' ? 'เช่น เจ้าของตึก / ผู้จัดการพื้นที่' : locale === 'my' ? 'ဥပမာ အဆောက်အအုံပိုင်ရှင်' : 'e.g. Building Owner'}
                   {...register('contact_person')}
                 />
                 {errors.contact_person && (
@@ -157,10 +169,12 @@ export function AddNegotiationDialog({
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="contact_phone">เบอร์โทรศัพท์ที่ติดต่อ</Label>
+                <Label htmlFor="contact_phone">
+                  {locale === 'th' ? 'เบอร์โทรศัพท์ที่ติดต่อ' : locale === 'my' ? 'ဆက်သွယ်ရန် ဖုန်းနံပါတ်' : 'Contact Phone'}
+                </Label>
                 <Input
                   id="contact_phone"
-                  placeholder="เช่น 081-234-5678"
+                  placeholder="081-234-5678"
                   {...register('contact_phone')}
                 />
                 {errors.contact_phone && (
@@ -171,23 +185,29 @@ export function AddNegotiationDialog({
 
             {/* Row 3: Pricing negotiated (Rent, Deposit) */}
             <div className="rounded-lg bg-slate-50 p-3 border border-slate-200/80 space-y-2">
-              <p className="text-xs font-semibold text-slate-700">ตัวเลขราคาที่เจรจาในรอบนี้ (ถ้ามีการต่อรอง)</p>
+              <p className="text-xs font-semibold text-slate-700">
+                {locale === 'th' ? 'ตัวเลขราคาที่เจรจาในรอบนี้ (ถ้ามีการต่อรอง)' : locale === 'my' ? 'ညှိနှိုင်းရရှိသော ဈေးနှုန်း (ရှိပါက)' : 'Negotiated Pricing (if any)'}
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="monthly_rent" className="text-xs">ค่าเช่าที่คุย (บาท/เดือน)</Label>
+                  <Label htmlFor="monthly_rent" className="text-xs">
+                    {t.contracts.monthlyRent}
+                  </Label>
                   <Input
                     id="monthly_rent"
                     type="number"
-                    placeholder="เช่น 27000 (ต่อรองลดเหลือ)"
+                    placeholder="27000"
                     {...register('monthly_rent')}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="deposit_amount" className="text-xs">เงินมัดจำ / ประกัน (บาท)</Label>
+                  <Label htmlFor="deposit_amount" className="text-xs">
+                    {t.contracts.depositAmount}
+                  </Label>
                   <Input
                     id="deposit_amount"
                     type="number"
-                    placeholder="เช่น 54000"
+                    placeholder="54000"
                     {...register('deposit_amount')}
                   />
                 </div>
@@ -196,10 +216,12 @@ export function AddNegotiationDialog({
 
             {/* Negotiation Detail */}
             <div className="space-y-1">
-              <Label htmlFor="negotiation_detail">รายละเอียดการเจรจา *</Label>
+              <Label htmlFor="negotiation_detail">
+                {locale === 'th' ? 'รายละเอียดการเจรจา *' : locale === 'my' ? 'ညှိနှိုင်းမှု အသေးစိတ် *' : 'Negotiation Details *'}
+              </Label>
               <Textarea
                 id="negotiation_detail"
-                placeholder="สรุปประเด็นที่คุย เช่น เจ้าของยินยอมลดค่าเช่าจาก 30,000 เหลือ 27,000 บาท หากทำสัญญา 3 ปี..."
+                placeholder={locale === 'th' ? 'สรุปประเด็นที่คุย เช่น เจ้าของยินยอมลดค่าเช่า...' : locale === 'my' ? 'ညှိနှိုင်းမှု အသေးစိတ် ရေးပါ...' : 'Summary of discussion...'}
                 rows={3}
                 {...register('negotiation_detail')}
               />
@@ -211,19 +233,23 @@ export function AddNegotiationDialog({
             {/* Row 4: Result & Next Action */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="result">ผลการเจรจา / ข้อสรุป</Label>
+                <Label htmlFor="result">
+                  {locale === 'th' ? 'ผลการเจรจา / ข้อสรุป' : locale === 'my' ? 'ညှိနှိုင်းမှု ရလဒ် / ကောက်ချက်' : 'Result / Summary'}
+                </Label>
                 <Input
                   id="result"
-                  placeholder="เช่น ยอมรับข้อเสนอราคา, ขอคิดดูก่อน 3 วัน"
+                  placeholder={locale === 'th' ? 'เช่น ยอมรับข้อเสนอราคา' : locale === 'my' ? 'ဥပမာ ကမ်းလှမ်းချက် လက်ခံသည်' : 'e.g. Offer accepted'}
                   {...register('result')}
                 />
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="next_action">สิ่งที่ต้องทำต่อ (Next Action)</Label>
+                <Label htmlFor="next_action">
+                  {locale === 'th' ? 'สิ่งที่ต้องทำต่อ (Next Action)' : locale === 'my' ? 'နောက်ထပ် လုပ်ဆောင်ရန် (Next Action)' : 'Next Action'}
+                </Label>
                 <Input
                   id="next_action"
-                  placeholder="เช่น ร่างสัญญาเช่า, โทรติดตามผลวันศุกร์"
+                  placeholder={locale === 'th' ? 'เช่น ร่างสัญญาเช่า' : locale === 'my' ? 'ဥပမာ စာချုပ် ရေးဆွဲရန်' : 'e.g. Draft contract'}
                   {...register('next_action')}
                 />
               </div>
@@ -231,7 +257,9 @@ export function AddNegotiationDialog({
 
             {/* Next follow up date */}
             <div className="space-y-1">
-              <Label htmlFor="next_follow_up_date">นัดหมายติดตามผลครั้งถัดไป</Label>
+              <Label htmlFor="next_follow_up_date">
+                {locale === 'th' ? 'นัดหมายติดตามผลครั้งถัดไป' : locale === 'my' ? 'နောက်တစ်ကြိမ် တွေ့ဆုံ/ဆက်သွယ်မည့် ရက်စွဲ' : 'Next Follow-up Date'}
+              </Label>
               <Input
                 id="next_follow_up_date"
                 type="date"
@@ -247,18 +275,18 @@ export function AddNegotiationDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isPending}
               >
-                ยกเลิก
+                {t.common.cancel}
               </Button>
               <Button type="submit" disabled={isPending} className="gap-2 min-w-[120px]">
                 {isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    กำลังบันทึก...
+                    {t.common.saving}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4" />
-                    บันทึกข้อมูล
+                    {t.common.save}
                   </>
                 )}
               </Button>

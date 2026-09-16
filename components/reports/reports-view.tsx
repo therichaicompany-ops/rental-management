@@ -27,25 +27,32 @@ import {
   type RentByLocationRow,
 } from '@/lib/actions/reports'
 
+import { useI18n } from '@/lib/i18n/context'
+import type { Locale } from '@/lib/i18n/types'
+
 // ----------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------
-const THAI_MONTHS_SHORT = [
-  '', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
-]
+const MONTHS_SHORT: Record<Locale, string[]> = {
+  th: ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+  en: ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  my: ['', 'ဇန်', 'ဖေ', 'မတ်', 'ဧ', 'မေ', 'ဇွန်', 'ဇူ', 'သြ', 'စက်', 'အောက်', 'နို', 'ဒီ'],
+}
 
-function baht(n: number): string {
-  return new Intl.NumberFormat('th-TH', {
+function baht(n: number, loc: Locale = 'th'): string {
+  const l = loc === 'th' ? 'th-TH' : loc === 'my' ? 'my-MM' : 'en-US'
+  return new Intl.NumberFormat(l, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n)
 }
 
-function fmtDate(s: string | null): string {
+function fmtDate(s: string | null, loc: Locale = 'th'): string {
   if (!s) return '-'
   const d = new Date(s)
-  return `${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth() + 1]} ${d.getFullYear() + 543}`
+  const months = MONTHS_SHORT[loc] || MONTHS_SHORT.th
+  const year = loc === 'th' ? d.getFullYear() + 543 : d.getFullYear()
+  return `${d.getDate()} ${months[d.getMonth() + 1]} ${year}`
 }
 
 // ----------------------------------------------------------------
@@ -72,13 +79,31 @@ function exportCsv(headers: string[], rows: string[][]): void {
 // ----------------------------------------------------------------
 // Status label helpers
 // ----------------------------------------------------------------
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  pending: 'รอชำระ',
-  partial: 'บางส่วน',
-  overdue: 'ค้างชำระ',
-  paid: 'ชำระแล้ว',
-  cancelled: 'ยกเลิก',
-  waived: 'ยกเว้น',
+const PAYMENT_STATUS_TRANSLATIONS: Record<Locale, Record<string, string>> = {
+  th: {
+    pending: 'รอชำระ',
+    partial: 'บางส่วน',
+    overdue: 'ค้างชำระ',
+    paid: 'ชำระแล้ว',
+    cancelled: 'ยกเลิก',
+    waived: 'ยกเว้น',
+  },
+  en: {
+    pending: 'Pending',
+    partial: 'Partial',
+    overdue: 'Overdue',
+    paid: 'Paid',
+    cancelled: 'Cancelled',
+    waived: 'Waived',
+  },
+  my: {
+    pending: 'စောင့်ဆိုင်းဆဲ',
+    partial: 'တစ်စိတ်တစ်ပိုင်း',
+    overdue: 'ရက်လွန်',
+    paid: 'ပေးချေပြီး',
+    cancelled: 'ပယ်ဖျက်ပြီး',
+    waived: 'ကင်းလွတ်ခွင့်',
+  },
 }
 
 const PAYMENT_STATUS_COLORS: Record<string, string> = {
@@ -90,38 +115,117 @@ const PAYMENT_STATUS_COLORS: Record<string, string> = {
   waived: 'bg-violet-50 text-violet-600 border-violet-200',
 }
 
-const OPENING_STATUS_LABELS: Record<string, string> = {
-  not_started: 'ยังไม่เริ่ม',
-  in_progress: 'กำลังดำเนินการ',
-  on_hold: 'พักไว้',
-  ready_to_open: 'พร้อมเปิด',
-  opened: 'เปิดแล้ว',
-  cancelled: 'ยกเลิก',
+const OPENING_STATUS_TRANSLATIONS: Record<Locale, Record<string, string>> = {
+  th: {
+    not_started: 'ยังไม่เริ่ม',
+    in_progress: 'กำลังดำเนินการ',
+    on_hold: 'พักไว้',
+    ready_to_open: 'พร้อมเปิด',
+    opened: 'เปิดแล้ว',
+    cancelled: 'ยกเลิก',
+  },
+  en: {
+    not_started: 'Not Started',
+    in_progress: 'In Progress',
+    on_hold: 'On Hold',
+    ready_to_open: 'Ready to Open',
+    opened: 'Opened',
+    cancelled: 'Cancelled',
+  },
+  my: {
+    not_started: 'မစတင်ရသေး',
+    in_progress: 'လုပ်ဆောင်ဆဲ',
+    on_hold: 'ဆိုင်းငံ့ထား',
+    ready_to_open: 'ဖွင့်လှစ်ရန် အဆင်သင့်',
+    opened: 'ဖွင့်လှစ်ပြီး',
+    cancelled: 'ပယ်ဖျက်ပြီး',
+  },
 }
 
-const TASK_STATUS_LABELS: Record<string, string> = {
-  todo: 'รอทำ',
-  in_progress: 'กำลังทำ',
-  waiting: 'รอ',
-  done: 'เสร็จ',
-  skipped: 'ข้าม',
-  cancelled: 'ยกเลิก',
+const TASK_STATUS_TRANSLATIONS: Record<Locale, Record<string, string>> = {
+  th: {
+    todo: 'รอทำ',
+    in_progress: 'กำลังทำ',
+    waiting: 'รอ',
+    done: 'เสร็จ',
+    skipped: 'ข้าม',
+    cancelled: 'ยกเลิก',
+  },
+  en: {
+    todo: 'To Do',
+    in_progress: 'In Progress',
+    waiting: 'Waiting',
+    done: 'Done',
+    skipped: 'Skipped',
+    cancelled: 'Cancelled',
+  },
+  my: {
+    todo: 'လုပ်ဆောင်ရန်',
+    in_progress: 'လုပ်ဆောင်ဆဲ',
+    waiting: 'စောင့်ဆိုင်းဆဲ',
+    done: 'ပြီးစီး',
+    skipped: 'ကျော်သွားသည်',
+    cancelled: 'ပယ်ဖျက်ပြီး',
+  },
 }
 
 // ----------------------------------------------------------------
 // Tabs
 // ----------------------------------------------------------------
-const TABS = [
-  { id: 'payable', label: 'บริษัทต้องจ่าย' },
-  { id: 'receivable', label: 'ลูกค้าต้องจ่าย' },
-  { id: 'overdue', label: 'ค้างชำระ' },
-  { id: 'opening_stage', label: 'เปิดสาขาตาม Stage' },
-  { id: 'task_assignee', label: 'งานตามผู้รับผิดชอบ' },
-  { id: 'monthly', label: 'ค่าเช่ารายเดือน' },
-  { id: 'by_location', label: 'ค่าเช่าตามสถานที่' },
+const TAB_KEYS = [
+  'payable',
+  'receivable',
+  'overdue',
+  'opening_stage',
+  'task_assignee',
+  'monthly',
+  'by_location',
 ] as const
 
-type TabId = (typeof TABS)[number]['id']
+type TabId = (typeof TAB_KEYS)[number]
+
+const TAB_TRANSLATIONS: Record<Locale, Record<TabId, string>> = {
+  th: {
+    payable: 'บริษัทต้องจ่าย',
+    receivable: 'ลูกค้าต้องจ่าย',
+    overdue: 'ค้างชำระ',
+    opening_stage: 'เปิดสาขาตาม Stage',
+    task_assignee: 'งานตามผู้รับผิดชอบ',
+    monthly: 'ค่าเช่ารายเดือน',
+    by_location: 'ค่าเช่าตามสถานที่',
+  },
+  en: {
+    payable: 'Payable',
+    receivable: 'Receivable',
+    overdue: 'Overdue',
+    opening_stage: 'Opening by Stage',
+    task_assignee: 'Tasks by Assignee',
+    monthly: 'Monthly Rent',
+    by_location: 'Rent by Location',
+  },
+  my: {
+    payable: 'ကုမ္ပဏီ ပေးချေရန်',
+    receivable: 'ဖောက်သည် ပေးချေရန်',
+    overdue: 'ရက်လွန်ငွေ',
+    opening_stage: 'အဆင့်လိုက် ဆိုင်ခွဲဖွင့်လှစ်ခြင်း',
+    task_assignee: 'တာဝန်ခံအလိုက် လုပ်ငန်းများ',
+    monthly: 'လစဉ် အိမ်ငှားခ',
+    by_location: 'နေရာအလိုက် အိမ်ငှားခ',
+  },
+}
+
+const THAI_MONTHS_SHORT = MONTHS_SHORT.th
+const PAYMENT_STATUS_LABELS = PAYMENT_STATUS_TRANSLATIONS.th
+const OPENING_STATUS_LABELS = OPENING_STATUS_TRANSLATIONS.th
+const TASK_STATUS_LABELS: Record<string, string> = TASK_STATUS_TRANSLATIONS.th
+interface TabItem {
+  id: TabId
+  label: string
+}
+const TABS: TabItem[] = TAB_KEYS.map((id) => ({
+  id,
+  label: TAB_TRANSLATIONS.th[id],
+}))
 
 // ----------------------------------------------------------------
 // Filter Bar
@@ -133,6 +237,7 @@ interface FilterBarProps {
   onReset: () => void
   showStatus?: boolean
   statusOptions?: { value: string; label: string }[]
+  locale?: Locale
 }
 
 function FilterBar({
@@ -142,38 +247,49 @@ function FilterBar({
   onReset,
   showStatus,
   statusOptions,
+  locale = 'th',
 }: FilterBarProps) {
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i)
+  const months = MONTHS_SHORT[locale] || MONTHS_SHORT.th
+  const yearLabel = locale === 'th' ? 'ปี' : locale === 'my' ? 'ခုနှစ်' : 'Year'
+  const allYearsLabel = locale === 'th' ? 'ทุกปี' : locale === 'my' ? 'နှစ်အားလုံး' : 'All years'
+  const monthLabel = locale === 'th' ? 'เดือน' : locale === 'my' ? 'လ' : 'Month'
+  const allMonthsLabel = locale === 'th' ? 'ทุกเดือน' : locale === 'my' ? 'လအားလုံး' : 'All months'
+  const provinceLabel = locale === 'th' ? 'จังหวัด' : locale === 'my' ? 'ပြည်နယ်/တိုင်း' : 'Province'
+  const allProvincesLabel = locale === 'th' ? 'ทุกจังหวัด' : locale === 'my' ? 'တိုင်းအားလုံး' : 'All provinces'
+  const statusLabel = locale === 'th' ? 'สถานะ' : locale === 'my' ? 'အခြေအနေ' : 'Status'
+  const allStatusesLabel = locale === 'th' ? 'ทุกสถานะ' : locale === 'my' ? 'အခြေအနေအားလုံး' : 'All statuses'
+  const clearLabel = locale === 'th' ? 'ล้าง' : locale === 'my' ? 'ရှင်းရန်' : 'Reset'
 
   return (
     <div className="flex flex-wrap gap-2 items-end">
       {/* Year */}
       <div>
-        <label className="text-xs text-muted-foreground mb-1 block">ปี</label>
+        <label className="text-xs text-muted-foreground mb-1 block">{yearLabel}</label>
         <select
           id="filter-year"
           value={filters.year ?? ''}
           onChange={(e) => onChange({ ...filters, year: e.target.value ? Number(e.target.value) : undefined })}
           className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <option value="">ทุกปี</option>
+          <option value="">{allYearsLabel}</option>
           {years.map((y) => (
-            <option key={y} value={y}>{y + 543}</option>
+            <option key={y} value={y}>{locale === 'th' ? y + 543 : y}</option>
           ))}
         </select>
       </div>
 
       {/* Month */}
       <div>
-        <label className="text-xs text-muted-foreground mb-1 block">เดือน</label>
+        <label className="text-xs text-muted-foreground mb-1 block">{monthLabel}</label>
         <select
           id="filter-month"
           value={filters.month ?? ''}
           onChange={(e) => onChange({ ...filters, month: e.target.value ? Number(e.target.value) : undefined })}
           className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <option value="">ทุกเดือน</option>
-          {THAI_MONTHS_SHORT.slice(1).map((m, i) => (
+          <option value="">{allMonthsLabel}</option>
+          {months.slice(1).map((m: string, i: number) => (
             <option key={i + 1} value={i + 1}>{m}</option>
           ))}
         </select>
@@ -181,14 +297,14 @@ function FilterBar({
 
       {/* Province */}
       <div>
-        <label className="text-xs text-muted-foreground mb-1 block">จังหวัด</label>
+        <label className="text-xs text-muted-foreground mb-1 block">{provinceLabel}</label>
         <select
           id="filter-province"
           value={filters.province ?? ''}
           onChange={(e) => onChange({ ...filters, province: e.target.value || undefined })}
           className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          <option value="">ทุกจังหวัด</option>
+          <option value="">{allProvincesLabel}</option>
           {provinces.map((p) => (
             <option key={p} value={p}>{p}</option>
           ))}
@@ -198,14 +314,14 @@ function FilterBar({
       {/* Status */}
       {showStatus && statusOptions && (
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">สถานะ</label>
+          <label className="text-xs text-muted-foreground mb-1 block">{statusLabel}</label>
           <select
             id="filter-status"
             value={filters.status ?? ''}
             onChange={(e) => onChange({ ...filters, status: e.target.value || undefined })}
             className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">ทุกสถานะ</option>
+            <option value="">{allStatusesLabel}</option>
             {statusOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
@@ -222,7 +338,7 @@ function FilterBar({
         className="gap-1.5 text-muted-foreground hover:text-foreground h-9"
       >
         <X className="h-3.5 w-3.5" />
-        ล้าง
+        {clearLabel}
       </Button>
     </div>
   )
@@ -231,16 +347,41 @@ function FilterBar({
 // ----------------------------------------------------------------
 // Payment table (shared by payable/receivable)
 // ----------------------------------------------------------------
-function PaymentTable({ rows, onExport }: { rows: PaymentReportRow[]; onExport: () => void }) {
+interface PaymentTableProps {
+  rows: PaymentReportRow[]
+  onExport: () => void
+  locale?: Locale
+  paymentLabels?: Record<string, string>
+}
+
+function PaymentTable({
+  rows,
+  onExport,
+  locale = 'th',
+  paymentLabels = PAYMENT_STATUS_LABELS,
+}: PaymentTableProps) {
   const total = rows.reduce(
     (s, r) => ({ net: s.net + r.net_amount, paid: s.paid + r.amount_paid, bal: s.bal + r.balance_amount }),
     { net: 0, paid: 0, bal: 0 }
   )
 
+  const itemsCountText = locale === 'th' ? `${rows.length} รายการ` : locale === 'my' ? `${rows.length} ခု` : `${rows.length} items`
+  const noDataText = locale === 'th' ? 'ไม่พบข้อมูล' : locale === 'my' ? 'ဒေတာ မရှိပါ' : 'No data found'
+  const colContract = locale === 'th' ? 'สัญญา' : locale === 'my' ? 'စာချုပ်' : 'Contract'
+  const colLocation = locale === 'th' ? 'สถานที่' : locale === 'my' ? 'နေရာ' : 'Location'
+  const colProvince = locale === 'th' ? 'จังหวัด' : locale === 'my' ? 'ပြည်နယ်/တိုင်း' : 'Province'
+  const colPeriod = locale === 'th' ? 'งวด' : locale === 'my' ? 'ကာလ' : 'Period'
+  const colDue = locale === 'th' ? 'ครบกำหนด' : locale === 'my' ? 'ရက်စွဲ' : 'Due Date'
+  const colNet = locale === 'th' ? 'ยอดสุทธิ' : locale === 'my' ? 'စုစုပေါင်း' : 'Net'
+  const colPaid = locale === 'th' ? 'ชำระแล้ว' : locale === 'my' ? 'ပေးချေပြီး' : 'Paid'
+  const colBal = locale === 'th' ? 'คงเหลือ' : locale === 'my' ? 'ကျန်ငွေ' : 'Balance'
+  const colStatus = locale === 'th' ? 'สถานะ' : locale === 'my' ? 'အခြေအနေ' : 'Status'
+  const colTotal = locale === 'th' ? `รวม (${rows.length} รายการ)` : locale === 'my' ? `စုစုပေါင်း (${rows.length} ခု)` : `Total (${rows.length} items)`
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-muted-foreground">{rows.length} รายการ</span>
+        <span className="text-sm text-muted-foreground">{itemsCountText}</span>
         <Button id="export-payment" variant="outline" size="sm" className="gap-2" onClick={onExport}>
           <Download className="h-3.5 w-3.5" /> Export CSV
         </Button>
@@ -249,22 +390,22 @@ function PaymentTable({ rows, onExport }: { rows: PaymentReportRow[]; onExport: 
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/40">
-              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">สัญญา</th>
-              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">สถานที่</th>
-              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">จังหวัด</th>
-              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden xl:table-cell">งวด</th>
-              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">ครบกำหนด</th>
-              <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">ยอดสุทธิ</th>
-              <th className="px-3 py-2.5 text-right font-medium text-muted-foreground hidden sm:table-cell">ชำระแล้ว</th>
-              <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">คงเหลือ</th>
-              <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">สถานะ</th>
+              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{colContract}</th>
+              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">{colLocation}</th>
+              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">{colProvince}</th>
+              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden xl:table-cell">{colPeriod}</th>
+              <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">{colDue}</th>
+              <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{colNet}</th>
+              <th className="px-3 py-2.5 text-right font-medium text-muted-foreground hidden sm:table-cell">{colPaid}</th>
+              <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{colBal}</th>
+              <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">{colStatus}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-8 text-center text-muted-foreground text-sm">
-                  ไม่พบข้อมูล
+                  {noDataText}
                 </td>
               </tr>
             ) : (
@@ -274,16 +415,16 @@ function PaymentTable({ rows, onExport }: { rows: PaymentReportRow[]; onExport: 
                   <td className="px-3 py-2 hidden md:table-cell text-muted-foreground max-w-[140px] truncate">{r.location_name}</td>
                   <td className="px-3 py-2 hidden lg:table-cell text-muted-foreground">{r.province || '-'}</td>
                   <td className="px-3 py-2 hidden xl:table-cell text-muted-foreground text-xs">{r.billing_period.slice(0, 7)}</td>
-                  <td className="px-3 py-2 hidden md:table-cell text-muted-foreground text-xs">{fmtDate(r.due_date)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{baht(r.net_amount)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums hidden sm:table-cell text-emerald-600">{baht(r.amount_paid)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums font-semibold">{baht(r.balance_amount)}</td>
+                  <td className="px-3 py-2 hidden md:table-cell text-muted-foreground text-xs">{fmtDate(r.due_date, locale)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{baht(r.net_amount, locale)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums hidden sm:table-cell text-emerald-600">{baht(r.amount_paid, locale)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums font-semibold">{baht(r.balance_amount, locale)}</td>
                   <td className="px-3 py-2 text-center">
                     <Badge
                       variant="outline"
                       className={`text-[10px] ${PAYMENT_STATUS_COLORS[r.status] ?? PAYMENT_STATUS_COLORS.pending}`}
                     >
-                      {PAYMENT_STATUS_LABELS[r.status] ?? r.status}
+                      {paymentLabels[r.status] ?? r.status}
                     </Badge>
                   </td>
                 </tr>
@@ -293,10 +434,10 @@ function PaymentTable({ rows, onExport }: { rows: PaymentReportRow[]; onExport: 
           {rows.length > 0 && (
             <tfoot>
               <tr className="border-t bg-muted/40 font-semibold">
-                <td className="px-3 py-2.5" colSpan={5}>รวม ({rows.length} รายการ)</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{baht(total.net)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums hidden sm:table-cell text-emerald-600">{baht(total.paid)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{baht(total.bal)}</td>
+                <td className="px-3 py-2.5" colSpan={5}>{colTotal}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums">{baht(total.net, locale)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums hidden sm:table-cell text-emerald-600">{baht(total.paid, locale)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums">{baht(total.bal, locale)}</td>
                 <td />
               </tr>
             </tfoot>
@@ -319,6 +460,13 @@ const DEFAULT_FILTERS: ReportFilters = {
 }
 
 export function ReportsView({ provinces }: ReportsViewProps) {
+  const { t, locale } = useI18n()
+  const months = MONTHS_SHORT[locale] || MONTHS_SHORT.th
+  const tabTranslations = TAB_TRANSLATIONS[locale] || TAB_TRANSLATIONS.th
+  const paymentLabels: Record<string, string> = PAYMENT_STATUS_TRANSLATIONS[locale] || PAYMENT_STATUS_LABELS
+  const openingLabels: Record<string, string> = OPENING_STATUS_TRANSLATIONS[locale] || OPENING_STATUS_LABELS
+  const taskLabels: Record<string, string> = TASK_STATUS_TRANSLATIONS[locale] || TASK_STATUS_LABELS
+
   const [activeTab, setActiveTab] = React.useState<TabId>('payable')
   const [filters, setFilters] = React.useState<ReportFilters>(DEFAULT_FILTERS)
   const [loading, setLoading] = React.useState(false)
@@ -361,6 +509,8 @@ export function ReportsView({ provinces }: ReportsViewProps) {
     return (
       <PaymentTable
         rows={payableRows}
+        locale={locale}
+        paymentLabels={paymentLabels}
         onExport={() =>
           exportCsv(
             ['สัญญา', 'สถานที่', 'จังหวัด', 'งวด', 'ครบกำหนด', 'ยอดสุทธิ', 'ชำระแล้ว', 'คงเหลือ', 'สถานะ'],
@@ -379,6 +529,8 @@ export function ReportsView({ provinces }: ReportsViewProps) {
     return (
       <PaymentTable
         rows={receivableRows}
+        locale={locale}
+        paymentLabels={paymentLabels}
         onExport={() =>
           exportCsv(
             ['สัญญา', 'สถานที่', 'จังหวัด', 'งวด', 'ครบกำหนด', 'ยอดสุทธิ', 'ชำระแล้ว', 'คงเหลือ', 'สถานะ'],
@@ -737,25 +889,26 @@ export function ReportsView({ provinces }: ReportsViewProps) {
 
   // Filter options per tab
   const showStatus = ['payable', 'receivable', 'opening_stage', 'task_assignee'].includes(activeTab)
-  const statusOptions = activeTab === 'payable' || activeTab === 'receivable'
-    ? Object.entries(PAYMENT_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))
-    : activeTab === 'opening_stage'
-    ? Object.entries(OPENING_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))
-    : Object.entries(TASK_STATUS_LABELS).map(([v, l]) => ({ value: v, label: l }))
+  const statusOptions: { value: string; label: string }[] =
+    activeTab === 'payable' || activeTab === 'receivable'
+      ? Object.entries(paymentLabels).map(([v, l]) => ({ value: v, label: String(l) }))
+      : activeTab === 'opening_stage'
+      ? Object.entries(openingLabels).map(([v, l]) => ({ value: v, label: String(l) }))
+      : Object.entries(taskLabels).map(([v, l]) => ({ value: v, label: String(l) }))
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Reports</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">รายงานและสรุปข้อมูล</p>
+          <h1 className="text-2xl font-bold">{t.reports.title}</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{t.reports.subtitle}</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 border-b pb-0">
-        {TABS.map((tab) => (
+        {TABS.map((tab: TabItem) => (
           <button
             key={tab.id}
             id={`report-tab-${tab.id}`}
@@ -767,7 +920,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
                 : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40',
             ].join(' ')}
           >
-            {tab.label}
+            {tabTranslations[tab.id] ?? tab.label}
           </button>
         ))}
       </div>
@@ -776,7 +929,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
       <div className="rounded-xl border bg-card shadow-sm p-4">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-3">
           <Filter className="h-4 w-4" />
-          ตัวกรอง
+          {t.common.filter}
         </div>
         <FilterBar
           filters={filters}
@@ -785,6 +938,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
           onReset={resetFilters}
           showStatus={showStatus}
           statusOptions={statusOptions}
+          locale={locale}
         />
       </div>
 
@@ -793,7 +947,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
         {loading ? (
           <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">กำลังโหลดรายงาน...</span>
+            <span className="text-sm">{t.common.loading}</span>
           </div>
         ) : (
           contentMap[activeTab]()

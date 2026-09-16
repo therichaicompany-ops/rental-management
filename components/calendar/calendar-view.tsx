@@ -14,19 +14,55 @@ import {
 import { Button } from '@/components/ui/button'
 import { getCalendarEventsAction } from '@/lib/actions/calendar'
 import type { CalendarEvent, CalendarEventType } from '@/lib/actions/calendar'
+import { useI18n } from '@/lib/i18n/context'
+import type { Locale } from '@/lib/i18n/types'
 
 // ----------------------------------------------------------------
 // Config
 // ----------------------------------------------------------------
-const THAI_MONTHS = [
-  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
-]
+const MONTH_NAMES: Record<Locale, string[]> = {
+  th: [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+  ],
+  en: [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ],
+  my: [
+    'ဇန်နဝါရီ', 'ဖေဖော်ဝါရီ', 'မတ်', 'ဧပြီ', 'မေ', 'ဇွန်',
+    'ဇူလိုင်', 'သြဂုတ်', 'စက်တင်ဘာ', 'အောက်တိုဘာ', 'နိုဝင်ဘာ', 'ဒီဇင်ဘာ',
+  ],
+}
 
-const THAI_DAYS_SHORT = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
+const DAYS_SHORT: Record<Locale, string[]> = {
+  th: ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'],
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  my: ['တနင်္ဂ', 'တနင်္လာ', 'အင်္ဂါ', 'ဗုဒ္ဓ', 'ကြာသ', 'သော', 'စနေ'],
+}
+
+const EVENT_TYPE_LABELS: Record<Locale, Record<CalendarEventType, string>> = {
+  th: {
+    rent: 'ค่าเช่า',
+    task: 'งาน',
+    contract: 'สัญญา',
+    opening: 'เปิดสาขา',
+  },
+  en: {
+    rent: 'Rent',
+    task: 'Task',
+    contract: 'Contract',
+    opening: 'Branch Opening',
+  },
+  my: {
+    rent: 'အိမ်ငှားခ',
+    task: 'လုပ်ငန်းတာဝန်',
+    contract: 'စာချုပ်',
+    opening: 'ဆိုင်ခွဲဖွင့်လှစ်ခြင်း',
+  },
+}
 
 interface EventTypeConfig {
-  label: string
   icon: React.ComponentType<{ className?: string }>
   chipBg: string
   chipText: string
@@ -35,28 +71,24 @@ interface EventTypeConfig {
 
 const EVENT_TYPE_CONFIG: Record<CalendarEventType, EventTypeConfig> = {
   rent: {
-    label: 'ค่าเช่า',
     icon: CreditCard,
     chipBg: 'bg-orange-100',
     chipText: 'text-orange-800',
     dotColor: 'bg-orange-500',
   },
   task: {
-    label: 'งาน',
     icon: CheckSquare,
     chipBg: 'bg-blue-100',
     chipText: 'text-blue-800',
     dotColor: 'bg-blue-500',
   },
   contract: {
-    label: 'สัญญา',
     icon: FileText,
     chipBg: 'bg-emerald-100',
     chipText: 'text-emerald-800',
     dotColor: 'bg-emerald-500',
   },
   opening: {
-    label: 'เปิดสาขา',
     icon: Building2,
     chipBg: 'bg-violet-100',
     chipText: 'text-violet-800',
@@ -111,11 +143,14 @@ interface DayCellProps {
   isToday: boolean
   events: CalendarEvent[]
   enabledTypes: Set<CalendarEventType>
+  locale: Locale
 }
 
-function DayCell({ date, isCurrentMonth, isToday, events, enabledTypes }: DayCellProps) {
+function DayCell({ date, isCurrentMonth, isToday, events, enabledTypes, locale }: DayCellProps) {
   const visible = events.filter((e) => enabledTypes.has(e.type))
   const day = parseInt(date.split('-')[2], 10)
+
+  const moreText = locale === 'th' ? 'อีก' : locale === 'my' ? 'ခု' : 'more'
 
   return (
     <div
@@ -160,7 +195,7 @@ function DayCell({ date, isCurrentMonth, isToday, events, enabledTypes }: DayCel
         })}
         {visible.length > 3 && (
           <span className="text-[10px] text-muted-foreground pl-1">
-            +{visible.length - 3} อีก
+            +{visible.length - 3} {moreText}
           </span>
         )}
       </div>
@@ -172,6 +207,7 @@ function DayCell({ date, isCurrentMonth, isToday, events, enabledTypes }: DayCel
 // Main Calendar View
 // ----------------------------------------------------------------
 export function CalendarView() {
+  const { t, locale } = useI18n()
   const now = new Date()
   const [year, setYear] = React.useState(now.getFullYear())
   const [month, setMonth] = React.useState(now.getMonth() + 1)
@@ -183,6 +219,11 @@ export function CalendarView() {
 
   const today = now.toISOString().slice(0, 10)
   const grid = React.useMemo(() => buildGrid(year, month), [year, month])
+
+  const eventLabels = EVENT_TYPE_LABELS[locale] || EVENT_TYPE_LABELS.th
+  const monthNames = MONTH_NAMES[locale] || MONTH_NAMES.th
+  const daysShort = DAYS_SHORT[locale] || DAYS_SHORT.th
+  const displayYear = locale === 'th' ? year + 543 : year
 
   // Group events by date
   const eventsByDate = React.useMemo(() => {
@@ -213,11 +254,11 @@ export function CalendarView() {
     else setMonth(m => m + 1)
   }
 
-  function toggleType(t: CalendarEventType) {
+  function toggleType(type: CalendarEventType) {
     setEnabledTypes(prev => {
       const next = new Set(prev)
-      if (next.has(t)) next.delete(t)
-      else next.add(t)
+      if (next.has(type)) next.delete(type)
+      else next.add(type)
       return next
     })
   }
@@ -232,7 +273,7 @@ export function CalendarView() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h2 className="text-lg font-bold min-w-[180px] text-center">
-            {THAI_MONTHS[month - 1]} {year + 543}
+            {monthNames[month - 1]} {displayYear}
           </h2>
           <Button id="cal-next" variant="outline" size="icon" onClick={nextMonth}>
             <ChevronRight className="h-4 w-4" />
@@ -244,7 +285,7 @@ export function CalendarView() {
             className="text-xs"
             onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1) }}
           >
-            วันนี้
+            {t.calendar.today}
           </Button>
         </div>
 
@@ -266,7 +307,7 @@ export function CalendarView() {
                 ].join(' ')}
               >
                 <Icon className="h-3.5 w-3.5" />
-                {cfg.label}
+                {eventLabels[type]}
               </button>
             )
           })}
@@ -278,7 +319,7 @@ export function CalendarView() {
         {(Object.entries(EVENT_TYPE_CONFIG) as [CalendarEventType, EventTypeConfig][]).map(([type, cfg]) => (
           <span key={type} className="flex items-center gap-1">
             <span className={`h-2 w-2 rounded-full ${cfg.dotColor}`} />
-            {cfg.label}
+            {eventLabels[type]}
           </span>
         ))}
       </div>
@@ -287,7 +328,7 @@ export function CalendarView() {
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         {/* Day headers */}
         <div className="grid grid-cols-7 border-b bg-muted/40">
-          {THAI_DAYS_SHORT.map((d, i) => (
+          {daysShort.map((d, i) => (
             <div
               key={d}
               className={`py-2 text-center text-xs font-semibold ${
@@ -302,7 +343,7 @@ export function CalendarView() {
         {loading ? (
           <div className="flex items-center justify-center py-24 gap-3 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">กำลังโหลด...</span>
+            <span className="text-sm">{t.common.loading}</span>
           </div>
         ) : (
           <div className="grid grid-cols-7">
@@ -314,6 +355,7 @@ export function CalendarView() {
                 isToday={cell.date === today}
                 events={eventsByDate.get(cell.date) ?? []}
                 enabledTypes={enabledTypes}
+                locale={locale}
               />
             ))}
           </div>
@@ -323,7 +365,11 @@ export function CalendarView() {
       {/* Event count summary */}
       {!loading && (
         <p className="text-xs text-muted-foreground text-right">
-          พบ {events.length} events ในเดือนนี้
+          {locale === 'th'
+            ? `พบ ${events.length} รายการในเดือนนี้`
+            : locale === 'my'
+            ? `ယခုလတွင် ပွဲ ${events.length} ခု တွေ့ရှိသည်`
+            : `${events.length} events this month`}
         </p>
       )}
     </div>

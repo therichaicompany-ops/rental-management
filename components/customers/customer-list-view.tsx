@@ -10,6 +10,7 @@ import { DataTable, type Column } from '@/components/ui/data-table'
 import type { Customer } from '@/lib/types/master-data'
 import type { UserRole } from '@/lib/types/auth'
 import { canWrite } from '@/lib/auth/permissions'
+import { useI18n } from '@/lib/i18n/context'
 
 interface CustomerListViewProps {
   customers: Customer[]
@@ -19,17 +20,18 @@ interface CustomerListViewProps {
 export function CustomerListView({ customers, userRole }: CustomerListViewProps) {
   const router = useRouter()
   const allowCreate = canWrite(userRole)
+  const { t } = useI18n()
 
   const columns: Column<Customer>[] = [
     {
-      header: 'รหัสลูกค้า',
+      header: 'Code',
       accessorKey: 'customer_code',
       sortable: true,
       className: 'w-[130px] font-mono font-medium text-slate-900',
       cell: (row) => row.customer_code || '-',
     },
     {
-      header: 'ประเภท',
+      header: t.common.status,
       accessorKey: 'customer_type',
       sortable: true,
       className: 'w-[140px]',
@@ -41,19 +43,19 @@ export function CustomerListView({ customers, userRole }: CustomerListViewProps)
           {row.customer_type === 'company' ? (
             <>
               <Building className="h-3 w-3" />
-              นิติบุคคล
+              {t.customers.companyName}
             </>
           ) : (
             <>
               <User className="h-3 w-3" />
-              บุคคลธรรมดา
+              {t.auth.user}
             </>
           )}
         </Badge>
       ),
     },
     {
-      header: 'ชื่อลูกค้า / บริษัท',
+      header: t.customers.customerName,
       accessorKey: 'name',
       sortable: true,
       cell: (row) => {
@@ -68,12 +70,12 @@ export function CustomerListView({ customers, userRole }: CustomerListViewProps)
       },
     },
     {
-      header: 'ผู้ติดต่อ',
+      header: t.customers.contactPerson,
       accessorKey: 'contact_name',
       cell: (row) => row.contact_name || '-',
     },
     {
-      header: 'การติดต่อ',
+      header: t.customers.phone,
       cell: (row) => (
         <div className="space-y-1 text-xs text-slate-600">
           {row.phone && (
@@ -104,9 +106,9 @@ export function CustomerListView({ customers, userRole }: CustomerListViewProps)
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">ลูกค้า (Customers)</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t.customers.title}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            จัดการฐานข้อมูลลูกค้าทั้งประเภทบุคคลธรรมดาและนิติบุคคล
+            {t.customers.subtitle}
           </p>
         </div>
 
@@ -114,7 +116,7 @@ export function CustomerListView({ customers, userRole }: CustomerListViewProps)
           <Link href="/customers/new">
             <Button className="gap-2 shadow-sm">
               <Plus className="h-4 w-4" />
-              เพิ่มลูกค้าใหม่
+              {t.customers.addNew}
             </Button>
           </Link>
         )}
@@ -125,17 +127,17 @@ export function CustomerListView({ customers, userRole }: CustomerListViewProps)
         columns={columns}
         data={customers}
         searchKey="name"
-        searchPlaceholder="ค้นหาตามชื่อลูกค้า, บริษัท, เบอร์โทร..."
+        searchPlaceholder={`${t.common.search} (${t.customers.customerName}, ${t.customers.phone})`}
         filterOptions={{
           key: 'customer_type',
-          label: 'ประเภท',
+          label: t.common.status,
           options: [
-            { label: 'นิติบุคคล', value: 'company' },
-            { label: 'บุคคลธรรมดา', value: 'individual' },
+            { label: t.customers.companyName, value: 'company' },
+            { label: t.auth.user, value: 'individual' },
           ],
         }}
-        emptyMessage="ยังไม่มีข้อมูลลูกค้า"
-        emptyDescription="กดปุ่ม 'เพิ่มลูกค้าใหม่' เพื่อเริ่มบันทึกข้อมูลลูกค้าเข้าระบบ"
+        emptyMessage={t.common.noData}
+        emptyDescription={t.common.noDataDesc}
         onRowClick={(row) => router.push(`/customers/${row.id}`)}
       />
     </div>

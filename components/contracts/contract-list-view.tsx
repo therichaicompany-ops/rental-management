@@ -27,6 +27,8 @@ import type { UserRole } from '@/lib/types/auth'
 import { canWrite, hasFullAccess } from '@/lib/auth/permissions'
 import { deleteContractAction } from '@/lib/actions/contracts'
 
+import { useI18n } from '@/lib/i18n/context'
+
 interface ContractListViewProps {
   contracts: ContractWithRelations[]
   userRole: UserRole
@@ -36,12 +38,25 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
   const router = useRouter()
   const allowWrite = canWrite(userRole)
   const allowDelete = hasFullAccess(userRole)
+  const { t, locale } = useI18n()
+  const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
 
   const [searchTerm, setSearchTerm] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState<string>('all')
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const [deleteError, setDeleteError] = React.useState<string | null>(null)
+
+  const getContractStatusLabel = (status: string): string => {
+    const map: Record<string, string> = {
+      draft: t.contracts.statuses.draft,
+      active: t.contracts.statuses.active,
+      expiring: t.contracts.statuses.expiring,
+      expired: t.contracts.statuses.expired,
+      terminated: t.contracts.statuses.terminated,
+    }
+    return map[status] ?? (CONTRACT_STATUS_LABELS[status as ContractStatus] || status)
+  }
 
   // KPI Metrics
   const stats = React.useMemo(() => {
@@ -99,7 +114,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
       setDeletingId(null)
       router.refresh()
     } else {
-      setDeleteError(res.error || 'เกิดข้อผิดพลาดในการลบสัญญา')
+      setDeleteError(res.error || t.common.error)
     }
   }
 
@@ -109,10 +124,10 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            สัญญาเช่า (Rental Contracts)
+            {t.contracts.title}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            จัดการสัญญาเช่าสาขาและพื้นที่ คำนวณภาษีหัก ณ ที่จ่าย และเงื่อนไขการเช่า
+            {t.contracts.subtitle}
           </p>
         </div>
 
@@ -120,7 +135,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
           <Button asChild className="bg-primary-600 hover:bg-primary-700 text-white shrink-0">
             <Link href="/contracts/new">
               <Plus className="mr-2 h-4 w-4" />
-              สร้างสัญญาเช่าใหม่
+              {t.contracts.addNew}
             </Link>
           </Button>
         )}
@@ -130,40 +145,40 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">สัญญาทั้งหมด</span>
+            <span className="text-xs font-medium text-slate-500">{t.contracts.title}</span>
             <FileText className="h-4 w-4 text-slate-400" />
           </div>
           <p className="text-2xl font-bold text-slate-900 mt-2">{stats.total}</p>
-          <span className="text-xs text-slate-400">ฉบับในระบบ</span>
+          <span className="text-xs text-slate-400">{t.common.total} {t.common.items}</span>
         </div>
 
         <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-emerald-700">มีผลบังคับใช้ (Active)</span>
+            <span className="text-xs font-medium text-emerald-700">{t.contracts.statuses.active}</span>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </div>
           <p className="text-2xl font-bold text-emerald-700 mt-2">{stats.active}</p>
           <span className="text-xs text-emerald-600">
-            ค่าเช่ารวม ฿{stats.totalRent.toLocaleString('th-TH')}/ด.
+            {new Intl.NumberFormat(intlLocale, { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(stats.totalRent)}/{t.common.month}
           </span>
         </div>
 
         <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-amber-700">ร่าง / อยู่ระหว่างเจรจา</span>
+            <span className="text-xs font-medium text-amber-700">{t.contracts.statuses.draft}</span>
             <Clock className="h-4 w-4 text-amber-500" />
           </div>
           <p className="text-2xl font-bold text-amber-700 mt-2">{stats.pending}</p>
-          <span className="text-xs text-amber-600">รอดำเนินการ</span>
+          <span className="text-xs text-amber-600">{t.payments.statuses.pending}</span>
         </div>
 
         <div className="rounded-xl border border-rose-100 bg-rose-50/50 p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-rose-700">ใกล้หมด / หมดอายุ</span>
+            <span className="text-xs font-medium text-rose-700">{t.contracts.statuses.expiring}</span>
             <AlertCircle className="h-4 w-4 text-rose-500" />
           </div>
           <p className="text-2xl font-bold text-rose-700 mt-2">{stats.expiringOrExpired}</p>
-          <span className="text-xs text-rose-600">ต้องตรวจสอบต่อสัญญา</span>
+          <span className="text-xs text-rose-600">{t.contracts.renewContract}</span>
         </div>
       </div>
 
@@ -172,7 +187,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
-            placeholder="ค้นหาเลขที่สัญญา, สถานที่, ผู้เช่า หรือผู้ให้เช่า..."
+            placeholder={`${t.common.search} (${t.contracts.contractNumber}, ${t.locations.title})...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 bg-white"
@@ -181,15 +196,15 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
 
         <div className="flex items-center gap-2">
           <select
-            aria-label="กรองสถานะสัญญา"
+            aria-label="Filter contract status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            <option value="all">สถานะทั้งหมด</option>
-            {Object.entries(CONTRACT_STATUS_LABELS).map(([key, label]) => (
+            <option value="all">{t.common.all} ({t.common.status})</option>
+            {Object.entries(CONTRACT_STATUS_LABELS).map(([key]) => (
               <option key={key} value={key}>
-                {label}
+                {getContractStatusLabel(key)}
               </option>
             ))}
           </select>
@@ -213,19 +228,15 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
       {filteredContracts.length === 0 ? (
         <div className="space-y-4">
           <EmptyState
-            title="ไม่พบข้อมูลสัญญาเช่า"
-            message={
-              searchTerm || statusFilter !== 'all'
-                ? 'ไม่พบสัญญาที่ตรงกับเงื่อนไขการค้นหา ลองปรับตัวกรองใหม่'
-                : 'ยังไม่มีสัญญาเช่าในระบบ เริ่มต้นสร้างสัญญาเช่าฉบับแรกได้เลย'
-            }
+            title={t.common.noData}
+            message={t.common.noDataDesc}
           />
           {allowWrite && (
             <div className="flex justify-center">
               <Button asChild className="bg-primary-600 hover:bg-primary-700 text-white">
                 <Link href="/contracts/new">
                   <Plus className="mr-2 h-4 w-4" />
-                  สร้างสัญญาเช่าใหม่
+                  {t.contracts.addNew}
                 </Link>
               </Button>
             </div>
@@ -237,14 +248,14 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">เลขที่สัญญา</th>
-                  <th className="px-4 py-3">สถานที่ / สาขา</th>
-                  <th className="px-4 py-3">คู่สัญญา</th>
-                  <th className="px-4 py-3">ระยะเวลาสัญญา</th>
-                  <th className="px-4 py-3 text-right">ค่าเช่าต่อเดือน</th>
-                  <th className="px-4 py-3 text-center">หัก ณ ที่จ่าย</th>
-                  <th className="px-4 py-3 text-center">สถานะ</th>
-                  <th className="px-4 py-3 text-right">จัดการ</th>
+                  <th className="px-4 py-3">{t.contracts.contractNumber}</th>
+                  <th className="px-4 py-3">{t.locations.title}</th>
+                  <th className="px-4 py-3">{t.landlords.title} / {t.customers.title}</th>
+                  <th className="px-4 py-3">{t.contracts.duration}</th>
+                  <th className="px-4 py-3 text-right">{t.contracts.monthlyRent}</th>
+                  <th className="px-4 py-3 text-center">WHT</th>
+                  <th className="px-4 py-3 text-center">{t.common.status}</th>
+                  <th className="px-4 py-3 text-right">{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">

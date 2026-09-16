@@ -5,6 +5,8 @@ import { Search, SlidersHorizontal, ArrowUpDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/ui/empty-state'
 
+import { useI18n } from '@/lib/i18n/context'
+
 export interface Column<T> {
   header: string
   accessorKey?: keyof T
@@ -38,17 +40,22 @@ export function DataTable<T extends Record<string, unknown>>({
   columns,
   data,
   searchKey,
-  searchPlaceholder = 'ค้นหา...',
+  searchPlaceholder,
   filterOptions,
-  emptyMessage = 'ไม่พบข้อมูล',
-  emptyDescription = 'ยังไม่มีข้อมูลในระบบ หรือลองปรับเปลี่ยนคำค้นหา',
+  emptyMessage,
+  emptyDescription,
   onRowClick,
   actions,
 }: DataTableProps<T>) {
+  const { t, locale } = useI18n()
   const [searchTerm, setSearchTerm] = React.useState('')
   const [selectedFilter, setSelectedFilter] = React.useState('all')
   const [sortKey, setSortKey] = React.useState<keyof T | null>(null)
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc')
+
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t.common.search
+  const resolvedEmptyMessage = emptyMessage ?? t.common.noData
+  const resolvedEmptyDescription = emptyDescription ?? t.common.noDataDesc
 
   // Filtered and searched data
   const filteredData = React.useMemo(() => {
@@ -120,7 +127,7 @@ export function DataTable<T extends Record<string, unknown>>({
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               type="text"
-              placeholder={searchPlaceholder}
+              placeholder={resolvedSearchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 bg-white"
@@ -135,7 +142,7 @@ export function DataTable<T extends Record<string, unknown>>({
                 onChange={(e) => setSelectedFilter(e.target.value)}
                 className="bg-transparent text-xs font-medium text-slate-700 outline-none cursor-pointer"
               >
-                <option value="all">ทั้งหมด ({filterOptions.label})</option>
+                <option value="all">{t.common.all} ({filterOptions.label})</option>
                 {filterOptions.options.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
@@ -152,7 +159,7 @@ export function DataTable<T extends Record<string, unknown>>({
       {/* Counter */}
       <div className="flex items-center justify-between text-xs text-slate-500 px-1">
         <span>
-          แสดงผล {sortedData.length} จากทั้งหมด {data.length} รายการ
+          {t.common.total} {sortedData.length} / {data.length} {t.common.items}
         </span>
       </div>
 
@@ -160,7 +167,7 @@ export function DataTable<T extends Record<string, unknown>>({
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         {sortedData.length === 0 ? (
           <div className="p-8">
-            <EmptyState title={emptyMessage} message={emptyDescription} />
+            <EmptyState title={resolvedEmptyMessage} message={resolvedEmptyDescription} />
           </div>
         ) : (
           <div className="overflow-x-auto">

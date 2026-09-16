@@ -1,0 +1,318 @@
+export type Locale = 'th' | 'en' | 'my'
+
+export interface LocaleConfig {
+  code: Locale
+  label: string
+  nativeName: string
+  flag: string
+}
+
+export interface TranslationDictionary {
+  common: {
+    systemName: string
+    systemSubtitle: string
+    save: string
+    saving: string
+    cancel: string
+    delete: string
+    deleting: string
+    edit: string
+    add: string
+    create: string
+    search: string
+    filter: string
+    reset: string
+    actions: string
+    status: string
+    view: string
+    back: string
+    confirm: string
+    confirmDelete: string
+    confirmDeleteDesc: string
+    loading: string
+    noData: string
+    noDataDesc: string
+    error: string
+    retry: string
+    success: string
+    all: string
+    select: string
+    chooseOption: string
+    total: string
+    items: string
+    rowsPerPage: string
+    page: string
+    of: string
+    export: string
+    exportExcel: string
+    import: string
+    viewDetail: string
+    download: string
+    upload: string
+    uploadedAt: string
+    notes: string
+    createdAt: string
+    updatedAt: string
+    active: string
+    inactive: string
+    yes: string
+    no: string
+    currency: string
+    baht: string
+    month: string
+    year: string
+    day: string
+  }
+  nav: {
+    dashboard: string
+    customers: string
+    landlords: string
+    locations: string
+    rentalLeads: string
+    rentPayments: string
+    opening: string
+    documents: string
+    calendar: string
+    reports: string
+    users: string
+    settings: string
+  }
+  auth: {
+    login: string
+    loginTitle: string
+    loginSubtitle: string
+    email: string
+    emailPlaceholder: string
+    password: string
+    passwordPlaceholder: string
+    loggingIn: string
+    loginSuccess: string
+    invalidCredentials: string
+    requiredEmail: string
+    invalidEmail: string
+    requiredPassword: string
+    logout: string
+    user: string
+    roles: {
+      owner: string
+      admin: string
+      accounting: string
+      hr: string
+      operation: string
+      staff: string
+      viewer: string
+    }
+  }
+  dashboard: {
+    title: string
+    subtitle: string
+    stats: {
+      activeBranches: string
+      openingProjects: string
+      pendingPayments: string
+      activeLeads: string
+    }
+    urgentTasks: string
+    noUrgentTasks: string
+    viewAllTasks: string
+    rentSummary: string
+    openingSummary: string
+    upcomingPayments: string
+    overduePayments: string
+    dueWithinDays: string
+  }
+  customers: {
+    title: string
+    subtitle: string
+    addNew: string
+    editCustomer: string
+    customerName: string
+    companyName: string
+    contactPerson: string
+    phone: string
+    email: string
+    taxId: string
+    address: string
+    branchCount: string
+    status: string
+  }
+  landlords: {
+    title: string
+    subtitle: string
+    addNew: string
+    editLandlord: string
+    landlordName: string
+    idCardOrTax: string
+    phone: string
+    email: string
+    bankName: string
+    accountNumber: string
+    accountName: string
+    propertyCount: string
+  }
+  locations: {
+    title: string
+    subtitle: string
+    addNew: string
+    editLocation: string
+    locationName: string
+    branchCode: string
+    province: string
+    district: string
+    subdistrict: string
+    postalCode: string
+    addressDetail: string
+    googleMapsUrl: string
+    sizeSqm: string
+  }
+  rentalLeads: {
+    title: string
+    subtitle: string
+    addNew: string
+    editLead: string
+    leadCode: string
+    location: string
+    landlord: string
+    proposedRent: string
+    agreedRent: string
+    status: string
+    negotiationHistory: string
+    addNegotiation: string
+    convertToContract: string
+    stages: {
+      new: string
+      surveying: string
+      negotiating: string
+      agreed: string
+      rejected: string
+      converted: string
+    }
+  }
+  contracts: {
+    title: string
+    subtitle: string
+    addNew: string
+    editContract: string
+    contractNumber: string
+    startDate: string
+    endDate: string
+    monthlyRent: string
+    depositAmount: string
+    paymentDueDay: string
+    status: string
+    duration: string
+    years: string
+    months: string
+    renewContract: string
+    terminateContract: string
+    statuses: {
+      draft: string
+      active: string
+      expiring: string
+      expired: string
+      terminated: string
+    }
+  }
+  payments: {
+    title: string
+    subtitle: string
+    addNew: string
+    recordPayment: string
+    paymentMonth: string
+    dueDate: string
+    amount: string
+    paidAmount: string
+    remainingAmount: string
+    paidDate: string
+    paymentMethod: string
+    slipImage: string
+    statuses: {
+      pending: string
+      paid: string
+      overdue: string
+      partial: string
+    }
+  }
+  opening: {
+    title: string
+    subtitle: string
+    newProject: string
+    projectName: string
+    targetOpenDate: string
+    currentStage: string
+    progress: string
+    checklist: string
+    stages: {
+      s1: string
+      s2: string
+      s3: string
+      s4: string
+      s5: string
+      s6: string
+      s7: string
+      s8: string
+    }
+  }
+  documents: {
+    title: string
+    subtitle: string
+    uploadDocument: string
+    documentType: string
+    fileName: string
+    fileSize: string
+    uploadedBy: string
+    categories: {
+      contract: string
+      idCard: string
+      houseRegistration: string
+      bankBook: string
+      taxDoc: string
+      photo: string
+      other: string
+    }
+  }
+  calendar: {
+    title: string
+    subtitle: string
+    today: string
+    month: string
+    week: string
+    day: string
+    events: {
+      paymentDue: string
+      openingMilestone: string
+      contractExpiry: string
+      negotiationFollowUp: string
+    }
+  }
+  reports: {
+    title: string
+    subtitle: string
+    rentExpenses: string
+    openingProgress: string
+    contractSummary: string
+    filterDateRange: string
+    generateReport: string
+  }
+  users: {
+    title: string
+    subtitle: string
+    addNew: string
+    fullName: string
+    email: string
+    role: string
+    status: string
+    lastLogin: string
+    changePassword: string
+  }
+  settings: {
+    title: string
+    subtitle: string
+    general: string
+    notifications: string
+    language: string
+    selectLanguage: string
+    languageDescription: string
+    saveChanges: string
+  }
+}

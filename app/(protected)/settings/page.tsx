@@ -13,6 +13,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { LanguagePreferenceCard } from '@/components/settings/language-preference-card'
 
 export const metadata: Metadata = {
   title: 'ตั้งค่าระบบ | ระบบบริหารงานเช่าและเปิดสาขา',
@@ -43,12 +44,15 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <SettingsIcon className="h-6 w-6 text-primary" />
-          การตั้งค่าระบบ
+          การตั้งค่าระบบ / System Settings
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
           จัดการข้อมูลส่วนตัว สิทธิ์การใช้งาน และตรวจสอบสถานะระบบ
         </p>
       </div>
+
+      {/* Language Preference Section */}
+      <LanguagePreferenceCard />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: User Profile */}

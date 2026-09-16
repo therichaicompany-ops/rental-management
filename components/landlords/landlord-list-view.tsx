@@ -9,6 +9,7 @@ import { DataTable, type Column } from '@/components/ui/data-table'
 import type { Landlord } from '@/lib/types/master-data'
 import type { UserRole } from '@/lib/types/auth'
 import { canWrite } from '@/lib/auth/permissions'
+import { useI18n } from '@/lib/i18n/context'
 
 interface LandlordListViewProps {
   landlords: Landlord[]
@@ -18,17 +19,18 @@ interface LandlordListViewProps {
 export function LandlordListView({ landlords, userRole }: LandlordListViewProps) {
   const router = useRouter()
   const allowCreate = canWrite(userRole)
+  const { t } = useI18n()
 
   const columns: Column<Landlord>[] = [
     {
-      header: 'รหัสผู้ให้เช่า',
+      header: 'Code',
       accessorKey: 'landlord_code',
       sortable: true,
       className: 'w-[130px] font-mono font-medium text-slate-900',
       cell: (row) => row.landlord_code || '-',
     },
     {
-      header: 'ชื่อผู้ให้เช่า / บริษัท',
+      header: t.landlords.landlordName,
       accessorKey: 'name',
       sortable: true,
       cell: (row) => {
@@ -43,12 +45,12 @@ export function LandlordListView({ landlords, userRole }: LandlordListViewProps)
       },
     },
     {
-      header: 'ผู้ติดต่อ',
+      header: t.customers.contactPerson,
       accessorKey: 'contact_name',
       cell: (row) => row.contact_name || '-',
     },
     {
-      header: 'การติดต่อ',
+      header: t.landlords.phone,
       cell: (row) => (
         <div className="space-y-1 text-xs text-slate-600">
           {row.phone && (
@@ -68,7 +70,7 @@ export function LandlordListView({ landlords, userRole }: LandlordListViewProps)
       ),
     },
     {
-      header: 'บัญชีธนาคาร',
+      header: t.landlords.bankName,
       cell: (row) => {
         if (!row.bank_name && !row.bank_account_number) {
           return <span className="text-slate-400 text-xs">-</span>
@@ -77,7 +79,7 @@ export function LandlordListView({ landlords, userRole }: LandlordListViewProps)
           <div className="space-y-0.5 text-xs">
             <div className="flex items-center gap-1.5 text-slate-800 font-medium">
               <CreditCard className="h-3.5 w-3.5 text-slate-400" />
-              <span>{row.bank_name || 'ธนาคาร'}</span>
+              <span>{row.bank_name || t.landlords.bankName}</span>
             </div>
             {row.bank_account_number && (
               <p className="font-mono text-slate-500">{row.bank_account_number}</p>
@@ -103,9 +105,9 @@ export function LandlordListView({ landlords, userRole }: LandlordListViewProps)
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">ผู้ให้เช่า (Landlords)</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t.landlords.title}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            จัดการฐานข้อมูลเจ้าของพื้นที่ ผู้ให้เช่า และรายละเอียดบัญชีธนาคารสำหรับจ่ายค่าเช่า
+            {t.landlords.subtitle}
           </p>
         </div>
 
@@ -113,7 +115,7 @@ export function LandlordListView({ landlords, userRole }: LandlordListViewProps)
           <Link href="/landlords/new">
             <Button className="gap-2 shadow-sm">
               <Plus className="h-4 w-4" />
-              เพิ่มผู้ให้เช่าใหม่
+              {t.landlords.addNew}
             </Button>
           </Link>
         )}
@@ -124,9 +126,9 @@ export function LandlordListView({ landlords, userRole }: LandlordListViewProps)
         columns={columns}
         data={landlords}
         searchKey="name"
-        searchPlaceholder="ค้นหาตามชื่อผู้ให้เช่า, บริษัท, เลขบัญชี, เบอร์โทร..."
-        emptyMessage="ยังไม่มีข้อมูลผู้ให้เช่า"
-        emptyDescription="กดปุ่ม 'เพิ่มผู้ให้เช่าใหม่' เพื่อเริ่มบันทึกข้อมูลผู้ให้เช่าเข้าระบบ"
+        searchPlaceholder={`${t.common.search} (${t.landlords.landlordName}, ${t.landlords.phone})`}
+        emptyMessage={t.common.noData}
+        emptyDescription={t.common.noDataDesc}
         onRowClick={(row) => router.push(`/landlords/${row.id}`)}
       />
     </div>

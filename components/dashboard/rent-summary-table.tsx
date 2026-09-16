@@ -1,16 +1,11 @@
+'use client'
+
 import * as React from 'react'
 import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useI18n } from '@/lib/i18n/context'
 import type { RecentPayment } from '@/lib/actions/dashboard'
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'รอชำระ',
-  partial: 'ชำระบางส่วน',
-  overdue: 'ค้างชำระ',
-  paid: 'ชำระแล้ว',
-  cancelled: 'ยกเลิก',
-}
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -20,31 +15,42 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-slate-50 text-slate-500 border-slate-200',
 }
 
-function formatBaht(n: number): string {
-  return new Intl.NumberFormat('th-TH', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(n)
-}
-
-function formatDate(s: string): string {
-  if (!s) return '-'
-  return new Date(s).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: '2-digit',
-  })
-}
-
 interface RentSummaryTableProps {
   payments: RecentPayment[]
 }
 
 export function RentSummaryTable({ payments }: RentSummaryTableProps) {
+  const { t, locale } = useI18n()
+  const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
+
+  function formatBaht(n: number): string {
+    return new Intl.NumberFormat(intlLocale, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(n)
+  }
+
+  function formatDate(s: string): string {
+    if (!s) return '-'
+    return new Date(s).toLocaleDateString(intlLocale, {
+      day: 'numeric',
+      month: 'short',
+      year: '2-digit',
+    })
+  }
+
+  const getStatusLabel = (status: string) => {
+    if (status === 'pending') return t.payments.statuses.pending
+    if (status === 'partial') return t.payments.statuses.partial
+    if (status === 'overdue') return t.payments.statuses.overdue
+    if (status === 'paid') return t.payments.statuses.paid
+    return status
+  }
+
   if (payments.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
-        ไม่มีรายการค่าเช่าที่รอชำระ
+        {t.common.noData}
       </p>
     )
   }
@@ -54,11 +60,11 @@ export function RentSummaryTable({ payments }: RentSummaryTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/40">
-            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">สถานที่</th>
-            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden sm:table-cell">ประเภท</th>
-            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">ครบกำหนด</th>
-            <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">ค้างชำระ (฿)</th>
-            <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">สถานะ</th>
+            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{t.locations.locationName}</th>
+            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden sm:table-cell">{t.common.status}</th>
+            <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">{t.payments.dueDate}</th>
+            <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{t.payments.remainingAmount}</th>
+            <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">{t.common.status}</th>
             <th className="px-3 py-2.5 text-center font-medium text-muted-foreground hidden lg:table-cell"></th>
           </tr>
         </thead>
@@ -72,7 +78,7 @@ export function RentSummaryTable({ payments }: RentSummaryTableProps) {
                   <p className="text-xs text-muted-foreground">{p.contract_no}</p>
                 </td>
                 <td className="px-3 py-2.5 hidden sm:table-cell text-muted-foreground">
-                  {p.payment_type === 'payable' ? 'จ่าย' : 'รับ'}
+                  {p.payment_type === 'payable' ? t.payments.statuses.pending : t.payments.statuses.partial}
                 </td>
                 <td className="px-3 py-2.5 hidden md:table-cell text-muted-foreground">
                   {formatDate(p.due_date)}
@@ -85,7 +91,7 @@ export function RentSummaryTable({ payments }: RentSummaryTableProps) {
                     variant="outline"
                     className={`text-[10px] ${color}`}
                   >
-                    {STATUS_LABELS[p.status] ?? p.status}
+                    {getStatusLabel(p.status)}
                   </Badge>
                 </td>
                 <td className="px-3 py-2.5 text-center hidden lg:table-cell">
@@ -93,7 +99,7 @@ export function RentSummaryTable({ payments }: RentSummaryTableProps) {
                     href={`/rent-payments/${p.id}`}
                     className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                   >
-                    ดู <ExternalLink className="h-3 w-3" />
+                    {t.common.view} <ExternalLink className="h-3 w-3" />
                   </Link>
                 </td>
               </tr>

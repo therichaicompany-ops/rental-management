@@ -9,6 +9,7 @@ import { DataTable, type Column } from '@/components/ui/data-table'
 import type { LocationWithLandlord } from '@/lib/types/master-data'
 import type { UserRole } from '@/lib/types/auth'
 import { canWrite } from '@/lib/auth/permissions'
+import { useI18n } from '@/lib/i18n/context'
 
 interface LocationListViewProps {
   locations: LocationWithLandlord[]
@@ -18,6 +19,7 @@ interface LocationListViewProps {
 export function LocationListView({ locations, userRole }: LocationListViewProps) {
   const router = useRouter()
   const allowCreate = canWrite(userRole)
+  const { t } = useI18n()
 
   // Extract unique provinces for filtering
   const provinceOptions = React.useMemo(() => {
@@ -30,14 +32,14 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
 
   const columns: Column<LocationWithLandlord>[] = [
     {
-      header: 'รหัสสถานที่',
+      header: 'Code',
       accessorKey: 'location_code',
       sortable: true,
       className: 'w-[130px] font-mono font-medium text-slate-900',
       cell: (row) => row.location_code || '-',
     },
     {
-      header: 'ชื่อสถานที่ / สาขา',
+      header: t.locations.locationName,
       accessorKey: 'location_name',
       sortable: true,
       cell: (row) => (
@@ -45,7 +47,7 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
           <p className="font-semibold text-slate-900 leading-snug">{row.location_name}</p>
           {(row.village_name || row.room_no) && (
             <p className="text-xs text-slate-500">
-              {[row.village_name, row.room_no ? `ห้อง ${row.room_no}` : null]
+              {[row.village_name, row.room_no ? `${t.locations.addressDetail}: ${row.room_no}` : null]
                 .filter(Boolean)
                 .join(' ')}
             </p>
@@ -54,7 +56,7 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
       ),
     },
     {
-      header: 'ที่ตั้ง / จังหวัด',
+      header: t.locations.province,
       accessorKey: 'province',
       sortable: true,
       cell: (row) => {
@@ -63,7 +65,7 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
           <div className="space-y-0.5 text-xs">
             <div className="flex items-center gap-1 font-medium text-slate-800">
               <MapPin className="h-3.5 w-3.5 text-primary-500" />
-              <span>{row.province || 'ไม่ระบุจังหวัด'}</span>
+              <span>{row.province || '-'}</span>
             </div>
             {area && <p className="text-slate-500">{area}</p>}
           </div>
@@ -71,7 +73,7 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
       },
     },
     {
-      header: 'ผู้ให้เช่า',
+      header: t.landlords.title,
       cell: (row) => {
         const landlord = row.landlords
         if (!landlord) {
@@ -89,7 +91,7 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
       },
     },
     {
-      header: 'แผนที่',
+      header: 'Maps',
       className: 'w-[100px]',
       cell: (row) => {
         if (!row.google_maps_url) {
@@ -121,9 +123,9 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">สถานที่ (Locations)</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t.locations.title}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            จัดการฐานข้อมูลสถานที่ สาขา และพื้นที่เช่าทั้งหมดในระบบ
+            {t.locations.subtitle}
           </p>
         </div>
 
@@ -131,7 +133,7 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
           <Link href="/locations/new">
             <Button className="gap-2 shadow-sm">
               <Plus className="h-4 w-4" />
-              เพิ่มสถานที่ใหม่
+              {t.locations.addNew}
             </Button>
           </Link>
         )}
@@ -142,18 +144,18 @@ export function LocationListView({ locations, userRole }: LocationListViewProps)
         columns={columns}
         data={locations}
         searchKey="location_name"
-        searchPlaceholder="ค้นหาตามชื่อสถานที่, อาคาร, จังหวัด..."
+        searchPlaceholder={`${t.common.search} (${t.locations.locationName}, ${t.locations.province})`}
         filterOptions={
           provinceOptions.length > 0
             ? {
                 key: 'province',
-                label: 'จังหวัด',
+                label: t.locations.province,
                 options: provinceOptions,
               }
             : undefined
         }
-        emptyMessage="ยังไม่มีข้อมูลสถานที่"
-        emptyDescription="กดปุ่ม 'เพิ่มสถานที่ใหม่' เพื่อเริ่มบันทึกข้อมูลสถานที่เข้าระบบ"
+        emptyMessage={t.common.noData}
+        emptyDescription={t.common.noDataDesc}
         onRowClick={(row) => router.push(`/locations/${row.id}`)}
       />
     </div>

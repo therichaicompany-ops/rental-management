@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import type { UserProfile } from '@/lib/types/auth'
 import type { MenuItem } from '@/lib/auth/permissions'
 import { ROLE_LABELS } from '@/lib/types/auth'
+import { useI18n } from '@/lib/i18n/context'
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -37,6 +38,7 @@ interface SidebarProps {
 
 export function SidebarContent({ profile, menuItems, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const { t } = useI18n()
 
   return (
     <div className="flex h-full flex-col">
@@ -47,8 +49,12 @@ export function SidebarContent({ profile, menuItems, onClose }: SidebarProps) {
             R
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-sidebar-foreground leading-tight">ระบบบริหารงาน</p>
-            <p className="text-xs text-slate-400 leading-tight">เช่าและเปิดสาขา</p>
+            <p className="text-sm font-semibold text-sidebar-foreground leading-tight">
+              {t.common.systemName}
+            </p>
+            <p className="text-xs text-slate-400 leading-tight">
+              {t.common.systemSubtitle}
+            </p>
           </div>
         </div>
       </div>
@@ -58,6 +64,7 @@ export function SidebarContent({ profile, menuItems, onClose }: SidebarProps) {
         {menuItems.map((item) => {
           const Icon = ICON_MAP[item.icon] ?? LayoutDashboard
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+          const itemLabel = t.nav[item.key as keyof typeof t.nav] ?? item.label
 
           return (
             <Link
@@ -73,7 +80,7 @@ export function SidebarContent({ profile, menuItems, onClose }: SidebarProps) {
               )}
             >
               <Icon className="h-4 w-4 flex-shrink-0" />
-              <span>{item.label}</span>
+              <span>{itemLabel}</span>
             </Link>
           )
         })}
@@ -86,7 +93,7 @@ export function SidebarContent({ profile, menuItems, onClose }: SidebarProps) {
             {profile.full_name ?? profile.email ?? '-'}
           </p>
           <p className="text-xs text-slate-500 truncate">
-            {ROLE_LABELS[profile.role]}
+            {t.auth.roles[profile.role] ?? ROLE_LABELS[profile.role]}
           </p>
         </div>
         <Separator className="bg-sidebar-border mb-3" />

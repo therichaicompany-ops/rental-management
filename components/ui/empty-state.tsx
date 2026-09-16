@@ -1,5 +1,8 @@
+'use client'
+
 import { Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/context'
 
 interface EmptyStateProps {
   title?: string
@@ -8,10 +11,14 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  title = 'ไม่มีข้อมูล',
-  message = 'ยังไม่มีข้อมูลในส่วนนี้',
+  title,
+  message,
   className,
 }: EmptyStateProps) {
+  const { t } = useI18n()
+  const resolvedTitle = title ?? t.common.noData
+  const resolvedMessage = message ?? t.common.noDataDesc
+
   return (
     <div
       className={cn(
@@ -23,8 +30,8 @@ export function EmptyState({
         <Inbox className="h-8 w-8 text-muted-foreground" />
       </div>
       <div>
-        <p className="font-medium text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground mt-1">{message}</p>
+        <p className="font-medium text-foreground">{resolvedTitle}</p>
+        <p className="text-sm text-muted-foreground mt-1">{resolvedMessage}</p>
       </div>
     </div>
   )
