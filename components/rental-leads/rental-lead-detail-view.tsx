@@ -1,0 +1,402 @@
+'use client'
+
+import * as React from 'react'
+import Link from 'next/link'
+import {
+  ArrowLeft,
+  Edit3,
+  MapPin,
+  User,
+  DollarSign,
+  Clock,
+  ExternalLink,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ConvertContractButton } from './convert-contract-button'
+import { NegotiationTimeline } from './negotiation-timeline'
+import { RentalLeadForm } from './rental-lead-form'
+import type {
+  RentalLeadWithRelations,
+  LeadStatus,
+} from '@/lib/types/rental-leads'
+import {
+  LEAD_STATUS_LABELS,
+  LEAD_STATUS_BADGE_VARIANTS,
+} from '@/lib/types/rental-leads'
+import type { Customer, Landlord, Location } from '@/lib/types/master-data'
+import type { UserProfile, UserRole } from '@/lib/types/auth'
+import { canWrite } from '@/lib/auth/permissions'
+import { DocumentSection } from '@/components/documents/document-section'
+
+interface RentalLeadDetailViewProps {
+  lead: RentalLeadWithRelations
+  locations: Pick<Location, 'id' | 'location_code' | 'location_name' | 'province'>[]
+  customers: Pick<Customer, 'id' | 'customer_code' | 'name' | 'company_name'>[]
+  landlords: Pick<Landlord, 'id' | 'landlord_code' | 'name' | 'company_name'>[]
+  staffProfiles: Pick<UserProfile, 'id' | 'full_name' | 'email'>[]
+  userRole: UserRole
+  existingContract?: { id: string; contract_no: string } | null
+}
+
+export function RentalLeadDetailView({
+  lead,
+  locations,
+  customers,
+  landlords,
+  staffProfiles,
+  userRole,
+  existingContract,
+}: RentalLeadDetailViewProps) {
+  const [isEditing, setIsEditing] = React.useState(false)
+  const allowEdit = canWrite(userRole)
+
+  const badgeStyle =
+    LEAD_STATUS_BADGE_VARIANTS[lead.status as LeadStatus] ||
+    LEAD_STATUS_BADGE_VARIANTS.new
+
+  if (isEditing) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between pb-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsEditing(false)}
+            className="gap-2 text-xs"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            กลับไปหน้าภาพรวม
+          </Button>
+        </div>
+        <RentalLeadForm
+          initialData={lead}
+          locations={locations}
+          customers={customers}
+          landlords={landlords}
+          staffProfiles={staffProfiles}
+          userRole={userRole}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 max-w-6xl">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <Link href="/rental-leads">
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{lead.lead_name}</h1>
+              <span
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}
+              >
+                {LEAD_STATUS_LABELS[lead.status as LeadStatus] || lead.status}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5 font-mono">
+              รหัส Lead: {lead.lead_no} • วันที่บันทึก:{' '}
+              {new Date(lead.created_at).toLocaleDateString('th-TH', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons: Convert to Contract & Edit */}
+        <div className="flex items-center gap-3">
+          {/* Button: Convert to Contract (if status = agreed) */}
+          <ConvertContractButton
+            leadId={lead.id}
+            status={lead.status as LeadStatus}
+            allowConvert={allowEdit}
+            hasExistingContract={Boolean(existingContract)}
+            contractNo={existingContract?.contract_no}
+          />
+
+          {allowEdit && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+              className="gap-1.5 shadow-sm"
+            >
+              <Edit3 className="h-4 w-4 text-slate-500" />
+              แก้ไขข้อมูลงานเช่า
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Proposed Rent */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+            <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+            ค่าเช่าเสนอ
+          </p>
+          <p className="text-xl font-bold text-slate-900 font-mono">
+            ฿{Number(lead.proposed_monthly_rent || 0).toLocaleString('th-TH')}
+            <span className="text-xs font-normal text-slate-500"> /เดือน</span>
+          </p>
+          <p className="text-[11px] text-slate-400">
+            มัดจำ: ฿{Number(lead.proposed_deposit_amount || 0).toLocaleString('th-TH')}
+          </p>
+        </div>
+
+        {/* Location */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-primary-500" />
+            สถานที่เป้าหมาย
+          </p>
+          <p className="text-base font-semibold text-slate-900 truncate">
+            {lead.locations?.location_name || 'ยังไม่ระบุ'}
+          </p>
+          <p className="text-[11px] text-slate-400 truncate">
+            {lead.locations?.province || '-'}
+          </p>
+        </div>
+
+        {/* Next Follow-up */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-amber-500" />
+            นัดติดตามผลครั้งถัดไป
+          </p>
+          <p className="text-base font-semibold text-amber-800">
+            {lead.next_follow_up_date
+              ? new Date(lead.next_follow_up_date).toLocaleDateString('th-TH', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : 'ไม่มีนัดหมาย'}
+          </p>
+          <p className="text-[11px] text-slate-400">
+            เริ่มสัญญา:{' '}
+            {lead.expected_start_date
+              ? new Date(lead.expected_start_date).toLocaleDateString('th-TH', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: '2-digit',
+                })
+              : '-'}
+          </p>
+        </div>
+
+        {/* Assigned Staff */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+          <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+            <User className="h-3.5 w-3.5 text-indigo-500" />
+            ผู้รับผิดชอบ
+          </p>
+          <p className="text-base font-semibold text-slate-900 truncate">
+            {lead.profiles?.full_name || lead.profiles?.email || 'ยังไม่มอบหมาย'}
+          </p>
+          <p className="text-[11px] text-slate-400 truncate">
+            ที่มา: {lead.source || '-'}
+          </p>
+        </div>
+      </div>
+
+      {/* Main Grid: Left Details + Right Timeline */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column (5 Cols): Master Data & Proposal Details */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* Related Entities Card */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
+              คู่สัญญาและสถานที่
+            </h3>
+
+            {/* Customer */}
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-slate-400">ลูกค้า (ผู้เช่า)</span>
+              {lead.customers ? (
+                <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-800 space-y-0.5">
+                  <p className="font-semibold text-sm text-slate-900">
+                    {lead.customers.name || lead.customers.company_name}
+                  </p>
+                  {lead.customers.phone && <p>โทร: {lead.customers.phone}</p>}
+                  <Link
+                    href={`/customers/${lead.customers.id}`}
+                    className="text-primary-600 hover:underline inline-flex items-center gap-1 pt-1"
+                  >
+                    ดูโปรไฟล์ลูกค้า <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">ยังไม่ระบุลูกค้า</p>
+              )}
+            </div>
+
+            {/* Landlord */}
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-slate-400">ผู้ให้เช่า (เจ้าของพื้นที่)</span>
+              {lead.landlords ? (
+                <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-800 space-y-0.5">
+                  <p className="font-semibold text-sm text-slate-900">
+                    {lead.landlords.name || lead.landlords.company_name}
+                  </p>
+                  {lead.landlords.phone && <p>โทร: {lead.landlords.phone}</p>}
+                  <Link
+                    href={`/landlords/${lead.landlords.id}`}
+                    className="text-primary-600 hover:underline inline-flex items-center gap-1 pt-1"
+                  >
+                    ดูโปรไฟล์ผู้ให้เช่า <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">ยังไม่ระบุผู้ให้เช่า</p>
+              )}
+            </div>
+
+            {/* Location */}
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-slate-400">สถานที่เช่า</span>
+              {lead.locations ? (
+                <div className="rounded-lg bg-slate-50 p-2.5 text-xs text-slate-800 space-y-0.5">
+                  <p className="font-semibold text-sm text-slate-900">
+                    {lead.locations.location_name}
+                  </p>
+                  <p>จังหวัด: {lead.locations.province || '-'}</p>
+                  <Link
+                    href={`/locations/${lead.locations.id}`}
+                    className="text-primary-600 hover:underline inline-flex items-center gap-1 pt-1"
+                  >
+                    ดูรายละเอียดสถานที่ <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400">ยังไม่ระบุสถานที่</p>
+              )}
+            </div>
+          </div>
+
+          {/* Pricing Summary Card */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+            <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
+              สรุปข้อเสนอทางการเงิน
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">ค่าเช่าเสนอ:</span>
+                <span className="font-semibold text-slate-900 font-mono">
+                  ฿{Number(lead.proposed_monthly_rent || 0).toLocaleString('th-TH')}/เดือน
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">เงินมัดจำ / ประกัน:</span>
+                <span className="font-semibold text-slate-900 font-mono">
+                  ฿{Number(lead.proposed_deposit_amount || 0).toLocaleString('th-TH')}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">ค่าเช่าล่วงหน้า:</span>
+                <span className="font-semibold text-slate-900 font-mono">
+                  ฿{Number(lead.proposed_advance_rent_amount || 0).toLocaleString('th-TH')}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-50">
+                <span className="text-slate-500">ค่าบริการส่วนกลาง:</span>
+                <span className="font-semibold text-slate-900 font-mono">
+                  ฿{Number(lead.proposed_service_amount || 0).toLocaleString('th-TH')}/เดือน
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Registration Checklist Card */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+            <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
+              รายการที่ต้องดำเนินการทางทะเบียน
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">จดทะเบียนสาขา:</span>
+                <span
+                  className={`font-semibold ${
+                    lead.need_branch_registration ? 'text-emerald-700' : 'text-slate-400'
+                  }`}
+                >
+                  {lead.need_branch_registration ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">จดภาษีมูลค่าเพิ่ม (VAT):</span>
+                <span
+                  className={`font-semibold ${
+                    lead.need_vat_registration ? 'text-emerald-700' : 'text-slate-400'
+                  }`}
+                >
+                  {lead.need_vat_registration ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">เปลี่ยนนายจ้างประกันสังคม:</span>
+                <span
+                  className={`font-semibold ${
+                    lead.need_employer_change ? 'text-emerald-700' : 'text-slate-400'
+                  }`}
+                >
+                  {lead.need_employer_change ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">ขออนุญาตติดตั้งป้ายร้าน:</span>
+                <span
+                  className={`font-semibold ${
+                    lead.need_signboard ? 'text-emerald-700' : 'text-slate-400'
+                  }`}
+                >
+                  {lead.need_signboard ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {lead.note && (
+            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
+              <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
+                หมายเหตุงานเช่า
+              </h3>
+              <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">
+                {lead.note}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column (7 Cols): Negotiation Timeline + Documents */}
+        <div className="lg:col-span-7 space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <NegotiationTimeline
+              leadId={lead.id}
+              logs={lead.negotiation_logs || []}
+              allowAddLog={allowEdit}
+            />
+          </div>
+
+          {/* Documents */}
+          <DocumentSection
+            entityType="lead"
+            entityId={lead.id}
+            userRole={userRole}
+            defaultDocumentType="RENTAL_CONTRACT"
+            title="เอกสารแนบ (Lead)"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
