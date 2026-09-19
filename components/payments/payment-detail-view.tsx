@@ -24,6 +24,7 @@ import {
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_BADGE_VARIANTS,
   PAYMENT_METHOD_LABELS,
+  getEffectivePaymentStatus,
 } from '@/lib/types/contracts-payments'
 import type { UserRole } from '@/lib/types/auth'
 import { canWrite } from '@/lib/auth/permissions'
@@ -43,8 +44,9 @@ export function PaymentDetailView({ payment, userRole }: PaymentDetailViewProps)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
 
+  const effectiveStatus = getEffectivePaymentStatus(payment)
   const badgeVariant =
-    PAYMENT_STATUS_BADGE_VARIANTS[payment.status as RentPaymentStatus] || {
+    PAYMENT_STATUS_BADGE_VARIANTS[effectiveStatus] || {
       bg: 'bg-slate-100',
       text: 'text-slate-600',
       border: 'border-slate-200',
@@ -93,7 +95,7 @@ export function PaymentDetailView({ payment, userRole }: PaymentDetailViewProps)
                 variant="outline"
                 className={`${badgeVariant.bg} ${badgeVariant.text} ${badgeVariant.border} text-xs font-semibold`}
               >
-                {PAYMENT_STATUS_LABELS[payment.status as RentPaymentStatus] || payment.status}
+                {PAYMENT_STATUS_LABELS[effectiveStatus] || effectiveStatus}
               </Badge>
               <span
                 className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${

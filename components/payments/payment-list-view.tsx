@@ -21,6 +21,7 @@ import type {
 import {
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_BADGE_VARIANTS,
+  getEffectivePaymentStatus,
 } from '@/lib/types/contracts-payments'
 import type { UserRole } from '@/lib/types/auth'
 
@@ -73,8 +74,9 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
       const net = Number(p.net_amount) || 0
       const balance = Number(p.balance_amount) || 0
       const paid = Number(p.amount_paid) || 0
+      const effStatus = getEffectivePaymentStatus(p)
 
-      if (p.status === 'overdue' || (balance > 0 && new Date(p.due_date) < new Date())) {
+      if (effStatus === 'overdue') {
         overdueTotal += balance
         overdueCount += 1
       }
@@ -94,14 +96,13 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
   // Filtered payments
   const filteredPayments = React.useMemo(() => {
     return payments.filter((p) => {
+      const effStatus = getEffectivePaymentStatus(p)
+
       // 1. Tab filter
       if (activeTab === 'payable' && p.payment_type !== 'payable') return false
       if (activeTab === 'receivable' && p.payment_type !== 'receivable') return false
-      if (activeTab === 'overdue') {
-        const isOverdue = p.status === 'overdue' || (Number(p.balance_amount) > 0 && new Date(p.due_date) < new Date())
-        if (!isOverdue) return false
-      }
-      if (activeTab === 'paid' && p.status !== 'paid') return false
+      if (activeTab === 'overdue' && effStatus !== 'overdue') return false
+      if (activeTab === 'paid' && effStatus !== 'paid') return false
 
       // 2. Billing Period filter
       if (periodFilter !== 'all' && p.billing_period !== periodFilter) {
@@ -109,7 +110,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
       }
 
       // 3. Status filter
-      if (statusFilter !== 'all' && p.status !== statusFilter) {
+      if (statusFilter !== 'all' && effStatus !== statusFilter) {
         return false
       }
 
@@ -251,7 +252,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          {t.payments.statuses.paid} ({payments.filter((p) => p.status === 'paid').length})
+          {t.payments.statuses.paid} ({payments.filter((p) => getEffectivePaymentStatus(p) === 'paid').length})
         </button>
       </div>
 
@@ -331,8 +332,9 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {filteredPayments.map((p) => {
+                  const effectiveStatus = getEffectivePaymentStatus(p)
                   const badgeVariant =
-                    PAYMENT_STATUS_BADGE_VARIANTS[p.status as RentPaymentStatus] || {
+                    PAYMENT_STATUS_BADGE_VARIANTS[effectiveStatus] || {
                       bg: 'bg-slate-100',
                       text: 'text-slate-600',
                       border: 'border-slate-200',
@@ -438,7 +440,7 @@ export function PaymentListView({ payments }: PaymentListViewProps) {
                           variant="outline"
                           className={`${badgeVariant.bg} ${badgeVariant.text} ${badgeVariant.border} text-[10px] font-medium`}
                         >
-                          {getPaymentStatusLabel(p.status)}
+                          {getPaymentStatusLabel(effectiveStatus)}
                         </Badge>
                       </td>
 

@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Save, Trash2, Loader2, Home, DollarSign, CheckSquare, Clock } from 'lucide-react'
+import { ArrowLeft, Save, Trash2, Loader2, Home, DollarSign, CheckSquare, Clock, Building } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +28,8 @@ import type { Customer, Landlord, Location } from '@/lib/types/master-data'
 import type { UserProfile, UserRole } from '@/lib/types/auth'
 import { hasFullAccess, canWrite } from '@/lib/auth/permissions'
 
+const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
+
 interface RentalLeadFormProps {
   initialData?: RentalLead
   locations: Pick<Location, 'id' | 'location_code' | 'location_name' | 'province'>[]
@@ -46,14 +48,19 @@ export function RentalLeadForm({
   userRole,
 }: RentalLeadFormProps) {
   const router = useRouter()
-  const [isPending, startTransition] = React.useTransition()
+  const isEdit = Boolean(initialData)
+  const allowEdit = canWrite(userRole)
+  const allowDelete = hasFullAccess(userRole) && isEdit
+
+  const [isSubmitting, startTransition] = React.useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
 
-  const isEdit = Boolean(initialData)
-  const allowEdit = canWrite(userRole)
-  const allowDelete = isEdit && hasFullAccess(userRole)
+  const [needForeignResident, setNeedForeignResident] = React.useState<boolean>(() => {
+    const rawNote = initialData?.note || ''
+    return rawNote.includes(TM30_TAG) || rawNote.includes('แจ้งที่พักอาศัยคนต่างด้าว')
+  })
 
   const {
     register,
@@ -82,7 +89,7 @@ export function RentalLeadForm({
       status: (initialData?.status as LeadStatus) ?? 'new',
       assigned_to: initialData?.assigned_to ?? '',
       next_follow_up_date: initialData?.next_follow_up_date ?? '',
-      note: initialData?.note ?? '',
+      note: (initialData?.note ?? '').replace(TM30_TAG, '').trim(),
     },
   })
 
@@ -91,11 +98,21 @@ export function RentalLeadForm({
     setServerError(null)
 
     startTransition(async () => {
+      const cleanNote = (values.note || '').replace(TM30_TAG, '').trim()
+      const finalNote = needForeignResident
+        ? (cleanNote ? `${cleanNote}\n${TM30_TAG}` : TM30_TAG)
+        : cleanNote
+
+      const submissionValues: RentalLeadFormValues = {
+        ...values,
+        note: finalNote || null,
+      }
+
       let res
       if (isEdit && initialData) {
-        res = await updateRentalLeadAction(initialData.id, values)
+        res = await updateRentalLeadAction(initialData.id, submissionValues)
       } else {
-        res = await createRentalLeadAction(values)
+        res = await createRentalLeadAction(submissionValues)
       }
 
       if (!res.success) {
@@ -142,12 +159,12 @@ export function RentalLeadForm({
           </Link>
           <div>
             <h1 className="text-xl font-bold text-slate-900">
-              {isEdit ? 'แก้ไขข้อมูลงานเช่า' : 'เพิ่มงานเช่าใหม่'}
+              {isEdit ? 'แก้ไขข้อมูลประเภทงาน' : 'เพิ่มประเภทงานใหม่'}
             </h1>
             <p className="text-xs text-slate-500">
               {isEdit
-                ? `รหัส Lead: ${initialData?.lead_no}`
-                : 'กรอกรายละเอียดเพื่อเริ่มต้นติดตามโอกาสและเจรจาการเช่าพื้นที่'}
+                ? `รหัสประเภทงาน (Lead): ${initialData?.lead_no}`
+                : 'กรอกรายละเอียดเพื่อเริ่มต้นติดตามโอกาสและเจรจาพื้นที่'}
             </p>
           </div>
         </div>
@@ -160,7 +177,7 @@ export function RentalLeadForm({
             className="text-red-600 hover:bg-red-50 hover:text-red-700 gap-1.5"
           >
             <Trash2 className="h-4 w-4" />
-            ลบงานเช่า
+            ลบประเภทงาน
           </Button>
         )}
       </div>
@@ -178,11 +195,11 @@ export function RentalLeadForm({
           <div>
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
               <Home className="h-4 w-4 text-primary-500" />
-              ข้อมูลงานเช่า
+              ข้อมูลประเภทงาน
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="lead_name">ชื่องานเช่า / โครงการ *</Label>
+                <Label htmlFor="lead_name">ชื่อประเภทงาน / โครงการ *</Label>
                 <Input
                   id="lead_name"
                   placeholder="เช่น เช่าพื้นที่เปิดสาขาใหม่ - อาคารสยามสแควร์วัน"
@@ -195,7 +212,7 @@ export function RentalLeadForm({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="lead_no">รหัส Lead</Label>
+                <Label htmlFor="lead_no">รหัสประเภทงาน (Lead)</Label>
                 <Input
                   id="lead_no"
                   placeholder="เช่น LEAD-001 (ปล่อยว่างให้ระบบสร้างอัตโนมัติ)"
@@ -208,17 +225,21 @@ export function RentalLeadForm({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="source">แหล่งที่มาของงานเช่า (Source)</Label>
-                <Input
-                  id="source"
-                  placeholder="เช่น ป้ายให้เช่า, แนะนำจากพาร์ทเนอร์, Facebook, โบรกเกอร์"
-                  disabled={!allowEdit}
-                  {...register('source')}
-                />
+                <Label htmlFor="source">วัตถุประสงค์</Label>
+                <Select id="source" disabled={!allowEdit} {...register('source')}>
+                  <option value="">-- เลือกวัตถุประสงค์ --</option>
+                  <option value="เช่าเพื่อกิจการของบริษัท">เช่าเพื่อกิจการของบริษัท</option>
+                  <option value="เช่าซื้อ">เช่าซื้อ</option>
+                  <option value="เช่าระยะยาว">เช่าระยะยาว</option>
+                  <option value="ขายของ">ขายของ</option>
+                  {initialData?.source && !['เช่าเพื่อกิจการของบริษัท', 'เช่าซื้อ', 'เช่าระยะยาว', 'ขายของ'].includes(initialData.source) && (
+                    <option value={initialData.source}>{initialData.source}</option>
+                  )}
+                </Select>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="assigned_to">ผู้รับผิดชอบงานเช่า</Label>
+                <Label htmlFor="assigned_to">ผู้รับผิดชอบ</Label>
                 <Select id="assigned_to" disabled={!allowEdit} {...register('assigned_to')}>
                   <option value="">-- เลือกผู้รับผิดชอบ --</option>
                   {staffProfiles.map((p) => (
@@ -230,7 +251,7 @@ export function RentalLeadForm({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="status">สถานะงานเช่า *</Label>
+                <Label htmlFor="status">สถานะ *</Label>
                 <Select id="status" disabled={!allowEdit} {...register('status')}>
                   {Object.entries(LEAD_STATUS_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>
@@ -396,51 +417,82 @@ export function RentalLeadForm({
           </div>
 
           {/* Section 5: Registration Requirements (Checkboxes) */}
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
               <CheckSquare className="h-4 w-4 text-indigo-500" />
               รายการดำเนินการทางทะเบียนและเอกสาร
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                <input
-                  type="checkbox"
-                  disabled={!allowEdit}
-                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  {...register('need_branch_registration')}
-                />
-                <span className="text-xs font-medium text-slate-700">ต้องจดทะเบียนสาขา</span>
-              </label>
 
-              <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                <input
-                  type="checkbox"
-                  disabled={!allowEdit}
-                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  {...register('need_vat_registration')}
-                />
-                <span className="text-xs font-medium text-slate-700">ต้องจดภาษีมูลค่าเพิ่ม (VAT)</span>
-              </label>
+            {/* หมวดที่ 1: สำหรับสาขา */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                <Building className="h-3.5 w-3.5 text-slate-500" />
+                <span>สำหรับสาขา / สถานประกอบการ</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    disabled={!allowEdit}
+                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    {...register('need_branch_registration')}
+                  />
+                  <span className="text-xs font-medium text-slate-700">ต้องจดทะเบียนสาขา</span>
+                </label>
 
-              <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                <input
-                  type="checkbox"
-                  disabled={!allowEdit}
-                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  {...register('need_employer_change')}
-                />
-                <span className="text-xs font-medium text-slate-700">ต้องเปลี่ยนนายจ้างประกันสังคม</span>
-              </label>
+                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    disabled={!allowEdit}
+                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    {...register('need_vat_registration')}
+                  />
+                  <span className="text-xs font-medium text-slate-700">ต้องจดภาษีมูลค่าเพิ่ม (VAT)</span>
+                </label>
 
-              <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                <input
-                  type="checkbox"
-                  disabled={!allowEdit}
-                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  {...register('need_signboard')}
-                />
-                <span className="text-xs font-medium text-slate-700">ต้องขออนุญาตติดตั้งป้ายร้าน</span>
-              </label>
+                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    disabled={!allowEdit}
+                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    {...register('need_employer_change')}
+                  />
+                  <span className="text-xs font-medium text-slate-700">ต้องเปลี่ยนนายจ้างประกันสังคม</span>
+                </label>
+
+                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                  <input
+                    type="checkbox"
+                    disabled={!allowEdit}
+                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    {...register('need_signboard')}
+                  />
+                  <span className="text-xs font-medium text-slate-700">ต้องขออนุญาตติดตั้งป้ายร้าน</span>
+                </label>
+              </div>
+            </div>
+
+            {/* หมวดที่ 2: สำหรับบ้าน / ที่พักอาศัย */}
+            <div className="space-y-2 pt-2 border-t border-dashed border-slate-200">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                <Home className="h-3.5 w-3.5 text-amber-600" />
+                <span>สำหรับบ้าน / ที่พักอาศัย</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-amber-200 bg-amber-50/40 cursor-pointer hover:bg-amber-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    disabled={!allowEdit}
+                    checked={needForeignResident}
+                    onChange={(e) => setNeedForeignResident(e.target.checked)}
+                    className="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                  />
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-semibold text-slate-800">แจ้งที่พักอาศัยคนต่างด้าว</span>
+                    <p className="text-[10px] text-slate-500">แจ้ง ตม.30 ภายใน 24 ชม.</p>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -467,8 +519,8 @@ export function RentalLeadForm({
             </Button>
           </Link>
           {allowEdit && (
-            <Button type="submit" disabled={isPending} className="gap-2 min-w-[120px]">
-              {isPending ? (
+            <Button type="submit" disabled={isSubmitting} className="gap-2 min-w-[120px]">
+              {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   กำลังบันทึก...
@@ -488,9 +540,9 @@ export function RentalLeadForm({
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="ยืนยันการลบข้อมูลงานเช่า"
-        description={`คุณแน่ใจหรือไม่ว่าต้องการลบงานเช่า "${initialData?.lead_name}"? บันทึกการเจรจาทั้งหมดจะถูกลบไปด้วย และไม่สามารถกู้คืนได้`}
-        confirmText="ลบงานเช่า"
+        title="ยืนยันการลบข้อมูลประเภทงาน"
+        description={`คุณแน่ใจหรือไม่ว่าต้องการลบประเภทงาน "${initialData?.lead_name}"? ข้อมูลการเจรจาทั้งหมดจะถูกลบไปด้วย และไม่สามารถกู้คืนได้`}
+        confirmText="ลบประเภทงาน"
         loading={isDeleting}
         onConfirm={handleDelete}
       />

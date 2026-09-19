@@ -8,7 +8,7 @@ import type { OpeningProjectWithRelations } from '@/lib/types/opening'
 import type { UserProfile } from '@/lib/types/auth'
 
 export const metadata: Metadata = {
-  title: 'รายละเอียดโครงการเปิดสาขา | ระบบบริหารงานเช่าและเปิดสาขา',
+  title: 'รายละเอียดบ้าน/สาขา | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 interface OpeningDetailPageProps {

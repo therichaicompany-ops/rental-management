@@ -6,7 +6,7 @@ import type { RentalLeadWithRelations } from '@/lib/types/rental-leads'
 import type { UserProfile } from '@/lib/types/auth'
 
 export const metadata: Metadata = {
-  title: 'งานเช่า (Rental Leads) | ระบบบริหารงานเช่าและเปิดสาขา',
+  title: 'ประเภทงาน | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 export default async function RentalLeadsPage() {

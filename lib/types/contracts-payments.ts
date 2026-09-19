@@ -233,3 +233,19 @@ export const paymentTransactionSchema = z.object({
 })
 
 export type PaymentTransactionFormValues = z.infer<typeof paymentTransactionSchema>
+
+export function getEffectivePaymentStatus(payment: {
+  status?: string | null
+  amount_paid?: number | string | null
+  net_amount?: number | string | null
+  due_date?: string | null
+}): RentPaymentStatus {
+  if (payment.status === 'cancelled') return 'cancelled'
+  const net = Number(payment.net_amount) || 0
+  const paid = Number(payment.amount_paid) || 0
+  if (paid >= net && net > 0) return 'paid'
+  if (paid > 0) return 'partial'
+  const today = new Date().toISOString().split('T')[0]
+  if (payment.due_date && payment.due_date < today) return 'overdue'
+  return 'pending'
+}

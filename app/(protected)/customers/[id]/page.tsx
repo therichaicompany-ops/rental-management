@@ -6,7 +6,7 @@ import { CustomerForm } from '@/components/customers/customer-form'
 import type { Customer } from '@/lib/types/master-data'
 
 export const metadata: Metadata = {
-  title: 'แก้ไขข้อมูลลูกค้า | ระบบบริหารงานเช่าและเปิดสาขา',
+  title: 'แก้ไขข้อมูลลูกค้า/ผู้เช่า | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 interface CustomerDetailPageProps {

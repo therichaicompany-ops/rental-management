@@ -6,7 +6,7 @@ import type { Location, Customer, Landlord } from '@/lib/types/master-data'
 import type { UserProfile } from '@/lib/types/auth'
 
 export const metadata: Metadata = {
-  title: 'เพิ่มงานเช่าใหม่ | ระบบบริหารงานเช่าและเปิดสาขา',
+  title: 'เพิ่มประเภทงานใหม่ | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 export default async function NewRentalLeadPage() {

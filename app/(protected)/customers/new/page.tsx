@@ -3,7 +3,7 @@ import { requireUser } from '@/lib/auth/route-guard'
 import { CustomerForm } from '@/components/customers/customer-form'
 
 export const metadata: Metadata = {
-  title: 'เพิ่มลูกค้าใหม่ | ระบบบริหารงานเช่าและเปิดสาขา',
+  title: 'เพิ่มลูกค้า/ผู้เช่าใหม่ | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 export default async function NewCustomerPage() {

@@ -107,12 +107,13 @@ export type MenuItem = {
 
 export const MENU_ITEMS: MenuItem[] = [
   { key: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' },
-  { key: 'customers', label: 'ลูกค้า', href: '/customers', icon: 'UserCheck' },
+  { key: 'customers', label: 'ลูกค้า/ผู้เช่า', href: '/customers', icon: 'UserCheck' },
   { key: 'landlords', label: 'ผู้ให้เช่า', href: '/landlords', icon: 'Landmark' },
   { key: 'locations', label: 'สถานที่', href: '/locations', icon: 'MapPin' },
-  { key: 'rentals', label: 'งานเช่า (Leads)', href: '/rental-leads', icon: 'Home' },
+  { key: 'rentals', label: 'ประเภทงาน', href: '/rental-leads', icon: 'Home' },
+  { key: 'contracts', label: 'สัญญาเช่า', href: '/contracts', icon: 'FileSignature' },
   { key: 'rentPayments', label: 'ค่าเช่า', href: '/rent-payments', icon: 'CreditCard' },
-  { key: 'opening', label: 'เปิดสาขา', href: '/opening', icon: 'Building2' },
+  { key: 'opening', label: 'บ้าน/สาขา', href: '/opening', icon: 'Building2' },
   { key: 'documents', label: 'เอกสาร', href: '/documents', icon: 'FileText' },
   { key: 'calendar', label: 'Calendar', href: '/calendar', icon: 'Calendar' },
   { key: 'reports', label: 'รายงาน', href: '/reports', icon: 'BarChart3' },

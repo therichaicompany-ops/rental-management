@@ -1563,14 +1563,21 @@ create or replace function public.sync_rent_payment_status()
 returns trigger
 language plpgsql
 as $$
+declare
+  v_net numeric(12,2);
 begin
 
   if new.status = 'cancelled' then
     return new;
   end if;
 
+  v_net := coalesce(
+    new.rent_amount + new.service_amount + new.other_amount - new.wht_amount,
+    new.net_amount,
+    0
+  );
 
-  if new.amount_paid >= new.net_amount then
+  if new.amount_paid >= v_net and v_net > 0 then
 
     new.status := 'paid';
 

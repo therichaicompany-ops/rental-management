@@ -8,7 +8,7 @@ import type { Customer, Landlord, Location } from '@/lib/types/master-data'
 import type { UserProfile } from '@/lib/types/auth'
 
 export const metadata: Metadata = {
-  title: 'รายละเอียดงานเช่า | ระบบบริหารงานเช่าและเปิดสาขา',
+  title: 'รายละเอียดประเภทงาน | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 interface RentalLeadDetailPageProps {

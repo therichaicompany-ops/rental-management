@@ -70,6 +70,7 @@ export interface TranslationDictionary {
     locations: string
     rentalLeads: string
     rentals: string
+    contracts: string
     rentPayments: string
     opening: string
     documents: string
@@ -143,6 +144,7 @@ export interface TranslationDictionary {
     addNew: string
     editLandlord: string
     landlordName: string
+    contactPerson: string
     idCardOrTax: string
     phone: string
     email: string
@@ -299,12 +301,18 @@ export interface TranslationDictionary {
     title: string
     subtitle: string
     addNew: string
+    editUser: string
     fullName: string
     email: string
     role: string
+    department: string
+    phone: string
     status: string
     lastLogin: string
     changePassword: string
+    resetPassword: string
+    newPassword: string
+    confirmPassword: string
   }
   settings: {
     title: string

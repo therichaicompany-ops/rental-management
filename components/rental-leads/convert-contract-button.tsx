@@ -1,8 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { FileCheck, CheckCircle2 } from 'lucide-react'
+import { FileCheck, CheckCircle2, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { convertToContractAction } from '@/lib/actions/rental-leads'
@@ -14,6 +15,7 @@ interface ConvertContractButtonProps {
   allowConvert: boolean
   hasExistingContract?: boolean
   contractNo?: string
+  contractId?: string
 }
 
 export function ConvertContractButton({
@@ -22,6 +24,7 @@ export function ConvertContractButton({
   allowConvert,
   hasExistingContract = false,
   contractNo,
+  contractId,
 }: ConvertContractButtonProps) {
   const router = useRouter()
   const [showConfirm, setShowConfirm] = React.useState(false)
@@ -29,18 +32,22 @@ export function ConvertContractButton({
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
   const [successMsg, setSuccessMsg] = React.useState<string | null>(null)
 
-  // If already converted
-  if (status === 'converted' || hasExistingContract) {
+  // If already has contract tied to this lead
+  if (hasExistingContract) {
     return (
-      <div className="inline-flex items-center gap-2 rounded-lg bg-teal-50 border border-teal-200 px-3 py-1.5 text-xs font-semibold text-teal-800">
+      <Link
+        href={contractId ? `/contracts/${contractId}` : '/contracts'}
+        className="inline-flex items-center gap-2 rounded-lg bg-teal-50 border border-teal-200 px-3 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100 transition-colors shadow-sm"
+      >
         <CheckCircle2 className="h-4 w-4 text-teal-600" />
-        <span>สร้างสัญญาเช่าแล้ว {contractNo ? `(${contractNo})` : ''}</span>
-      </div>
+        <span>ดูสัญญาเช่า {contractNo ? `(${contractNo})` : ''}</span>
+        <ChevronRight className="h-3.5 w-3.5 text-teal-600" />
+      </Link>
     )
   }
 
-  // Only show the button if status === 'agreed'
-  if (status !== 'agreed') {
+  // Only allow converting if agreed or converted (without contract yet)
+  if (status !== 'agreed' && status !== 'converted') {
     return null
   }
 
@@ -62,7 +69,12 @@ export function ConvertContractButton({
 
       setShowConfirm(false)
       setSuccessMsg('สร้างสัญญาเช่าสำเร็จ!')
-      router.refresh()
+      const createdContract = res.data as { id?: string } | undefined
+      if (createdContract?.id) {
+        router.push(`/contracts/${createdContract.id}`)
+      } else {
+        router.refresh()
+      }
     })
   }
 

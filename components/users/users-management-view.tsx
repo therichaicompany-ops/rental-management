@@ -14,6 +14,8 @@ import {
   Phone,
   Building,
   Loader2,
+  Pencil,
+  KeyRound,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,6 +30,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { type UserProfile, type UserRole } from '@/lib/types/auth'
 import { CreateUserDialog } from '@/components/users/create-user-dialog'
+import { EditUserDialog } from '@/components/users/edit-user-dialog'
+import { ResetPasswordDialog } from '@/components/users/reset-password-dialog'
 import { toggleUserStatusAction, updateUserRoleAction } from '@/lib/actions/users'
 import { useI18n } from '@/lib/i18n/context'
 import type { Locale } from '@/lib/i18n/types'
@@ -78,6 +82,9 @@ export function UsersManagementView({
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [actionError, setActionError] = useState<string | null>(null)
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null)
+  const [resettingUser, setResettingUser] = useState<UserProfile | null>(null)
 
   const roles = ROLE_TRANSLATIONS[locale] || ROLE_TRANSLATIONS.th
 
@@ -172,6 +179,21 @@ export function UsersManagementView({
           <button
             onClick={() => setActionError(null)}
             className="text-red-500 hover:text-red-700 text-xs font-semibold"
+          >
+            {locale === 'th' ? 'ปิด' : locale === 'my' ? 'ပိတ်' : 'Close'}
+          </button>
+        </div>
+      )}
+
+      {actionSuccess && (
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button
+            onClick={() => setActionSuccess(null)}
+            className="text-emerald-600 hover:text-emerald-800 text-xs font-semibold ml-2"
           >
             {locale === 'th' ? 'ปิด' : locale === 'my' ? 'ပိတ်' : 'Close'}
           </button>
@@ -319,8 +341,34 @@ export function UsersManagementView({
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 shadow-lg">
-                            <DropdownMenuLabel className="text-xs text-slate-400">
+                          <DropdownMenuContent align="end" className="w-52 bg-white border border-slate-200 shadow-lg p-1">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setActionError(null)
+                                setActionSuccess(null)
+                                setEditingUser(profile)
+                              }}
+                              className="text-xs cursor-pointer flex items-center gap-2 py-2 text-slate-700 hover:text-slate-900 focus:bg-slate-100"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-slate-500" />
+                              <span className="font-medium">{t.users.editUser}</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setActionError(null)
+                                setActionSuccess(null)
+                                setResettingUser(profile)
+                              }}
+                              className="text-xs cursor-pointer flex items-center gap-2 py-2 text-amber-700 hover:text-amber-800 focus:bg-amber-50"
+                            >
+                              <KeyRound className="h-3.5 w-3.5 text-amber-600" />
+                              <span className="font-medium">{t.users.resetPassword}</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+                            <DropdownMenuLabel className="text-[11px] text-slate-400 font-semibold px-2 py-1">
                               {locale === 'th' ? 'เปลี่ยนตำแหน่ง' : locale === 'my' ? 'ရာထူး ပြောင်းရန်' : 'Change Role'}
                             </DropdownMenuLabel>
                             {(Object.keys(roles) as UserRole[]).map((key) => (
@@ -328,16 +376,17 @@ export function UsersManagementView({
                                 key={key}
                                 disabled={profile.role === key || (isSelf && key !== 'owner')}
                                 onClick={() => handleUpdateRole(profile.id, key)}
-                                className="text-xs cursor-pointer"
+                                className="text-xs cursor-pointer flex items-center justify-between"
                               >
-                                {roles[key]} {profile.role === key && '✓'}
+                                <span>{roles[key]}</span>
+                                {profile.role === key && <span className="text-orange-600 font-bold">✓</span>}
                               </DropdownMenuItem>
                             ))}
-                            <DropdownMenuSeparator />
+                            <DropdownMenuSeparator className="my-1 bg-slate-100" />
                             <DropdownMenuItem
                               disabled={isSelf}
                               onClick={() => handleToggleStatus(profile.id, profile.is_active)}
-                              className={`text-xs cursor-pointer ${
+                              className={`text-xs cursor-pointer py-1.5 ${
                                 profile.is_active ? 'text-red-600 focus:text-red-600' : 'text-emerald-600 focus:text-emerald-600'
                               }`}
                             >
@@ -361,6 +410,27 @@ export function UsersManagementView({
       <CreateUserDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
+      />
+
+      {/* Edit User Dialog */}
+      <EditUserDialog
+        open={Boolean(editingUser)}
+        onOpenChange={(open) => {
+          if (!open) setEditingUser(null)
+        }}
+        user={editingUser}
+        currentUserId={currentUserId}
+        onSuccess={(msg) => setActionSuccess(msg)}
+      />
+
+      {/* Reset Password Dialog */}
+      <ResetPasswordDialog
+        open={Boolean(resettingUser)}
+        onOpenChange={(open) => {
+          if (!open) setResettingUser(null)
+        }}
+        user={resettingUser}
+        onSuccess={(msg) => setActionSuccess(msg)}
       />
     </div>
   )

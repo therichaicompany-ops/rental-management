@@ -7,7 +7,7 @@ import type { OpeningProjectWithRelations } from '@/lib/types/opening'
 import type { UserProfile } from '@/lib/types/auth'
 
 export const metadata: Metadata = {
-  title: 'ติดตามการเปิดสาขา (Branch Opening) | ระบบบริหารงานเช่าและเปิดสาขา',
+  title: 'บ้าน/สาขา | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 export default async function OpeningProjectsPage() {

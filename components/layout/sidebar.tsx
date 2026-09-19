@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Home, CreditCard, Building2,
   FileText, Calendar, BarChart3, Users, Settings,
-  UserCheck, Landmark, MapPin,
+  UserCheck, Landmark, MapPin, FileSignature,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LogoutButton } from '@/components/auth/logout-button'
@@ -28,6 +28,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   UserCheck,
   Landmark,
   MapPin,
+  FileSignature,
 }
 
 interface SidebarProps {

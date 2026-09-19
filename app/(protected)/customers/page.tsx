@@ -5,7 +5,7 @@ import { CustomerListView } from '@/components/customers/customer-list-view'
 import type { Customer } from '@/lib/types/master-data'
 
 export const metadata: Metadata = {
-  title: 'ลูกค้า | ระบบบริหารงานเช่าและเปิดสาขา',
+  title: 'ลูกค้า/ผู้เช่า | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 export default async function CustomersPage() {

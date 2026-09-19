@@ -136,3 +136,151 @@ export async function updateUserRoleAction(userId: string, role: UserRole) {
     }
   }
 }
+
+export interface UpdateUserInput {
+  full_name: string
+  email: string
+  role: UserRole
+  department?: string
+  phone?: string
+}
+
+export async function updateUserAction(userId: string, input: UpdateUserInput) {
+  try {
+    const currentUser = await requireAdmin()
+
+    if (!input.full_name?.trim()) {
+      return { success: false, error: 'กรุณากรอกชื่อ-นามสกุล' }
+    }
+    if (!input.email?.trim() || !input.email.includes('@')) {
+      return { success: false, error: 'กรุณากรอกอีเมลที่ถูกต้อง' }
+    }
+
+    const adminClient = createAdminClient()
+
+    // 1. Fetch current target profile to verify permissions and previous values
+    const { data: targetProfile, error: targetError } = await adminClient
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (targetError || !targetProfile) {
+      return { success: false, error: 'ไม่พบข้อมูลผู้ใช้งานที่ต้องการแก้ไข' }
+    }
+
+    // Permission checks:
+    // If target user is an 'owner', only an 'owner' can edit them
+    if (targetProfile.role === 'owner' && currentUser.profile.role !== 'owner') {
+      return { success: false, error: 'เฉพาะเจ้าของระบบเท่านั้นที่สามารถแก้ไขข้อมูลเจ้าของระบบได้' }
+    }
+
+    // If caller is demoting their own owner role
+    if (currentUser.id === userId && currentUser.profile.role === 'owner' && input.role !== 'owner') {
+      return { success: false, error: 'ไม่สามารถลดสิทธิ์บัญชีของตนเองได้' }
+    }
+
+    // 2. If email is changed or full_name is changed, update auth.users
+    const normalizedEmail = input.email.trim().toLowerCase()
+    const emailChanged = targetProfile.email?.toLowerCase() !== normalizedEmail
+
+    const authUpdatePayload: {
+      email?: string
+      email_confirm?: boolean
+      user_metadata?: Record<string, unknown>
+    } = {
+      user_metadata: {
+        full_name: input.full_name.trim(),
+      },
+    }
+
+    if (emailChanged) {
+      authUpdatePayload.email = normalizedEmail
+      authUpdatePayload.email_confirm = true
+    }
+
+    const { error: authError } = await adminClient.auth.admin.updateUserById(
+      userId,
+      authUpdatePayload
+    )
+
+    if (authError) {
+      if (authError.message.includes('already registered') || authError.message.includes('unique')) {
+        return { success: false, error: 'อีเมลนี้ถูกใช้งานในระบบแล้ว' }
+      }
+      return { success: false, error: authError.message }
+    }
+
+    // 3. Update public.profiles
+    const { error: profileError } = await adminClient
+      .from('profiles')
+      .update({
+        full_name: input.full_name.trim(),
+        email: normalizedEmail,
+        role: input.role,
+        department: input.department?.trim() || null,
+        phone: input.phone?.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId)
+
+    if (profileError) {
+      return { success: false, error: profileError.message }
+    }
+
+    revalidatePath('/users')
+    return { success: true }
+  } catch (err: unknown) {
+    console.error('updateUserAction error:', err)
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการแก้ไขข้อมูลผู้ใช้งาน',
+    }
+  }
+}
+
+export async function resetUserPasswordAction(userId: string, newPassword: string) {
+  try {
+    const currentUser = await requireAdmin()
+
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' }
+    }
+
+    const adminClient = createAdminClient()
+
+    // 1. Fetch target profile
+    const { data: targetProfile, error: targetError } = await adminClient
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (targetError || !targetProfile) {
+      return { success: false, error: 'ไม่พบข้อมูลผู้ใช้งานที่ต้องการรีเซ็ตรหัสผ่าน' }
+    }
+
+    // If target user is an 'owner', only an 'owner' can reset their password
+    if (targetProfile.role === 'owner' && currentUser.profile.role !== 'owner') {
+      return { success: false, error: 'เฉพาะเจ้าของระบบเท่านั้นที่สามารถรีเซ็ตรหัสผ่านของเจ้าของระบบได้' }
+    }
+
+    // 2. Direct password update in Supabase Auth via Admin API
+    const { error: authError } = await adminClient.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    })
+
+    if (authError) {
+      return { success: false, error: authError.message }
+    }
+
+    revalidatePath('/users')
+    return { success: true }
+  } catch (err: unknown) {
+    console.error('resetUserPasswordAction error:', err)
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน',
+    }
+  }
+}

@@ -6,6 +6,7 @@ import { ExternalLink } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useI18n } from '@/lib/i18n/context'
 import type { RecentPayment } from '@/lib/actions/dashboard'
+import { getEffectivePaymentStatus } from '@/lib/types/contracts-payments'
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -70,7 +71,8 @@ export function RentSummaryTable({ payments }: RentSummaryTableProps) {
         </thead>
         <tbody className="divide-y divide-border">
           {payments.map((p) => {
-            const color = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending
+            const effStatus = getEffectivePaymentStatus(p)
+            const color = STATUS_COLORS[effStatus] ?? STATUS_COLORS.pending
             return (
               <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                 <td className="px-3 py-2.5">
@@ -91,7 +93,7 @@ export function RentSummaryTable({ payments }: RentSummaryTableProps) {
                     variant="outline"
                     className={`text-[10px] ${color}`}
                   >
-                    {getStatusLabel(p.status)}
+                    {getStatusLabel(effStatus)}
                   </Badge>
                 </td>
                 <td className="px-3 py-2.5 text-center hidden lg:table-cell">

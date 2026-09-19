@@ -16,6 +16,8 @@ import {
   AlertTriangle,
   Landmark,
   Building2,
+  Building,
+  Home,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +32,7 @@ import {
   CONTRACT_STATUS_BADGE_VARIANTS,
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_BADGE_VARIANTS,
+  getEffectivePaymentStatus,
 } from '@/lib/types/contracts-payments'
 import type { UserRole } from '@/lib/types/auth'
 import { canWrite, hasFullAccess } from '@/lib/auth/permissions'
@@ -76,9 +79,9 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
   const payments = contract.rent_payments || []
 
   // Payments summary
-  const paidCount = payments.filter((p) => p.status === 'paid').length
-  const overdueCount = payments.filter((p) => p.status === 'overdue').length
-  const pendingCount = payments.filter((p) => ['pending', 'partial'].includes(p.status)).length
+  const paidCount = payments.filter((p) => getEffectivePaymentStatus(p) === 'paid').length
+  const overdueCount = payments.filter((p) => getEffectivePaymentStatus(p) === 'overdue').length
+  const pendingCount = payments.filter((p) => ['pending', 'partial'].includes(getEffectivePaymentStatus(p))).length
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -357,74 +360,118 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
               </div>
             )}
 
-            {/* Branch Checklist */}
-            <div className="pt-2 border-t border-slate-100">
-              <span className="text-slate-500 font-medium block mb-2">
-                การดำเนินการเปิดสาขา:
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <span
-                  className={`inline-flex items-center gap-1.5 ${
-                    contract.need_branch_registration ? 'text-emerald-700' : 'text-slate-400'
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      contract.need_branch_registration ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`}
-                  />
-                  จดทะเบียนสาขา
-                </span>
+            {/* Registration Checklist */}
+            {(() => {
+              const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
+              const hasForeignResident =
+                contract.note?.includes(TM30_TAG) ||
+                contract.note?.includes('แจ้งที่พักอาศัยคนต่างด้าว')
+              const cleanNote = contract.note
+                ? contract.note.replace(new RegExp(`\\s*\\${TM30_TAG}\\s*`, 'g'), '').trim()
+                : ''
 
-                <span
-                  className={`inline-flex items-center gap-1.5 ${
-                    contract.need_vat_registration ? 'text-emerald-700' : 'text-slate-400'
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      contract.need_vat_registration ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`}
-                  />
-                  จดทะเบียน VAT
-                </span>
+              return (
+                <>
+                  <div className="pt-2 border-t border-slate-100 space-y-3">
+                    <span className="text-slate-700 font-semibold block text-xs uppercase tracking-wider">
+                      รายการที่ต้องดำเนินการทางทะเบียน & เอกสาร:
+                    </span>
 
-                <span
-                  className={`inline-flex items-center gap-1.5 ${
-                    contract.need_employer_change ? 'text-emerald-700' : 'text-slate-400'
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      contract.need_employer_change ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`}
-                  />
-                  เปลี่ยนนายจ้าง
-                </span>
+                    {/* สำหรับสาขา */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                        <Building className="h-3.5 w-3.5" />
+                        <span>สำหรับสาขา / สถานประกอบการ</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pl-2 border-l-2 border-slate-100">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs ${
+                            contract.need_branch_registration ? 'text-emerald-700' : 'text-slate-400'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              contract.need_branch_registration ? 'bg-emerald-500' : 'bg-slate-300'
+                            }`}
+                          />
+                          จดทะเบียนสาขา
+                        </span>
 
-                <span
-                  className={`inline-flex items-center gap-1.5 ${
-                    contract.need_signboard ? 'text-emerald-700' : 'text-slate-400'
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      contract.need_signboard ? 'bg-emerald-500' : 'bg-slate-300'
-                    }`}
-                  />
-                  ป้ายโฆษณา/สาขา
-                </span>
-              </div>
-            </div>
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs ${
+                            contract.need_vat_registration ? 'text-emerald-700' : 'text-slate-400'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              contract.need_vat_registration ? 'bg-emerald-500' : 'bg-slate-300'
+                            }`}
+                          />
+                          จดทะเบียน VAT
+                        </span>
 
-            {contract.note && (
-              <div className="pt-2 border-t border-slate-100 text-slate-600">
-                <span className="text-slate-400 block mb-1">หมายเหตุ:</span>
-                <p className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 whitespace-pre-wrap">
-                  {contract.note}
-                </p>
-              </div>
-            )}
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs ${
+                            contract.need_employer_change ? 'text-emerald-700' : 'text-slate-400'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              contract.need_employer_change ? 'bg-emerald-500' : 'bg-slate-300'
+                            }`}
+                          />
+                          เปลี่ยนนายจ้าง
+                        </span>
+
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs ${
+                            contract.need_signboard ? 'text-emerald-700' : 'text-slate-400'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              contract.need_signboard ? 'bg-emerald-500' : 'bg-slate-300'
+                            }`}
+                          />
+                          ป้ายโฆษณา/สาขา
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* สำหรับบ้าน */}
+                    <div className="space-y-1.5 pt-1.5 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
+                        <Home className="h-3.5 w-3.5 text-amber-600" />
+                        <span>สำหรับบ้าน / ที่พักอาศัย</span>
+                      </div>
+                      <div className="pl-2 border-l-2 border-amber-200">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs ${
+                            hasForeignResident ? 'text-amber-800 font-medium' : 'text-slate-400'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              hasForeignResident ? 'bg-amber-500' : 'bg-slate-300'
+                            }`}
+                          />
+                          แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {cleanNote && (
+                    <div className="pt-2 border-t border-slate-100 text-slate-600">
+                      <span className="text-slate-400 block mb-1">หมายเหตุ:</span>
+                      <p className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 whitespace-pre-wrap text-xs">
+                        {cleanNote}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </div>
         </div>
       </div>
@@ -521,8 +568,9 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {payments.map((p) => {
+                  const effStatus = getEffectivePaymentStatus(p)
                   const pBadge =
-                    PAYMENT_STATUS_BADGE_VARIANTS[p.status as RentPaymentStatus] || {
+                    PAYMENT_STATUS_BADGE_VARIANTS[effStatus] || {
                       bg: 'bg-slate-100',
                       text: 'text-slate-600',
                       border: 'border-slate-200',
@@ -586,7 +634,7 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
                           variant="outline"
                           className={`${pBadge.bg} ${pBadge.text} ${pBadge.border} text-[10px] font-medium`}
                         >
-                          {PAYMENT_STATUS_LABELS[p.status as RentPaymentStatus] || p.status}
+                          {PAYMENT_STATUS_LABELS[effStatus] || effStatus}
                         </Badge>
                       </td>
 

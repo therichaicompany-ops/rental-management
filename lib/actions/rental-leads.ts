@@ -252,10 +252,10 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
   }
 
   // 2. Validate status and location
-  if (lead.status !== 'agreed') {
+  if (lead.status !== 'agreed' && lead.status !== 'converted') {
     return {
       success: false,
-      error: 'สามารถสร้างสัญญาได้เฉพาะ Lead ที่มีสถานะ "ตกลงแล้ว (agreed)" เท่านั้น',
+      error: 'สามารถสร้างสัญญาได้เฉพาะ Lead ที่มีสถานะ "ตกลงแล้ว (agreed)" หรือ "ทำสัญญาเรียบร้อย (converted)" เท่านั้น',
     }
   }
 
@@ -281,8 +281,13 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
   }
 
   // 4. Create Contract Draft
-  const contractNo = `RC-${Date.now().toString().slice(-6)}`
+  const contractNo = `CTR-${Date.now().toString().slice(-6)}`
   const today = new Date().toISOString().split('T')[0]
+  const startDateStr = lead.expected_start_date || today
+  const sDate = new Date(startDateStr)
+  // Default 3 years contract duration (standard commercial rental term)
+  const eDate = new Date(sDate.getFullYear() + 3, sDate.getMonth(), sDate.getDate())
+  const endDateStr = eDate.toISOString().split('T')[0]
 
   const { data: contract, error: contractError } = await supabase
     .from('rental_contracts')
@@ -293,17 +298,19 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
       customer_id: lead.customer_id,
       landlord_id: lead.landlord_id,
       contract_date: today,
-      start_date: lead.expected_start_date || today,
-      monthly_rent: lead.proposed_monthly_rent,
-      deposit_amount: lead.proposed_deposit_amount,
-      advance_rent_amount: lead.proposed_advance_rent_amount,
-      other_service_amount: lead.proposed_service_amount,
-      need_branch_registration: lead.need_branch_registration,
-      need_vat_registration: lead.need_vat_registration,
-      need_employer_change: lead.need_employer_change,
-      need_signboard: lead.need_signboard,
-      status: 'draft',
+      start_date: startDateStr,
+      end_date: endDateStr,
+      monthly_rent: lead.proposed_monthly_rent ?? 0,
+      deposit_amount: lead.proposed_deposit_amount ?? 0,
+      advance_rent_amount: lead.proposed_advance_rent_amount ?? 0,
+      other_service_amount: lead.proposed_service_amount ?? 0,
+      need_branch_registration: lead.need_branch_registration ?? true,
+      need_vat_registration: lead.need_vat_registration ?? false,
+      need_employer_change: lead.need_employer_change ?? false,
+      need_signboard: lead.need_signboard ?? true,
+      status: 'active',
       assigned_to: lead.assigned_to,
+      note: lead.note || null,
     })
     .select()
     .single()
@@ -323,5 +330,7 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
 
   revalidatePath(`/rental-leads/${leadId}`)
   revalidatePath('/rental-leads')
+  revalidatePath('/contracts')
+  revalidatePath('/rent-payments')
   return { success: true, data: contract }
 }

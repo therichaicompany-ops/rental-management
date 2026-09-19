@@ -186,7 +186,7 @@ export const negotiationLogSchema = z.object({
   contact_method: z.enum(['phone', 'line', 'facebook', 'email', 'onsite', 'other'], {
     required_error: 'กรุณาเลือกวิธีการติดต่อ',
   }),
-  contact_person: z.string().trim().max(255, 'ชื่อผู้ติดต่อต้องไม่เกิน 255 ตัวอักษร').optional().nullable(),
+  contact_person: z.string().trim().max(255, 'ชื่อผู้ประสานงานต้องไม่เกิน 255 ตัวอักษร').optional().nullable(),
   contact_phone: z.string().trim().max(50, 'เบอร์โทรต้องไม่เกิน 50 ตัวอักษร').optional().nullable(),
   monthly_rent: z.coerce.number().min(0, 'ค่าเช่าต้องไม่ติดลบ').optional().nullable(),
   deposit_amount: z.coerce.number().min(0, 'เงินมัดจำต้องไม่ติดลบ').optional().nullable(),

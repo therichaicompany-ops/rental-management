@@ -45,7 +45,7 @@ export function LandlordListView({ landlords, userRole }: LandlordListViewProps)
       },
     },
     {
-      header: t.customers.contactPerson,
+      header: t.landlords.contactPerson,
       accessorKey: 'contact_name',
       cell: (row) => row.contact_name || '-',
     },

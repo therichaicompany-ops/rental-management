@@ -210,7 +210,7 @@ export function LandlordForm({ initialData, userRole }: LandlordFormProps) {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="contact_name">ชื่อผู้ติดต่อ / ผู้จัดการพื้นที่</Label>
+                <Label htmlFor="contact_name">ชื่อผู้ประสานงาน / ผู้จัดการพื้นที่</Label>
                 <Input
                   id="contact_name"
                   placeholder="เช่น คุณกมลวรรณ"

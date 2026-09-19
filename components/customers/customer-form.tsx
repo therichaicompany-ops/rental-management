@@ -121,12 +121,12 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
           </Link>
           <div>
             <h1 className="text-xl font-bold text-slate-900">
-              {isEdit ? 'แก้ไขข้อมูลลูกค้า' : 'เพิ่มลูกค้าใหม่'}
+              {isEdit ? 'แก้ไขข้อมูลลูกค้า/ผู้เช่า' : 'เพิ่มลูกค้า/ผู้เช่าใหม่'}
             </h1>
             <p className="text-xs text-slate-500">
               {isEdit
                 ? `รหัส: ${initialData?.customer_code || initialData?.id}`
-                : 'กรอกข้อมูลรายละเอียดลูกค้าเพื่อบันทึกเข้าระบบ'}
+                : 'กรอกข้อมูลรายละเอียดลูกค้า/ผู้เช่าเพื่อบันทึกเข้าระบบ'}
             </p>
           </div>
         </div>
@@ -139,7 +139,7 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
             className="text-red-600 hover:bg-red-50 hover:text-red-700 gap-1.5"
           >
             <Trash2 className="h-4 w-4" />
-            ลบลูกค้า
+            ลบลูกค้า/ผู้เช่า
           </Button>
         )}
       </div>
@@ -160,7 +160,7 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="customer_type">ประเภทลูกค้า *</Label>
+                <Label htmlFor="customer_type">ประเภทลูกค้า/ผู้เช่า *</Label>
                 <Select
                   id="customer_type"
                   disabled={!allowEdit}
@@ -175,7 +175,7 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="customer_code">รหัสลูกค้า</Label>
+                <Label htmlFor="customer_code">รหัสลูกค้า/ผู้เช่า</Label>
                 <Input
                   id="customer_code"
                   placeholder="เช่น CUST-001 (ปล่อยว่างให้ระบบสร้างอัตโนมัติ)"
@@ -232,7 +232,7 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="contact_name">ชื่อผู้ประสานงาน / ผู้ติดต่อ</Label>
+                <Label htmlFor="contact_name">ชื่อผู้ประสานงาน</Label>
                 <Input
                   id="contact_name"
                   placeholder="เช่น คุณวิภาวรรณ (ฝ่ายจัดซื้อ)"
@@ -360,8 +360,8 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="ยืนยันการลบข้อมูลลูกค้า"
-        description={`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลลูกค้า "${
+        title="ยืนยันการลบข้อมูลลูกค้า/ผู้เช่า"
+        description={`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลลูกค้า/ผู้เช่า "${
           initialData?.name || initialData?.company_name
         }"? การดำเนินการนี้ไม่สามารถย้อนกลับได้`}
         confirmText="ลบข้อมูล"
