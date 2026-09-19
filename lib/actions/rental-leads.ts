@@ -284,11 +284,12 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
   // 4. Create Contract Draft
   const contractNo = `CTR-${Date.now().toString().slice(-6)}`
   const today = new Date().toISOString().split('T')[0]
+  const leadMeta = parseLeadMetadata(lead.note)
   const startDateStr = lead.expected_start_date || today
   const sDate = new Date(startDateStr)
   // Default 3 years contract duration (standard commercial rental term)
   const eDate = new Date(sDate.getFullYear() + 3, sDate.getMonth(), sDate.getDate())
-  const endDateStr = eDate.toISOString().split('T')[0]
+  const endDateStr = leadMeta.financial.contract_end_date || eDate.toISOString().split('T')[0]
 
   const { data: contract, error: contractError } = await supabase
     .from('rental_contracts')
@@ -310,7 +311,7 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
       need_employer_change: lead.need_employer_change ?? false,
       need_signboard: lead.need_signboard ?? true,
       status: 'active',
-      payment_due_day: parseLeadMetadata(lead.note).financial.payment_due_day || 5,
+      payment_due_day: leadMeta.financial.payment_due_day || 5,
       assigned_to: lead.assigned_to,
       note: lead.note || null,
     })

@@ -56,6 +56,11 @@ export function RentalLeadDetailView({
   const [isEditing, setIsEditing] = React.useState(false)
   const allowEdit = canWrite(userRole)
 
+  const { cleanNote, hasForeignResident, financial } = React.useMemo(
+    () => parseLeadMetadata(lead.note),
+    [lead.note]
+  )
+
   const badgeStyle =
     LEAD_STATUS_BADGE_VARIANTS[lead.status as LeadStatus] ||
     LEAD_STATUS_BADGE_VARIANTS.new
@@ -189,7 +194,7 @@ export function RentalLeadDetailView({
               : 'ไม่มีนัดหมาย'}
           </p>
           <p className="text-[11px] text-slate-400">
-            เริ่มสัญญา:{' '}
+            เริ่ม:{' '}
             {lead.expected_start_date
               ? new Date(lead.expected_start_date).toLocaleDateString('th-TH', {
                   day: 'numeric',
@@ -197,6 +202,13 @@ export function RentalLeadDetailView({
                   year: '2-digit',
                 })
               : '-'}
+            {financial.contract_end_date ? (
+              <> • ครบ: {new Date(financial.contract_end_date).toLocaleDateString('th-TH', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: '2-digit',
+                })}</>
+            ) : null}
           </p>
         </div>
 
@@ -338,10 +350,22 @@ export function RentalLeadDetailView({
                       </span>
                     </div>
                     {financial.payment_due_day && (
-                      <div className="flex justify-between py-1">
+                      <div className="flex justify-between py-1 border-b border-slate-50">
                         <span className="text-slate-600 font-medium">วันที่ครบกำหนดชำระ:</span>
                         <span className="font-semibold text-primary-700">
                           ทุกวันที่ {financial.payment_due_day} ของเดือน
+                        </span>
+                      </div>
+                    )}
+                    {financial.contract_end_date && (
+                      <div className="flex justify-between py-1">
+                        <span className="text-slate-600 font-medium">วันที่ครบสัญญา:</span>
+                        <span className="font-semibold text-slate-900">
+                          {new Date(financial.contract_end_date).toLocaleDateString('th-TH', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
                         </span>
                       </div>
                     )}

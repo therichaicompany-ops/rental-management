@@ -91,6 +91,11 @@ export function RentalLeadForm({
     initialParsed.financial.payment_due_day ?? null
   )
 
+  // Contract end date
+  const [contractEndDate, setContractEndDate] = React.useState<string | null>(
+    initialParsed.financial.contract_end_date ?? null
+  )
+
   // Live mortgage installment calculation
   const estimatedMonthlyInstallment = React.useMemo(() => {
     return calculateMonthlyInstallment(
@@ -143,6 +148,7 @@ export function RentalLeadForm({
         interest_rate: interestRate,
         installment_years: installmentYears,
         payment_due_day: paymentDueDay,
+        contract_end_date: contractEndDate,
       }
 
       const finalNote = buildLeadMetadataNote(
@@ -517,12 +523,13 @@ export function RentalLeadForm({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="expected_open_date">เป้าหมายเปิดสาขา</Label>
+                <Label htmlFor="contract_end_date">วันที่ครบสัญญา</Label>
                 <Input
-                  id="expected_open_date"
+                  id="contract_end_date"
                   type="date"
                   disabled={!allowEdit}
-                  {...register('expected_open_date')}
+                  value={contractEndDate || ''}
+                  onChange={(e) => setContractEndDate(e.target.value || null)}
                 />
               </div>
 

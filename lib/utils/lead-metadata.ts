@@ -4,6 +4,7 @@ export interface LeadFinancialTerms {
   interest_rate?: number | null // อัตราดอกเบี้ย (% ต่อปี)
   installment_years?: number | null // ระยะเวลาการผ่อน (ปี)
   payment_due_day?: number | null // วันที่ครบกำหนดชำระในแต่ละเดือน (1-31)
+  contract_end_date?: string | null // วันที่ครบสัญญา (YYYY-MM-DD)
 }
 
 export const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
@@ -119,6 +120,9 @@ export function buildLeadMetadataNote(
     }
     if (financial.payment_due_day) {
       summaryParts.push(`กำหนดชำระ: ทุกวันที่ ${financial.payment_due_day} ของเดือน`)
+    }
+    if (financial.contract_end_date) {
+      summaryParts.push(`วันที่ครบสัญญา: ${financial.contract_end_date}`)
     }
 
     const humanText = `[เงื่อนไขการเงิน: ${summaryParts.join(' | ')}]`
