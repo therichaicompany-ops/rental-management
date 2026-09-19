@@ -8,6 +8,7 @@ import {
   rentalContractSchema,
   type RentalContractFormValues,
 } from '@/lib/types/contracts-payments'
+import { parseLeadMetadata, getContractPartyRole } from '@/lib/utils/lead-metadata'
 import type { ActionResponse } from './customers'
 
 export async function createContractAction(
@@ -154,9 +155,10 @@ export async function deleteContractAction(id: string): Promise<ActionResponse> 
 }
 
 /**
- * Generate monthly payment schedule for a contract
- * Calculates months between start_date and end_date,
- * and creates rent_payments for payable (landlord) and/or receivable (customer).
+ * Automatically generate monthly payment schedule records from contract start_date to end_date
+ * Generates ONLY the single payment type matching contract direction:
+ * - บริษัทเช่ากับเจ้าของ -> 'payable' (จ่ายเจ้าของ)
+ * - ลูกค้าเช่ากับบริษัท -> 'receivable' (รับจากลูกค้า)
  */
 export async function generatePaymentScheduleAction(
   contractId: string
@@ -174,7 +176,7 @@ export async function generatePaymentScheduleAction(
 
   const { data: contract, error: contractErr } = await supabase
     .from('rental_contracts')
-    .select('*')
+    .select('*, rental_leads(note)')
     .eq('id', contractId)
     .single()
 
@@ -193,6 +195,18 @@ export async function generatePaymentScheduleAction(
     return { success: false, error: 'วันเริ่มต้นสัญญาต้องมาก่อนวันสิ้นสุดสัญญา' }
   }
 
+  // Determine the contract direction / single party role
+  const rawNote =
+    contract.note || (contract.rental_leads as { note?: string } | null)?.note || ''
+  const contractMeta = parseLeadMetadata(rawNote)
+  const partyRole = getContractPartyRole(
+    contractMeta.financial,
+    contractMeta.isHouse,
+    Boolean(contract.landlord_id),
+    Boolean(contract.customer_id),
+    rawNote
+  )
+
   // Fetch existing rent payments for this contract to avoid duplicates
   const { data: existingPayments, error: fetchErr } = await supabase
     .from('rent_payments')
@@ -210,10 +224,8 @@ export async function generatePaymentScheduleAction(
     )
   )
 
-  const paymentTypes: ('payable' | 'receivable')[] = []
-  if (contract.landlord_id) paymentTypes.push('payable')
-  if (contract.customer_id) paymentTypes.push('receivable')
-  if (paymentTypes.length === 0) paymentTypes.push('payable') // fallback default
+  // Strictly insert ONLY the single payment type for this contract
+  const paymentTypes: ('payable' | 'receivable')[] = [partyRole]
 
   const rentAmount = Number(contract.monthly_rent) || 0
   const serviceAmount = Number(contract.other_service_amount) || 0
@@ -298,4 +310,60 @@ export async function generatePaymentScheduleAction(
   revalidatePath(`/contracts/${contractId}`)
 
   return { success: true, count: inserted?.length || paymentsToInsert.length }
+}
+
+/**
+ * Remove duplicate or mismatched payment schedule rows that don't match the contract's direction
+ */
+export async function cleanupWrongPaymentTypesAction(
+  contractId: string,
+  keepType: 'payable' | 'receivable'
+): Promise<ActionResponse & { deletedCount?: number }> {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) {
+    return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
+  }
+  if (!canWrite(currentUser.profile.role)) {
+    return { success: false, error: 'คุณไม่มีสิทธิ์ในการดำเนินการ' }
+  }
+
+  const supabase = await createClient()
+
+  // Find payments with the opposite/wrong payment type
+  const oppositeType = keepType === 'payable' ? 'receivable' : 'payable'
+  const { data: wrongPayments, error: fetchErr } = await supabase
+    .from('rent_payments')
+    .select('id')
+    .eq('contract_id', contractId)
+    .eq('payment_type', oppositeType)
+
+  if (fetchErr) {
+    return { success: false, error: fetchErr.message }
+  }
+
+  if (!wrongPayments || wrongPayments.length === 0) {
+    return { success: true, deletedCount: 0 }
+  }
+
+  const wrongIds = wrongPayments.map((p) => p.id)
+
+  // Delete payment transactions on these wrong payments first
+  await supabase
+    .from('payment_transactions')
+    .delete()
+    .in('rent_payment_id', wrongIds)
+
+  // Delete wrong payments
+  const { error: deleteErr } = await supabase
+    .from('rent_payments')
+    .delete()
+    .in('id', wrongIds)
+
+  if (deleteErr) {
+    return { success: false, error: deleteErr.message }
+  }
+
+  revalidatePath('/rent-payments')
+  revalidatePath(`/contracts/${contractId}`)
+  return { success: true, deletedCount: wrongIds.length }
 }

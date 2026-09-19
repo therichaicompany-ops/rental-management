@@ -291,6 +291,11 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
   const eDate = new Date(sDate.getFullYear() + 3, sDate.getMonth(), sDate.getDate())
   const endDateStr = leadMeta.financial.contract_end_date || eDate.toISOString().split('T')[0]
 
+  const isHouse = leadMeta.isHouse
+  const depositAmount = isHouse && leadMeta.financial.down_payment
+    ? Number(leadMeta.financial.down_payment)
+    : (lead.proposed_deposit_amount ?? 0)
+
   const { data: contract, error: contractError } = await supabase
     .from('rental_contracts')
     .insert({
@@ -303,13 +308,13 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
       start_date: startDateStr,
       end_date: endDateStr,
       monthly_rent: lead.proposed_monthly_rent ?? 0,
-      deposit_amount: lead.proposed_deposit_amount ?? 0,
+      deposit_amount: depositAmount,
       advance_rent_amount: lead.proposed_advance_rent_amount ?? 0,
       other_service_amount: lead.proposed_service_amount ?? 0,
-      need_branch_registration: lead.need_branch_registration ?? true,
-      need_vat_registration: lead.need_vat_registration ?? false,
-      need_employer_change: lead.need_employer_change ?? false,
-      need_signboard: lead.need_signboard ?? true,
+      need_branch_registration: isHouse ? false : (lead.need_branch_registration ?? true),
+      need_vat_registration: isHouse ? false : (lead.need_vat_registration ?? false),
+      need_employer_change: isHouse ? false : (lead.need_employer_change ?? false),
+      need_signboard: isHouse ? false : (lead.need_signboard ?? true),
       status: 'active',
       payment_due_day: leadMeta.financial.payment_due_day || 5,
       assigned_to: lead.assigned_to,

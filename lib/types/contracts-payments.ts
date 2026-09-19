@@ -120,7 +120,7 @@ export interface ContractWithRelations extends ContractModel {
   customers?: Pick<Customer, 'id' | 'customer_code' | 'name' | 'company_name' | 'phone'> | null
   landlords?: Pick<Landlord, 'id' | 'landlord_code' | 'name' | 'company_name' | 'phone' | 'bank_name' | 'bank_account_number'> | null
   profiles?: Pick<UserProfile, 'id' | 'full_name' | 'email'> | null
-  rental_leads?: Pick<RentalLead, 'id' | 'lead_no' | 'lead_name'> | null
+  rental_leads?: Pick<RentalLead, 'id' | 'lead_no' | 'lead_name' | 'note'> | null
   rent_payments?: RentPaymentModel[]
 }
 

@@ -56,7 +56,7 @@ export function RentalLeadDetailView({
   const [isEditing, setIsEditing] = React.useState(false)
   const allowEdit = canWrite(userRole)
 
-  const { cleanNote, hasForeignResident, financial } = React.useMemo(
+  const { cleanNote, hasForeignResident, financial, isHouse } = React.useMemo(
     () => parseLeadMetadata(lead.note),
     [lead.note]
   )
@@ -109,6 +109,17 @@ export function RentalLeadDetailView({
               >
                 {LEAD_STATUS_LABELS[lead.status as LeadStatus] || lead.status}
               </span>
+              {isHouse ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                  <Home className="h-3 w-3 text-amber-600" />
+                  บ้าน / ที่พักอาศัย
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800 border border-sky-300">
+                  <Building className="h-3 w-3 text-sky-600" />
+                  สาขา / สถานประกอบการ
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5 font-mono">
               รหัส Lead: {lead.lead_no} • วันที่บันทึก:{' '}

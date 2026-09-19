@@ -14,6 +14,7 @@ import {
   Calculator,
   Building,
   Home,
+  User,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,6 +29,13 @@ import {
 } from '@/lib/types/contracts-payments'
 import type { UserProfile } from '@/lib/types/auth'
 import { createContractAction, updateContractAction } from '@/lib/actions/contracts'
+import {
+  parseLeadMetadata,
+  buildLeadMetadataNote,
+  calculateMonthlyInstallment,
+  type LeadFinancialTerms,
+  type ContractPartyRole,
+} from '@/lib/utils/lead-metadata'
 
 interface ContractFormProps {
   initialData?: ContractWithRelations | null
@@ -52,8 +60,59 @@ export function ContractForm({
 
   const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
 
+  const parsedMeta = React.useMemo(
+    () => parseLeadMetadata(initialData?.note),
+    [initialData?.note]
+  )
+
+  const [propertyType, setPropertyType] = React.useState<'house' | 'branch'>(() => {
+    if (parsedMeta.financial.property_type) return parsedMeta.financial.property_type
+    if (
+      parsedMeta.isHouse ||
+      initialData?.locations?.location_name?.toLowerCase().includes('sense') ||
+      initialData?.locations?.location_name?.toLowerCase().includes('house') ||
+      initialData?.locations?.location_name?.toLowerCase().includes('บ้าน')
+    ) {
+      return 'house'
+    }
+    return 'branch'
+  })
+
+  const [contractPartyRole, setContractPartyRole] = React.useState<ContractPartyRole>(() => {
+    if (parsedMeta.financial.contract_party_role) {
+      return parsedMeta.financial.contract_party_role
+    }
+    if (parsedMeta.isHouse || propertyType === 'house') {
+      return 'payable'
+    }
+    return 'payable'
+  })
+
+  const [propertyPrice, setPropertyPrice] = React.useState<number | null>(
+    parsedMeta.financial.property_price ?? null
+  )
+  const [downPayment, setDownPayment] = React.useState<number | null>(
+    parsedMeta.financial.down_payment ?? (initialData ? Number(initialData.deposit_amount) : null)
+  )
+  const [interestRate, setInterestRate] = React.useState<number | null>(
+    parsedMeta.financial.interest_rate ?? null
+  )
+  const [installmentYears, setInstallmentYears] = React.useState<number | null>(
+    parsedMeta.financial.installment_years ?? null
+  )
+
+  const estimatedMonthlyInstallment = React.useMemo(() => {
+    return calculateMonthlyInstallment(
+      propertyPrice,
+      downPayment,
+      interestRate,
+      installmentYears
+    )
+  }, [propertyPrice, downPayment, interestRate, installmentYears])
+
   const [needForeignResident, setNeedForeignResident] = React.useState<boolean>(() => {
     return (
+      parsedMeta.hasForeignResident ||
       initialData?.note?.includes(TM30_TAG) ||
       initialData?.note?.includes('แจ้งที่พักอาศัยคนต่างด้าว') ||
       false
@@ -83,15 +142,14 @@ export function ContractForm({
     need_employer_change: initialData?.need_employer_change ?? false,
     need_signboard: initialData?.need_signboard ?? true,
     assigned_to: initialData?.assigned_to || '',
-    note: initialData?.note
-      ? initialData.note.replace(new RegExp(`\\s*\\${TM30_TAG}\\s*`, 'g'), '').trim()
-      : '',
+    note: parsedMeta.cleanNote,
   }
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<RentalContractFormValues>({
     resolver: zodResolver(rentalContractSchema),
@@ -113,13 +171,30 @@ export function ContractForm({
   const onSubmit = async (values: RentalContractFormValues) => {
     setErrorMsg(null)
     try {
-      let finalNote = values.note?.trim() || ''
-      finalNote = finalNote.replace(new RegExp(`\\s*\\${TM30_TAG}\\s*`, 'g'), '').trim()
-      if (needForeignResident) {
-        finalNote = finalNote ? `${finalNote}\n\n${TM30_TAG}` : TM30_TAG
+      const financialTerms: LeadFinancialTerms = {
+        property_type: propertyType,
+        contract_party_role: contractPartyRole,
+        property_price: propertyPrice,
+        down_payment: downPayment,
+        interest_rate: interestRate,
+        installment_years: installmentYears,
+        payment_due_day: Number(values.payment_due_day) || 5,
+        contract_end_date: values.end_date || null,
       }
+
+      const finalNote = buildLeadMetadataNote(
+        values.note || '',
+        propertyType === 'house' ? true : needForeignResident,
+        financialTerms
+      )
+
       const payload: RentalContractFormValues = {
         ...values,
+        deposit_amount: propertyType === 'house' && downPayment !== null ? downPayment : values.deposit_amount,
+        need_branch_registration: propertyType === 'house' ? false : values.need_branch_registration,
+        need_vat_registration: propertyType === 'house' ? false : values.need_vat_registration,
+        need_employer_change: propertyType === 'house' ? false : values.need_employer_change,
+        need_signboard: propertyType === 'house' ? false : values.need_signboard,
         note: finalNote || null,
       }
 
@@ -198,6 +273,100 @@ export function ContractForm({
               <FileText className="h-4 w-4 text-primary-600" />
               ข้อมูลทั่วไปของสัญญา
             </h2>
+
+            {/* Property Type Selector: House vs Branch */}
+            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
+                รูปแบบสัญญา / ประเภทสถานที่ <span className="text-rose-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPropertyType('house')
+                    setContractPartyRole('payable')
+                    setNeedForeignResident(true)
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    propertyType === 'house'
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Home className={`h-5 w-5 shrink-0 ${propertyType === 'house' ? 'text-white' : 'text-amber-500'}`} />
+                  <div>
+                    <div className="text-xs font-bold">บ้าน / ที่พักอาศัย</div>
+                    <div className={`text-[11px] ${propertyType === 'house' ? 'text-amber-100' : 'text-slate-400'}`}>
+                      เช่าซื้อ, ซื้อบ้าน, แจ้ง ตม.30
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPropertyType('branch')
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    propertyType === 'branch'
+                      ? 'bg-primary-600 text-white border-primary-700 shadow-sm ring-2 ring-primary-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Building className={`h-5 w-5 shrink-0 ${propertyType === 'branch' ? 'text-white' : 'text-primary-500'}`} />
+                  <div>
+                    <div className="text-xs font-bold">สาขา / สถานประกอบการ</div>
+                    <div className={`text-[11px] ${propertyType === 'branch' ? 'text-primary-100' : 'text-slate-400'}`}>
+                      เช่าเพื่อธุรกิจ, เปิดสาขาบริษัท
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Contract Direction / Party Role Selector */}
+            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
+                รูปแบบคู่สัญญาและทิศทางการชำระ (Payment Direction) <span className="text-rose-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setContractPartyRole('payable')}
+                  className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    contractPartyRole === 'payable'
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm ring-2 ring-indigo-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Building className={`h-5 w-5 shrink-0 mt-0.5 ${contractPartyRole === 'payable' ? 'text-white' : 'text-indigo-500'}`} />
+                  <div>
+                    <div className="text-xs font-bold">บริษัทเช่ากับเจ้าของ (รายจ่าย)</div>
+                    <div className={`text-[11px] mt-0.5 leading-relaxed ${contractPartyRole === 'payable' ? 'text-indigo-100' : 'text-slate-500'}`}>
+                      บริษัทจ่ายค่าเช่าให้เจ้าของ (ตารางค่างวด: มีเฉพาะ <strong>&quot;จ่ายเจ้าของ&quot;</strong>)
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setContractPartyRole('receivable')}
+                  className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    contractPartyRole === 'receivable'
+                      ? 'bg-teal-600 text-white border-teal-700 shadow-sm ring-2 ring-teal-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <User className={`h-5 w-5 shrink-0 mt-0.5 ${contractPartyRole === 'receivable' ? 'text-white' : 'text-teal-500'}`} />
+                  <div>
+                    <div className="text-xs font-bold">ลูกค้าเช่ากับบริษัท (รายรับ)</div>
+                    <div className={`text-[11px] mt-0.5 leading-relaxed ${contractPartyRole === 'receivable' ? 'text-teal-100' : 'text-slate-500'}`}>
+                      ลูกค้านำส่งค่าเช่าให้บริษัท (ตารางค่างวด: มีเฉพาะ <strong>&quot;รับจากลูกค้า&quot;</strong>)
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -338,10 +507,88 @@ export function ContractForm({
               เงื่อนไขทางการเงินและภาษีหัก ณ ที่จ่าย
             </h2>
 
+            {/* House Terms block */}
+            <div className={`p-4 rounded-xl border ${propertyType === 'house' ? 'bg-amber-50/50 border-amber-200 ring-1 ring-amber-300' : 'bg-slate-50 border-slate-200'} space-y-3`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+                  <Home className="h-4 w-4 text-amber-600" />
+                  ข้อเสนอสำหรับบ้าน / เช่าซื้อ (ราคาบ้าน, เงินดาวน์, ดอกเบี้ย, ระยะเวลาผ่อน)
+                </span>
+                {estimatedMonthlyInstallment > 0 && (
+                  <span className="text-xs font-medium text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                    ยอดผ่อนคำนวณได้: <strong className="font-bold">฿{estimatedMonthlyInstallment.toLocaleString('th-TH')}</strong> /เดือน
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">ราคาบ้าน (บาท)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="เช่น 3500000"
+                    value={propertyPrice !== null && propertyPrice !== undefined ? propertyPrice : ''}
+                    onChange={(e) => setPropertyPrice(e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">เงินดาวน์ (บาท)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="เช่น 500000"
+                    value={downPayment !== null && downPayment !== undefined ? downPayment : ''}
+                    onChange={(e) => {
+                      const val = e.target.value ? Number(e.target.value) : null
+                      setDownPayment(val)
+                      if (val !== null) setValue('deposit_amount', val)
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">อัตราดอกเบี้ย (% ต่อปี)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="เช่น 5.0"
+                    value={interestRate !== null && interestRate !== undefined ? interestRate : ''}
+                    onChange={(e) => setInterestRate(e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">ระยะเวลาผ่อน (ปี)</label>
+                  <Input
+                    type="number"
+                    placeholder="เช่น 30"
+                    value={installmentYears !== null && installmentYears !== undefined ? installmentYears : ''}
+                    onChange={(e) => setInstallmentYears(e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
+              </div>
+
+              {estimatedMonthlyInstallment > 0 && (
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-200/50">
+                  <span className="text-slate-500">สามารถนำค่างวดประมาณการไปใส่เป็นค่าเช่าต่อเดือนได้</span>
+                  <button
+                    type="button"
+                    onClick={() => setValue('monthly_rent', estimatedMonthlyInstallment)}
+                    className="text-primary-600 hover:text-primary-700 font-semibold underline cursor-pointer"
+                  >
+                    ใช้ค่างวดนี้เป็นค่าเช่าต่อเดือน (฿{estimatedMonthlyInstallment.toLocaleString('th-TH')})
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  ค่าเช่าต่อเดือน (บาท) <span className="text-rose-500">*</span>
+                  {propertyType === 'house' ? 'ค่างวดผ่อน / ค่าเช่าต่อเดือน (บาท)' : 'ค่าเช่าต่อเดือน (บาท)'}{' '}
+                  <span className="text-rose-500">*</span>
                 </label>
                 <Input type="number" step="0.01" min="0" {...register('monthly_rent')} />
                 {errors.monthly_rent && (
@@ -363,7 +610,7 @@ export function ContractForm({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  เงินมัดจำ/ประกัน (บาท)
+                  {propertyType === 'house' ? 'เงินดาวน์ / มัดจำ (บาท)' : 'เงินมัดจำ/ประกัน (บาท)'}
                 </label>
                 <Input type="number" step="0.01" min="0" {...register('deposit_amount')} />
               </div>

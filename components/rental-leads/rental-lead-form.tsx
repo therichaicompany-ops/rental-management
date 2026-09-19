@@ -4,7 +4,19 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Save, Trash2, Loader2, Home, DollarSign, CheckSquare, Clock, Building } from 'lucide-react'
+import {
+  ArrowLeft,
+  Save,
+  Trash2,
+  Loader2,
+  Home,
+  DollarSign,
+  CheckSquare,
+  Calendar,
+  Clock,
+  Building,
+  User,
+} from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +45,7 @@ import {
   buildLeadMetadataNote,
   calculateMonthlyInstallment,
   type LeadFinancialTerms,
+  type ContractPartyRole,
 } from '@/lib/utils/lead-metadata'
 
 interface RentalLeadFormProps {
@@ -72,6 +85,23 @@ export function RentalLeadForm({
     initialParsed.hasForeignResident
   )
 
+  // Property type: House vs Branch
+  const [propertyType, setPropertyType] = React.useState<'house' | 'branch'>(() => {
+    if (initialParsed.financial.property_type) return initialParsed.financial.property_type
+    if (initialParsed.isHouse) return 'house'
+    return 'branch'
+  })
+
+  const [contractPartyRole, setContractPartyRole] = React.useState<ContractPartyRole>(() => {
+    if (initialParsed.financial.contract_party_role) {
+      return initialParsed.financial.contract_party_role
+    }
+    if (initialParsed.isHouse || propertyType === 'house') {
+      return 'payable'
+    }
+    return 'payable'
+  })
+
   // Financial proposal for house / hire-purchase
   const [propertyPrice, setPropertyPrice] = React.useState<number | null>(
     initialParsed.financial.property_price ?? null
@@ -109,6 +139,7 @@ export function RentalLeadForm({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<RentalLeadFormValues>({
     resolver: zodResolver(rentalLeadSchema),
@@ -143,6 +174,8 @@ export function RentalLeadForm({
 
     startTransition(async () => {
       const financialTerms: LeadFinancialTerms = {
+        property_type: propertyType,
+        contract_party_role: contractPartyRole,
         property_price: propertyPrice,
         down_payment: downPayment,
         interest_rate: interestRate,
@@ -251,6 +284,105 @@ export function RentalLeadForm({
               <Home className="h-4 w-4 text-primary-500" />
               ข้อมูลประเภทงาน
             </h2>
+
+            {/* Property Type Selector: House vs Branch */}
+            <div className="mb-5 p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+              <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
+                รูปแบบประเภทงาน / สถานที่ <span className="text-rose-500">*</span>
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+                <button
+                  type="button"
+                  disabled={!allowEdit}
+                  onClick={() => {
+                    setPropertyType('house')
+                    setContractPartyRole('payable')
+                    setNeedForeignResident(true)
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    propertyType === 'house'
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Home className={`h-5 w-5 shrink-0 ${propertyType === 'house' ? 'text-white' : 'text-amber-500'}`} />
+                  <div>
+                    <div className="text-xs font-bold">บ้าน / ที่พักอาศัย</div>
+                    <div className={`text-[11px] ${propertyType === 'house' ? 'text-amber-100' : 'text-slate-400'}`}>
+                      เช่าซื้อ, ซื้อบ้าน, แจ้ง ตม.30
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!allowEdit}
+                  onClick={() => {
+                    setPropertyType('branch')
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    propertyType === 'branch'
+                      ? 'bg-primary-600 text-white border-primary-700 shadow-sm ring-2 ring-primary-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Building className={`h-5 w-5 shrink-0 ${propertyType === 'branch' ? 'text-white' : 'text-primary-500'}`} />
+                  <div>
+                    <div className="text-xs font-bold">สาขา / สถานประกอบการ</div>
+                    <div className={`text-[11px] ${propertyType === 'branch' ? 'text-primary-100' : 'text-slate-400'}`}>
+                      เช่าเปิดสาขาธุรกิจ, จดทะเบียนนิติบุคคล
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Contract Direction / Party Role Selector */}
+            <div className="mb-5 p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+              <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
+                รูปแบบคู่สัญญาและทิศทางการชำระ (Payment Direction) <span className="text-rose-500">*</span>
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+                <button
+                  type="button"
+                  disabled={!allowEdit}
+                  onClick={() => setContractPartyRole('payable')}
+                  className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    contractPartyRole === 'payable'
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm ring-2 ring-indigo-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Building className={`h-5 w-5 shrink-0 mt-0.5 ${contractPartyRole === 'payable' ? 'text-white' : 'text-indigo-500'}`} />
+                  <div>
+                    <div className="text-xs font-bold">บริษัทเช่ากับเจ้าของ (รายจ่าย)</div>
+                    <div className={`text-[11px] mt-0.5 leading-relaxed ${contractPartyRole === 'payable' ? 'text-indigo-100' : 'text-slate-500'}`}>
+                      บริษัทจ่ายค่าเช่าให้เจ้าของ (ตารางค่างวด: มีเฉพาะ <strong>&quot;จ่ายเจ้าของ&quot;</strong>)
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!allowEdit}
+                  onClick={() => setContractPartyRole('receivable')}
+                  className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                    contractPartyRole === 'receivable'
+                      ? 'bg-teal-600 text-white border-teal-700 shadow-sm ring-2 ring-teal-300'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <User className={`h-5 w-5 shrink-0 mt-0.5 ${contractPartyRole === 'receivable' ? 'text-white' : 'text-teal-500'}`} />
+                  <div>
+                    <div className="text-xs font-bold">ลูกค้าเช่ากับบริษัท (รายรับ)</div>
+                    <div className={`text-[11px] mt-0.5 leading-relaxed ${contractPartyRole === 'receivable' ? 'text-teal-100' : 'text-slate-500'}`}>
+                      ลูกค้านำส่งค่าเช่าให้บริษัท (ตารางค่างวด: มีเฉพาะ <strong>&quot;รับจากลูกค้า&quot;</strong>)
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
                 <Label htmlFor="lead_name">ชื่อประเภทงาน / โครงการ *</Label>

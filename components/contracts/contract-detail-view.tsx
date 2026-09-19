@@ -18,10 +18,12 @@ import {
   Building2,
   Building,
   Home,
+  User,
 } from 'lucide-react'
 import {
   parseLeadMetadata,
   calculateMonthlyInstallment,
+  getContractPartyRole,
 } from '@/lib/utils/lead-metadata'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +45,7 @@ import { canWrite, hasFullAccess } from '@/lib/auth/permissions'
 import {
   deleteContractAction,
   generatePaymentScheduleAction,
+  cleanupWrongPaymentTypesAction,
 } from '@/lib/actions/contracts'
 import { DocumentSection } from '@/components/documents/document-section'
 
@@ -80,12 +83,86 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
     : 0
   const netMonthly = grossMonthly - whtMonthly
 
-  const payments = contract.rent_payments || []
+  const allPayments = contract.rent_payments || []
 
-  // Payments summary
-  const paidCount = payments.filter((p) => getEffectivePaymentStatus(p) === 'paid').length
-  const overdueCount = payments.filter((p) => getEffectivePaymentStatus(p) === 'overdue').length
-  const pendingCount = payments.filter((p) => ['pending', 'partial'].includes(getEffectivePaymentStatus(p))).length
+  const rawNote = contract.note || contract.rental_leads?.note || ''
+  const { cleanNote, hasForeignResident, financial, isHouse: metaIsHouse } = React.useMemo(
+    () => parseLeadMetadata(rawNote),
+    [rawNote]
+  )
+
+  const isHouse =
+    metaIsHouse ||
+    financial.property_type === 'house' ||
+    Boolean(financial.property_price) ||
+    Boolean(financial.down_payment) ||
+    contract.locations?.location_name?.toLowerCase().includes('sense') ||
+    contract.locations?.location_name?.toLowerCase().includes('house') ||
+    contract.locations?.location_name?.toLowerCase().includes('บ้าน')
+
+  // Determine contract party role (บริษัทเช่ากับเจ้าของ vs ลูกค้าเช่ากับบริษัท)
+  const partyRole = React.useMemo(() => {
+    return getContractPartyRole(
+      financial,
+      isHouse,
+      Boolean(contract.landlord_id),
+      Boolean(contract.customer_id),
+      rawNote
+    )
+  }, [financial, isHouse, contract.landlord_id, contract.customer_id, rawNote])
+
+  // Filter payments strictly by contract direction:
+  // - "บริษัทเช่ากับเจ้าของ": ONLY 'payable' (จ่ายเจ้าของ)
+  // - "ลูกค้าเช่ากับบริษัท": ONLY 'receivable' (รับจากลูกค้า)
+  const displayPayments = React.useMemo(() => {
+    return allPayments.filter((p) => p.payment_type === partyRole)
+  }, [allPayments, partyRole])
+
+  const mismatchedPayments = React.useMemo(() => {
+    return allPayments.filter((p) => p.payment_type !== partyRole)
+  }, [allPayments, partyRole])
+
+  const [isCleaning, setIsCleaning] = React.useState(false)
+  const handleCleanupMismatched = async () => {
+    setIsCleaning(true)
+    const res = await cleanupWrongPaymentTypesAction(contract.id, partyRole)
+    setIsCleaning(false)
+    if (res.success) {
+      setGenerateMsg({
+        type: 'success',
+        text: `ลบงวดชำระที่ไม่เกี่ยวข้องเรียบร้อยแล้ว จำนวน ${res.deletedCount || 0} งวด`,
+      })
+      router.refresh()
+    } else {
+      setGenerateMsg({
+        type: 'error',
+        text: res.error || 'เกิดข้อผิดพลาดในการล้างงวดชำระ',
+      })
+    }
+  }
+
+  // Payments summary based on relevant displayPayments
+  const paidCount = displayPayments.filter((p) => getEffectivePaymentStatus(p) === 'paid').length
+  const overdueCount = displayPayments.filter((p) => getEffectivePaymentStatus(p) === 'overdue').length
+  const pendingCount = displayPayments.filter((p) => ['pending', 'partial'].includes(getEffectivePaymentStatus(p))).length
+
+  const propertyPrice = Number(financial.property_price) || 0
+  const downPayment = Number(financial.down_payment) || Number(contract.deposit_amount) || 0
+
+  // Total rent/installment paid from relevant payments only
+  const totalRentPaid = React.useMemo(() => {
+    return displayPayments.reduce((sum, p) => {
+      const amountPaid = Number(p.amount_paid) || 0
+      if (amountPaid > 0) return sum + amountPaid
+      if (p.status === 'paid') return sum + (Number(p.net_amount) || 0)
+      return sum
+    }, 0)
+  }, [displayPayments])
+
+  // Current outstanding balance for House: Property Price - Down Payment - Total Rent Paid
+  const currentOutstandingBalance = propertyPrice > 0
+    ? Math.max(0, propertyPrice - downPayment - totalRentPaid)
+    : 0
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -143,6 +220,40 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
               >
                 {CONTRACT_STATUS_LABELS[contract.status as ContractStatus] || contract.status}
               </Badge>
+              {isHouse ? (
+                <Badge
+                  variant="outline"
+                  className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-semibold flex items-center gap-1"
+                >
+                  <Home className="h-3 w-3 text-amber-600" />
+                  บ้าน / เช่าซื้อ
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="bg-sky-50 text-sky-800 border-sky-300 text-xs font-semibold flex items-center gap-1"
+                >
+                  <Building className="h-3 w-3 text-sky-600" />
+                  สาขา / เช่าพาณิชย์
+                </Badge>
+              )}
+              {partyRole === 'payable' ? (
+                <Badge
+                  variant="outline"
+                  className="bg-indigo-50 text-indigo-800 border-indigo-300 text-xs font-semibold flex items-center gap-1"
+                >
+                  <Building className="h-3 w-3 text-indigo-600" />
+                  บริษัทเช่ากับเจ้าของ (จ่ายเจ้าของ)
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="bg-teal-50 text-teal-800 border-teal-300 text-xs font-semibold flex items-center gap-1"
+                >
+                  <User className="h-3 w-3 text-teal-600" />
+                  ลูกค้าเช่ากับบริษัท (รับจากลูกค้า)
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
               สถานที่: {contract.locations?.location_name || '-'} ({contract.locations?.province})
@@ -151,7 +262,7 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
         </div>
 
         <div className="flex items-center gap-2">
-          {allowWrite && ['agreed', 'active'].includes(contract.status) && (
+          {allowWrite && !isHouse && ['agreed', 'active'].includes(contract.status) && (
             <Button asChild size="sm" className="bg-primary-600 hover:bg-primary-700 text-white">
               <Link href="/opening">
                 <Building2 className="mr-1.5 h-3.5 w-3.5" />
@@ -203,54 +314,130 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
       )}
 
       {/* Financial Highlight Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span className="text-xs font-medium text-slate-500">ค่าเช่าต่อเดือน</span>
-          <p className="text-xl font-bold text-slate-900 mt-1">
-            ฿{rentAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-          </p>
-          {serviceAmount > 0 && (
-            <span className="text-xs text-slate-400">
-              + บริการ ฿{serviceAmount.toLocaleString('th-TH')}
+      {isHouse && propertyPrice > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* Card 1: ราคาบ้าน */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+            <span className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
+              <Home className="h-3.5 w-3.5 text-amber-600" />
+              ราคาบ้าน
             </span>
+            <p className="text-xl font-bold text-slate-900 mt-1 font-mono">
+              ฿{propertyPrice.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </p>
+            <span className="text-xs text-slate-400">
+              {financial.interest_rate ? `ดอกเบี้ย ${financial.interest_rate}%` : ''}
+              {financial.installment_years ? ` • ผ่อน ${financial.installment_years} ปี` : ''}
+              {!financial.interest_rate && !financial.installment_years ? 'ราคาขายสัญญาเช่าซื้อ' : ''}
+            </span>
+          </div>
+
+          {/* Card 2: เงินดาวน์ (แทนเงินมัดจำ/ล่วงหน้า) */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+            <span className="text-xs font-semibold text-slate-700">เงินดาวน์</span>
+            <p className="text-xl font-bold text-amber-800 mt-1 font-mono">
+              ฿{downPayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </p>
+            <span className="text-xs text-slate-400">
+              {downPayment > 0 ? 'ชำระเงินดาวน์เรียบร้อย' : 'ไม่มีเงินดาวน์ (฿0)'}
+            </span>
+          </div>
+
+          {/* Card 3: หักค่าเช่าแต่ละเดือนที่ชำระแล้ว */}
+          <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-100 shadow-sm space-y-1">
+            <span className="text-xs font-semibold text-blue-800">หักค่าเช่าที่ชำระแล้ว</span>
+            <p className="text-xl font-bold text-blue-900 mt-1 font-mono">
+              ฿{totalRentPaid.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </p>
+            <span className="text-xs text-blue-700">
+              ค่างวด ฿{rentAmount.toLocaleString('th-TH')}/ด. (ชำระแล้ว {paidCount} งวด)
+            </span>
+          </div>
+
+          {/* Card 4: ยอดคงเหลือปัจจุบัน */}
+          <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 shadow-sm space-y-1 ring-1 ring-emerald-300/60">
+            <span className="text-xs font-bold text-emerald-800">ยอดคงเหลือปัจจุบัน</span>
+            <p className="text-2xl font-black text-emerald-700 mt-1 font-mono">
+              ฿{currentOutstandingBalance.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+            </p>
+            <span className="text-xs text-emerald-700 font-medium">
+              ราคาบ้าน หักเงินดาวน์ และค่าเช่า
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {isHouse && propertyPrice === 0 && (
+            <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50 flex items-center justify-between text-xs text-amber-900">
+              <div className="flex items-center gap-2">
+                <Home className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>สัญญานี้เป็นประเภทบ้าน / ที่พักอาศัย:</strong> ยังไม่ได้ระบุราคาบ้านและเงินดาวน์ เพื่อคำนวณยอดคงเหลือปัจจุบัน
+                </span>
+              </div>
+              {allowWrite && (
+                <Button asChild size="sm" variant="outline" className="bg-white border-amber-300 text-amber-800 hover:bg-amber-100 text-xs h-7">
+                  <Link href={`/contracts/${contract.id}/edit`}>
+                    <Edit className="h-3 w-3 mr-1" />
+                    ระบุราคาบ้านและเงินดาวน์
+                  </Link>
+                </Button>
+              )}
+            </div>
           )}
-        </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span className="text-xs font-medium text-slate-500">ภาษีหัก ณ ที่จ่าย</span>
-          <p className="text-xl font-bold text-sky-700 mt-1">
-            {contract.wht_enabled ? `${whtRate}%` : 'ไม่มี'}
-          </p>
-          <span className="text-xs text-slate-400">
-            {contract.wht_enabled
-              ? `- ฿${whtMonthly.toLocaleString('th-TH', { minimumFractionDigits: 2 })}/ด.`
-              : 'ไม่ได้หักภาษี'}
-          </span>
-        </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <span className="text-xs font-medium text-slate-500">ค่าเช่าต่อเดือน</span>
+              <p className="text-xl font-bold text-slate-900 mt-1">
+                ฿{rentAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+              </p>
+              {serviceAmount > 0 && (
+                <span className="text-xs text-slate-400">
+                  + บริการ ฿{serviceAmount.toLocaleString('th-TH')}
+                </span>
+              )}
+            </div>
 
-        <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100 shadow-sm">
-          <span className="text-xs font-medium text-emerald-700">ยอดสุทธิต่อเดือน (Net)</span>
-          <p className="text-xl font-bold text-emerald-700 mt-1">
-            ฿{netMonthly.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-          </p>
-          <span className="text-xs text-emerald-600">
-            กำหนดชำระทุกวันที่ {contract.payment_due_day || 5}
-          </span>
-        </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <span className="text-xs font-medium text-slate-500">ภาษีหัก ณ ที่จ่าย</span>
+              <p className="text-xl font-bold text-sky-700 mt-1">
+                {contract.wht_enabled ? `${whtRate}%` : 'ไม่มี'}
+              </p>
+              <span className="text-xs text-slate-400">
+                {contract.wht_enabled
+                  ? `- ฿${whtMonthly.toLocaleString('th-TH', { minimumFractionDigits: 2 })}/ด.`
+                  : 'ไม่ได้หักภาษี'}
+              </span>
+            </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span className="text-xs font-medium text-slate-500">เงินมัดจำ / ล่วงหน้า</span>
-          <p className="text-xl font-bold text-slate-900 mt-1">
-            ฿
-            {(
-              Number(contract.deposit_amount || 0) + Number(contract.advance_rent_amount || 0)
-            ).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-          </p>
-          <span className="text-xs text-slate-400">
-            มัดจำ ฿{Number(contract.deposit_amount || 0).toLocaleString('th-TH')}
-          </span>
+            <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100 shadow-sm">
+              <span className="text-xs font-medium text-emerald-700">ยอดสุทธิต่อเดือน (Net)</span>
+              <p className="text-xl font-bold text-emerald-700 mt-1">
+                ฿{netMonthly.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+              </p>
+              <span className="text-xs text-emerald-600">
+                กำหนดชำระทุกวันที่ {contract.payment_due_day || 5}
+              </span>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <span className="text-xs font-medium text-slate-500">
+                {isHouse ? 'เงินดาวน์ / มัดจำ' : 'เงินมัดจำ / ล่วงหน้า'}
+              </span>
+              <p className="text-xl font-bold text-slate-900 mt-1">
+                ฿
+                {(
+                  Number(contract.deposit_amount || 0) + Number(contract.advance_rent_amount || 0)
+                ).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+              </p>
+              <span className="text-xs text-slate-400">
+                {isHouse ? 'เงินดาวน์' : 'มัดจำ'} ฿{Number(contract.deposit_amount || 0).toLocaleString('th-TH')}
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Two Column Layout: Contract Info & Parties */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -538,6 +725,27 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
 
       {/* Payment Schedule Section */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {mismatchedPayments.length > 0 && allowWrite && (
+          <div className="px-5 py-3 bg-amber-50 border-b border-amber-200 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+              <span>
+                พบงวดชำระประเภท &quot;{partyRole === 'payable' ? 'รับจากลูกค้า' : 'จ่ายเจ้าของ'}&quot; ซ้ำซ้อน {mismatchedPayments.length} งวด
+                (ระบบแสดงเฉพาะ &quot;{partyRole === 'payable' ? 'จ่ายเจ้าของ' : 'รับจากลูกค้า'}&quot; ให้ตรงกับสัญญา)
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCleanupMismatched}
+              disabled={isCleaning}
+              className="text-amber-800 border-amber-300 hover:bg-amber-100 h-7 text-xs whitespace-nowrap self-end sm:self-auto"
+            >
+              {isCleaning ? 'กำลังล้างข้อมูล...' : 'ล้างงวดซ้ำซ้อนออกทันที'}
+            </Button>
+          </div>
+        )}
+
         <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
@@ -545,11 +753,23 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
                 ตารางงวดชำระค่าเช่า (Payment Schedule)
               </h2>
               <Badge variant="secondary" className="text-xs">
-                {payments.length} งวด
+                {displayPayments.length} งวด
+              </Badge>
+              <Badge
+                variant="outline"
+                className={`text-[11px] font-medium ${
+                  partyRole === 'payable'
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    : 'bg-teal-50 text-teal-700 border-teal-200'
+                }`}
+              >
+                {partyRole === 'payable' ? 'จ่ายเจ้าของเท่านั้น' : 'รับจากลูกค้าเท่านั้น'}
               </Badge>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              งวดการชำระเงินตามระยะเวลาสัญญา ทั้งบริษัทจ่ายให้เจ้าของ หรือรับจากลูกค้า
+              {partyRole === 'payable'
+                ? 'งวดการชำระเงินตามระยะเวลาสัญญา: บริษัทจ่ายให้เจ้าของ (Payable)'
+                : 'งวดการชำระเงินตามระยะเวลาสัญญา: รับเงินจากลูกค้า (Receivable)'}
             </p>
           </div>
 
@@ -570,7 +790,7 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
         </div>
 
         {/* Schedule Summary Tabs/Badges */}
-        {payments.length > 0 && (
+        {displayPayments.length > 0 && (
           <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center gap-4 text-xs">
             <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
               <CheckCircle2 className="h-3.5 w-3.5" />
@@ -588,7 +808,7 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
         )}
 
         {/* Payments Table */}
-        {payments.length === 0 ? (
+        {displayPayments.length === 0 ? (
           <div className="p-8 text-center">
             <CreditCard className="mx-auto h-8 w-8 text-slate-300" />
             <h3 className="mt-2 text-sm font-semibold text-slate-800">
@@ -627,7 +847,7 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {payments.map((p) => {
+                {displayPayments.map((p) => {
                   const effStatus = getEffectivePaymentStatus(p)
                   const pBadge =
                     PAYMENT_STATUS_BADGE_VARIANTS[effStatus] || {

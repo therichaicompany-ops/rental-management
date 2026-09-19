@@ -1,4 +1,8 @@
+export type ContractPartyRole = 'payable' | 'receivable'
+
 export interface LeadFinancialTerms {
+  property_type?: 'house' | 'branch' | null // ประเภท: บ้าน หรือ สาขา
+  contract_party_role?: ContractPartyRole | null // รูปแบบสัญญา: payable (บริษัทเช่ากับเจ้าของ) | receivable (ลูกค้าเช่ากับบริษัท)
   property_price?: number | null // ราคาบ้าน (บาท)
   down_payment?: number | null // เงินดาวน์ (บาท)
   interest_rate?: number | null // อัตราดอกเบี้ย (% ต่อปี)
@@ -10,6 +14,71 @@ export interface LeadFinancialTerms {
 export const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
 const FINANCIAL_META_REGEX = /<!--LEAD_FINANCIAL:(\{.*?\})-->/
 const FINANCIAL_TEXT_REGEX = /\[เงื่อนไขการเงิน:.*?\]/g
+
+export const CONTRACT_PARTY_ROLE_LABELS: Record<
+  ContractPartyRole,
+  {
+    title: string
+    shortTitle: string
+    paymentTypeLabel: string
+    badgeClass: string
+    description: string
+  }
+> = {
+  payable: {
+    title: 'บริษัทเช่ากับเจ้าของ',
+    shortTitle: 'บริษัทเช่ากับเจ้าของ',
+    paymentTypeLabel: 'จ่ายเจ้าของ (Payable)',
+    badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    description: 'บริษัทเป็นผู้เช่า มีหน้าที่ชำระค่าเช่าให้เจ้าของทรัพย์สิน (ตารางค่างวด: มีเฉพาะ "จ่ายเจ้าของ")',
+  },
+  receivable: {
+    title: 'ลูกค้าเช่ากับบริษัท',
+    shortTitle: 'ลูกค้าเช่ากับบริษัท',
+    paymentTypeLabel: 'รับจากลูกค้า (Receivable)',
+    badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
+    description: 'ลูกค้า/ผู้เช่า มีหน้าที่ชำระค่าเช่าให้บริษัท (ตารางค่างวด: มีเฉพาะ "รับจากลูกค้า")',
+  },
+}
+
+/**
+ * Determine the single payment direction/party role for a contract
+ */
+export function getContractPartyRole(
+  financial?: LeadFinancialTerms | null,
+  isHouse?: boolean,
+  hasLandlord?: boolean,
+  hasCustomer?: boolean,
+  rawNote?: string | null
+): ContractPartyRole {
+  // 1. Explicitly stored role
+  if (financial?.contract_party_role === 'payable' || financial?.contract_party_role === 'receivable') {
+    return financial.contract_party_role
+  }
+
+  // 2. Fallback check from raw note text
+  if (rawNote) {
+    if (rawNote.includes('ลูกค้าเช่ากับบริษัท') || rawNote.includes('รับจากลูกค้า')) {
+      return 'receivable'
+    }
+    if (rawNote.includes('บริษัทเช่ากับเจ้าของ') || rawNote.includes('จ่ายเจ้าของ')) {
+      return 'payable'
+    }
+  }
+
+  // 3. For residential house / hire purchase: company rents from owner -> payable
+  if (isHouse) {
+    return 'payable'
+  }
+
+  // 4. If only customer exists and no landlord -> receivable
+  if (hasCustomer && !hasLandlord) {
+    return 'receivable'
+  }
+
+  // 5. Default fallback: company renting premises from landlord -> payable
+  return 'payable'
+}
 
 /**
  * Calculate estimated monthly installment payment based on standard mortgage loan formula
@@ -45,12 +114,14 @@ export function parseLeadMetadata(rawNote?: string | null): {
   cleanNote: string
   hasForeignResident: boolean
   financial: LeadFinancialTerms
+  isHouse: boolean
 } {
   if (!rawNote) {
     return {
       cleanNote: '',
       hasForeignResident: false,
       financial: {},
+      isHouse: false,
     }
   }
 
@@ -67,13 +138,22 @@ export function parseLeadMetadata(rawNote?: string | null): {
     }
   }
 
+  const isHouse =
+    financial.property_type === 'house' ||
+    Boolean(financial.property_price) ||
+    Boolean(financial.down_payment) ||
+    hasForeignResident ||
+    rawNote.includes('ประเภท: บ้าน') ||
+    rawNote.includes('เช่าซื้อ') ||
+    rawNote.includes('สำหรับบ้าน')
+
   let cleanNote = rawNote
     .replace(new RegExp(`\\s*\\${TM30_TAG}\\s*`, 'g'), '')
     .replace(FINANCIAL_META_REGEX, '')
     .replace(FINANCIAL_TEXT_REGEX, '')
     .trim()
 
-  return { cleanNote, hasForeignResident, financial }
+  return { cleanNote, hasForeignResident, financial, isHouse }
 }
 
 /**
@@ -106,6 +186,16 @@ export function buildLeadMetadataNote(
 
   if (hasFinancial) {
     const summaryParts: string[] = []
+    if (financial.property_type) {
+      summaryParts.push(
+        `ประเภท: ${financial.property_type === 'house' ? 'บ้าน / ที่พักอาศัย' : 'สาขา / สถานประกอบการ'}`
+      )
+    }
+    if (financial.contract_party_role) {
+      summaryParts.push(
+        `รูปแบบ: ${financial.contract_party_role === 'receivable' ? 'ลูกค้าเช่ากับบริษัท (รับจากลูกค้า)' : 'บริษัทเช่ากับเจ้าของ (จ่ายเจ้าของ)'}`
+      )
+    }
     if (financial.property_price) {
       summaryParts.push(`ราคาบ้าน: ฿${Number(financial.property_price).toLocaleString('th-TH')}`)
     }
