@@ -10,6 +10,7 @@ import {
   type RentalLeadFormValues,
   type NegotiationLogFormValues,
 } from '@/lib/types/rental-leads'
+import { parseLeadMetadata } from '@/lib/utils/lead-metadata'
 import type { ActionResponse } from './customers'
 
 export async function createRentalLeadAction(
@@ -309,6 +310,7 @@ export async function convertToContractAction(leadId: string): Promise<ActionRes
       need_employer_change: lead.need_employer_change ?? false,
       need_signboard: lead.need_signboard ?? true,
       status: 'active',
+      payment_due_day: parseLeadMetadata(lead.note).financial.payment_due_day || 5,
       assigned_to: lead.assigned_to,
       note: lead.note || null,
     })

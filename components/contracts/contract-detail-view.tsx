@@ -19,6 +19,10 @@ import {
   Building,
   Home,
 } from 'lucide-react'
+import {
+  parseLeadMetadata,
+  calculateMonthlyInstallment,
+} from '@/lib/utils/lead-metadata'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -360,18 +364,74 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
               </div>
             )}
 
-            {/* Registration Checklist */}
+            {/* Registration & House Terms */}
             {(() => {
-              const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
-              const hasForeignResident =
-                contract.note?.includes(TM30_TAG) ||
-                contract.note?.includes('แจ้งที่พักอาศัยคนต่างด้าว')
-              const cleanNote = contract.note
-                ? contract.note.replace(new RegExp(`\\s*\\${TM30_TAG}\\s*`, 'g'), '').trim()
-                : ''
+              const { cleanNote, hasForeignResident, financial } = parseLeadMetadata(contract.note)
+              const estimatedInstallment = calculateMonthlyInstallment(
+                financial.property_price,
+                financial.down_payment,
+                financial.interest_rate,
+                financial.installment_years
+              )
+              const hasHouseTerms = Boolean(
+                financial.property_price ||
+                financial.down_payment ||
+                financial.interest_rate ||
+                financial.installment_years
+              )
 
               return (
                 <>
+                  {hasHouseTerms && (
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-amber-900 font-semibold block text-xs uppercase tracking-wider flex items-center gap-1.5">
+                          <Home className="h-3.5 w-3.5 text-amber-600" />
+                          ข้อเสนอสำหรับบ้าน / เช่าซื้อ:
+                        </span>
+                        {estimatedInstallment > 0 && (
+                          <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300">
+                            ผ่อน ~฿{estimatedInstallment.toLocaleString('th-TH')}/เดือน
+                          </span>
+                        )}
+                      </div>
+                      <div className="rounded-lg bg-amber-50/50 p-2.5 border border-amber-200 text-xs space-y-1.5">
+                        {financial.property_price && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">ราคาบ้าน:</span>
+                            <span className="font-bold text-slate-900 font-mono">
+                              ฿{Number(financial.property_price).toLocaleString('th-TH')}
+                            </span>
+                          </div>
+                        )}
+                        {financial.down_payment && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">เงินดาวน์:</span>
+                            <span className="font-bold text-slate-900 font-mono">
+                              ฿{Number(financial.down_payment).toLocaleString('th-TH')}
+                            </span>
+                          </div>
+                        )}
+                        {financial.interest_rate && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">อัตราดอกเบี้ย:</span>
+                            <span className="font-semibold text-slate-900 font-mono">
+                              {financial.interest_rate}% ต่อปี
+                            </span>
+                          </div>
+                        )}
+                        {financial.installment_years && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">ระยะเวลาการผ่อน:</span>
+                            <span className="font-semibold text-slate-900 font-mono">
+                              {financial.installment_years} ปี
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-2 border-t border-slate-100 space-y-3">
                     <span className="text-slate-700 font-semibold block text-xs uppercase tracking-wider">
                       รายการที่ต้องดำเนินการทางทะเบียน & เอกสาร:

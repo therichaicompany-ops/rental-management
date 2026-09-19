@@ -28,7 +28,12 @@ import type { Customer, Landlord, Location } from '@/lib/types/master-data'
 import type { UserProfile, UserRole } from '@/lib/types/auth'
 import { hasFullAccess, canWrite } from '@/lib/auth/permissions'
 
-const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
+import {
+  parseLeadMetadata,
+  buildLeadMetadataNote,
+  calculateMonthlyInstallment,
+  type LeadFinancialTerms,
+} from '@/lib/utils/lead-metadata'
 
 interface RentalLeadFormProps {
   initialData?: RentalLead
@@ -57,10 +62,44 @@ export function RentalLeadForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
 
-  const [needForeignResident, setNeedForeignResident] = React.useState<boolean>(() => {
-    const rawNote = initialData?.note || ''
-    return rawNote.includes(TM30_TAG) || rawNote.includes('แจ้งที่พักอาศัยคนต่างด้าว')
-  })
+  // Parse initial metadata from note
+  const initialParsed = React.useMemo(
+    () => parseLeadMetadata(initialData?.note),
+    [initialData?.note]
+  )
+
+  const [needForeignResident, setNeedForeignResident] = React.useState<boolean>(
+    initialParsed.hasForeignResident
+  )
+
+  // Financial proposal for house / hire-purchase
+  const [propertyPrice, setPropertyPrice] = React.useState<number | null>(
+    initialParsed.financial.property_price ?? null
+  )
+  const [downPayment, setDownPayment] = React.useState<number | null>(
+    initialParsed.financial.down_payment ?? null
+  )
+  const [interestRate, setInterestRate] = React.useState<number | null>(
+    initialParsed.financial.interest_rate ?? null
+  )
+  const [installmentYears, setInstallmentYears] = React.useState<number | null>(
+    initialParsed.financial.installment_years ?? null
+  )
+
+  // Payment due day (1-31)
+  const [paymentDueDay, setPaymentDueDay] = React.useState<number | null>(
+    initialParsed.financial.payment_due_day ?? null
+  )
+
+  // Live mortgage installment calculation
+  const estimatedMonthlyInstallment = React.useMemo(() => {
+    return calculateMonthlyInstallment(
+      propertyPrice,
+      downPayment,
+      interestRate,
+      installmentYears
+    )
+  }, [propertyPrice, downPayment, interestRate, installmentYears])
 
   const {
     register,
@@ -89,7 +128,7 @@ export function RentalLeadForm({
       status: (initialData?.status as LeadStatus) ?? 'new',
       assigned_to: initialData?.assigned_to ?? '',
       next_follow_up_date: initialData?.next_follow_up_date ?? '',
-      note: (initialData?.note ?? '').replace(TM30_TAG, '').trim(),
+      note: initialParsed.cleanNote,
     },
   })
 
@@ -98,10 +137,19 @@ export function RentalLeadForm({
     setServerError(null)
 
     startTransition(async () => {
-      const cleanNote = (values.note || '').replace(TM30_TAG, '').trim()
-      const finalNote = needForeignResident
-        ? (cleanNote ? `${cleanNote}\n${TM30_TAG}` : TM30_TAG)
-        : cleanNote
+      const financialTerms: LeadFinancialTerms = {
+        property_price: propertyPrice,
+        down_payment: downPayment,
+        interest_rate: interestRate,
+        installment_years: installmentYears,
+        payment_due_day: paymentDueDay,
+      }
+
+      const finalNote = buildLeadMetadataNote(
+        values.note || '',
+        needForeignResident,
+        financialTerms
+      )
 
       const submissionValues: RentalLeadFormValues = {
         ...values,
@@ -311,57 +359,132 @@ export function RentalLeadForm({
           </div>
 
           {/* Section 3: Financial Proposals */}
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-emerald-600" />
-              ข้อเสนอทางการเงิน (Proposed Pricing)
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+                <span>ข้อเสนอทางการเงิน (Proposed Pricing)</span>
+              </div>
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="proposed_monthly_rent">ค่าเช่าเสนอ (บาท/เดือน)</Label>
-                <Input
-                  id="proposed_monthly_rent"
-                  type="number"
-                  placeholder="0.00"
-                  disabled={!allowEdit}
-                  {...register('proposed_monthly_rent')}
-                />
-                {errors.proposed_monthly_rent && (
-                  <p className="text-xs text-red-500">{errors.proposed_monthly_rent.message}</p>
+
+            {/* หมวดที่ 1: ค่าเช่า & ค่าบริการ */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-slate-700">
+                เงื่อนไขค่าเช่าและเงินประกัน
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="proposed_monthly_rent">ค่าเช่าเสนอ (บาท/เดือน)</Label>
+                  <Input
+                    id="proposed_monthly_rent"
+                    type="number"
+                    placeholder="0.00"
+                    disabled={!allowEdit}
+                    {...register('proposed_monthly_rent')}
+                  />
+                  {errors.proposed_monthly_rent && (
+                    <p className="text-xs text-red-500">{errors.proposed_monthly_rent.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="proposed_deposit_amount">เงินประกัน / มัดจำ (บาท)</Label>
+                  <Input
+                    id="proposed_deposit_amount"
+                    type="number"
+                    placeholder="0.00"
+                    disabled={!allowEdit}
+                    {...register('proposed_deposit_amount')}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="proposed_advance_rent_amount">ค่าเช่าล่วงหน้า (บาท)</Label>
+                  <Input
+                    id="proposed_advance_rent_amount"
+                    type="number"
+                    placeholder="0.00"
+                    disabled={!allowEdit}
+                    {...register('proposed_advance_rent_amount')}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="proposed_service_amount">ค่าบริการส่วนกลาง (บาท/เดือน)</Label>
+                  <Input
+                    id="proposed_service_amount"
+                    type="number"
+                    placeholder="0.00"
+                    disabled={!allowEdit}
+                    {...register('proposed_service_amount')}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* หมวดที่ 2: สำหรับบ้าน / เช่าซื้อ (ราคาบ้าน, เงินดาวน์, ดอกเบี้ย, ระยะเวลาการผ่อน) */}
+            <div className="space-y-2 pt-3 border-t border-dashed border-slate-200">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
+                  <Home className="h-3.5 w-3.5 text-amber-600" />
+                  สำหรับบ้าน / เช่าซื้อ (ราคาบ้าน, เงินดาวน์, ดอกเบี้ย, ระยะเวลาผ่อน)
+                </span>
+                {estimatedMonthlyInstallment > 0 && (
+                  <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    ยอดผ่อนประมาณการ: <strong className="font-semibold">฿{estimatedMonthlyInstallment.toLocaleString('th-TH')}</strong> /เดือน
+                  </span>
                 )}
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="proposed_deposit_amount">เงินประกัน / มัดจำ (บาท)</Label>
-                <Input
-                  id="proposed_deposit_amount"
-                  type="number"
-                  placeholder="0.00"
-                  disabled={!allowEdit}
-                  {...register('proposed_deposit_amount')}
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="property_price">ราคาบ้าน (บาท)</Label>
+                  <Input
+                    id="property_price"
+                    type="number"
+                    placeholder="0.00"
+                    disabled={!allowEdit}
+                    value={propertyPrice !== null && propertyPrice !== undefined ? propertyPrice : ''}
+                    onChange={(e) => setPropertyPrice(e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="proposed_advance_rent_amount">ค่าเช่าล่วงหน้า (บาท)</Label>
-                <Input
-                  id="proposed_advance_rent_amount"
-                  type="number"
-                  placeholder="0.00"
-                  disabled={!allowEdit}
-                  {...register('proposed_advance_rent_amount')}
-                />
-              </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="down_payment">เงินดาวน์ (บาท)</Label>
+                  <Input
+                    id="down_payment"
+                    type="number"
+                    placeholder="0.00"
+                    disabled={!allowEdit}
+                    value={downPayment !== null && downPayment !== undefined ? downPayment : ''}
+                    onChange={(e) => setDownPayment(e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="proposed_service_amount">ค่าบริการส่วนกลาง (บาท/เดือน)</Label>
-                <Input
-                  id="proposed_service_amount"
-                  type="number"
-                  placeholder="0.00"
-                  disabled={!allowEdit}
-                  {...register('proposed_service_amount')}
-                />
+                <div className="space-y-1.5">
+                  <Label htmlFor="interest_rate">ดอกเบี้ย (% ต่อปี)</Label>
+                  <Input
+                    id="interest_rate"
+                    type="number"
+                    step="0.01"
+                    placeholder="เช่น 3.50"
+                    disabled={!allowEdit}
+                    value={interestRate !== null && interestRate !== undefined ? interestRate : ''}
+                    onChange={(e) => setInterestRate(e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="installment_years">ระยะเวลาการผ่อน (ปี)</Label>
+                  <Input
+                    id="installment_years"
+                    type="number"
+                    placeholder="เช่น 30"
+                    disabled={!allowEdit}
+                    value={installmentYears !== null && installmentYears !== undefined ? installmentYears : ''}
+                    onChange={(e) => setInstallmentYears(e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -372,7 +495,7 @@ export function RentalLeadForm({
               <Clock className="h-4 w-4 text-amber-500" />
               กำหนดการและวันนัดหมาย
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="first_contact_date">วันที่ติดต่อครั้งแรก</Label>
                 <Input
@@ -412,6 +535,27 @@ export function RentalLeadForm({
                   className="border-amber-300 bg-amber-50/30"
                   {...register('next_follow_up_date')}
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="payment_due_day">วันที่ครบกำหนดชำระ</Label>
+                <div className="relative">
+                  <Input
+                    id="payment_due_day"
+                    type="number"
+                    min={1}
+                    max={31}
+                    placeholder="เช่น 30"
+                    disabled={!allowEdit}
+                    value={paymentDueDay !== null && paymentDueDay !== undefined ? paymentDueDay : ''}
+                    onChange={(e) => setPaymentDueDay(e.target.value ? Number(e.target.value) : null)}
+                    className="pr-14 font-medium"
+                  />
+                  <span className="absolute right-2.5 top-2.5 text-xs text-slate-400 pointer-events-none">
+                    ของเดือน
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">เช่น ทุกวันที่ 30 ของเดือน (1-31)</p>
               </div>
             </div>
           </div>

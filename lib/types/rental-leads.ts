@@ -176,7 +176,7 @@ export const rentalLeadSchema = z.object({
   ]).default('new'),
   assigned_to: z.string().uuid('กรุณาเลือกผู้รับผิดชอบ').or(z.literal('')).optional().nullable(),
   next_follow_up_date: z.string().optional().nullable(),
-  note: z.string().trim().max(2000, 'หมายเหตุต้องไม่เกิน 2,000 ตัวอักษร').optional().nullable(),
+  note: z.string().trim().max(5000, 'หมายเหตุต้องไม่เกิน 5,000 ตัวอักษร').optional().nullable(),
 })
 
 export type RentalLeadFormValues = z.infer<typeof rentalLeadSchema>

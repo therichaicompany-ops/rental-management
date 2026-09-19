@@ -13,6 +13,10 @@ import {
   Building,
   Home,
 } from 'lucide-react'
+import {
+  parseLeadMetadata,
+  calculateMonthlyInstallment,
+} from '@/lib/utils/lead-metadata'
 import { Button } from '@/components/ui/button'
 import { ConvertContractButton } from './convert-contract-button'
 import { NegotiationTimeline } from './negotiation-timeline'
@@ -285,49 +289,125 @@ export function RentalLeadDetailView({
             </div>
           </div>
 
-          {/* Pricing Summary Card */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-            <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
-              สรุปข้อเสนอทางการเงิน
-            </h3>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">ค่าเช่าเสนอ:</span>
-                <span className="font-semibold text-slate-900 font-mono">
-                  ฿{Number(lead.proposed_monthly_rent || 0).toLocaleString('th-TH')}/เดือน
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">เงินมัดจำ / ประกัน:</span>
-                <span className="font-semibold text-slate-900 font-mono">
-                  ฿{Number(lead.proposed_deposit_amount || 0).toLocaleString('th-TH')}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">ค่าเช่าล่วงหน้า:</span>
-                <span className="font-semibold text-slate-900 font-mono">
-                  ฿{Number(lead.proposed_advance_rent_amount || 0).toLocaleString('th-TH')}
-                </span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">ค่าบริการส่วนกลาง:</span>
-                <span className="font-semibold text-slate-900 font-mono">
-                  ฿{Number(lead.proposed_service_amount || 0).toLocaleString('th-TH')}/เดือน
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Registration Checklist Card */}
+          {/* Pricing & Terms Section */}
           {(() => {
-            const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
-            const hasForeignResident = lead.note?.includes(TM30_TAG) || lead.note?.includes('แจ้งที่พักอาศัยคนต่างด้าว')
-            const cleanNote = lead.note
-              ? lead.note.replace(new RegExp(`\\s*\\${TM30_TAG}\\s*`, 'g'), '').trim()
-              : ''
+            const { cleanNote, hasForeignResident, financial } = parseLeadMetadata(lead.note)
+            const estimatedInstallment = calculateMonthlyInstallment(
+              financial.property_price,
+              financial.down_payment,
+              financial.interest_rate,
+              financial.installment_years
+            )
+            const hasHouseTerms = Boolean(
+              financial.property_price ||
+              financial.down_payment ||
+              financial.interest_rate ||
+              financial.installment_years
+            )
 
             return (
               <>
+                {/* Pricing Summary Card */}
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                  <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
+                    สรุปข้อเสนอทางการเงิน (ค่าเช่า)
+                  </h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-slate-50">
+                      <span className="text-slate-500">ค่าเช่าเสนอ:</span>
+                      <span className="font-semibold text-slate-900 font-mono">
+                        ฿{Number(lead.proposed_monthly_rent || 0).toLocaleString('th-TH')}/เดือน
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-50">
+                      <span className="text-slate-500">เงินมัดจำ / ประกัน:</span>
+                      <span className="font-semibold text-slate-900 font-mono">
+                        ฿{Number(lead.proposed_deposit_amount || 0).toLocaleString('th-TH')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-50">
+                      <span className="text-slate-500">ค่าเช่าล่วงหน้า:</span>
+                      <span className="font-semibold text-slate-900 font-mono">
+                        ฿{Number(lead.proposed_advance_rent_amount || 0).toLocaleString('th-TH')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-50">
+                      <span className="text-slate-500">ค่าบริการส่วนกลาง:</span>
+                      <span className="font-semibold text-slate-900 font-mono">
+                        ฿{Number(lead.proposed_service_amount || 0).toLocaleString('th-TH')}/เดือน
+                      </span>
+                    </div>
+                    {financial.payment_due_day && (
+                      <div className="flex justify-between py-1">
+                        <span className="text-slate-600 font-medium">วันที่ครบกำหนดชำระ:</span>
+                        <span className="font-semibold text-primary-700">
+                          ทุกวันที่ {financial.payment_due_day} ของเดือน
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* House Pricing & Financing Card (for Residential / Hire-Purchase) */}
+                {hasHouseTerms && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between border-b border-amber-200/60 pb-2">
+                      <h3 className="text-xs font-semibold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Home className="h-3.5 w-3.5 text-amber-600" />
+                        ข้อเสนอสำหรับบ้าน / เช่าซื้อ
+                      </h3>
+                      {estimatedInstallment > 0 && (
+                        <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                          ผ่อน ~฿{estimatedInstallment.toLocaleString('th-TH')}/เดือน
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      {financial.property_price ? (
+                        <div className="flex justify-between py-1 border-b border-amber-100/60">
+                          <span className="text-slate-600">ราคาบ้าน:</span>
+                          <span className="font-bold text-slate-900 font-mono text-sm">
+                            ฿{Number(financial.property_price).toLocaleString('th-TH')}
+                          </span>
+                        </div>
+                      ) : null}
+                      {financial.down_payment ? (
+                        <div className="flex justify-between py-1 border-b border-amber-100/60">
+                          <span className="text-slate-600">เงินดาวน์:</span>
+                          <span className="font-bold text-slate-900 font-mono">
+                            ฿{Number(financial.down_payment).toLocaleString('th-TH')}
+                          </span>
+                        </div>
+                      ) : null}
+                      {financial.interest_rate ? (
+                        <div className="flex justify-between py-1 border-b border-amber-100/60">
+                          <span className="text-slate-600">อัตราดอกเบี้ย:</span>
+                          <span className="font-semibold text-slate-900 font-mono">
+                            {financial.interest_rate}% ต่อปี
+                          </span>
+                        </div>
+                      ) : null}
+                      {financial.installment_years ? (
+                        <div className="flex justify-between py-1 border-b border-amber-100/60">
+                          <span className="text-slate-600">ระยะเวลาการผ่อน:</span>
+                          <span className="font-semibold text-slate-900 font-mono">
+                            {financial.installment_years} ปี
+                          </span>
+                        </div>
+                      ) : null}
+                      {financial.payment_due_day ? (
+                        <div className="flex justify-between py-1">
+                          <span className="text-slate-600">วันที่ครบกำหนดชำระ:</span>
+                          <span className="font-semibold text-amber-900">
+                            ทุกวันที่ {financial.payment_due_day} ของเดือน
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+
+                {/* Registration Checklist Card */}
                 <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
                   <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
                     รายการที่ต้องดำเนินการทางทะเบียนและเอกสาร
