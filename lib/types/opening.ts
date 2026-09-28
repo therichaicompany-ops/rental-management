@@ -29,7 +29,7 @@ export interface StageDefinition {
   name: string
   sequence: number
   description: string
-  requiresCondition?: 'need_branch_registration' | 'need_signboard' | 'need_employer_change' | 'need_vat_registration'
+  requiresCondition?: 'need_branch_registration' | 'need_signboard' | 'need_employer_change' | 'need_vat_registration' | 'hasForeignResident'
   defaultTasks?: {
     name: string
     description?: string
@@ -182,9 +182,28 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
     ],
   },
   {
+    code: 'TM30_NOTIFY',
+    name: 'แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)',
+    sequence: 10,
+    description: 'แจ้ง ตม.30 ต่อสำนักงานตรวจคนเข้าเมืองภายใน 24 ชั่วโมงหลังคนต่างด้าวเข้าพักอาศัย',
+    requiresCondition: 'hasForeignResident',
+    defaultTasks: [
+      {
+        name: 'แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)',
+        description: 'ยื่นแบบ ตม.30 ต่อสำนักงาน ตม. ภายใน 24 ชั่วโมง นับจากวันที่คนต่างด้าวเข้าพักอาศัย',
+        checklists: [
+          { name: 'เตรียมสำเนาหนังสือเดินทางคนต่างด้าว (ทุกหน้าที่มีข้อมูล)', is_required: true },
+          { name: 'กรอกแบบฟอร์ม ตม.30 ครบถ้วนและถูกต้อง', is_required: true },
+          { name: 'ยื่นแจ้งต่อ สำนักงาน ตม. ภายใน 24 ชม. หลังเข้าพัก', is_required: true },
+          { name: 'เก็บสำเนาใบเสร็จ/หลักฐานการแจ้ง ตม.30 เข้าระบบ', is_required: true },
+        ],
+      },
+    ],
+  },
+  {
     code: 'JOB_APPROVAL',
     name: 'อนุมัติงาน/เปิดระบบ',
-    sequence: 10,
+    sequence: 11,
     description: 'อนุมัติระบบ IT, POS, และเครื่องมือการทำงาน',
     defaultTasks: [
       {
@@ -200,7 +219,7 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'PRE_OPEN_SIGN',
     name: 'ลงนามก่อนเปิดสาขา',
-    sequence: 11,
+    sequence: 12,
     description: 'ฝ่ายบริหารและผู้เกี่ยวข้องตรวจสอบและลงนามอนุมัติเปิด',
     defaultTasks: [
       {
@@ -215,7 +234,7 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'READY_TO_OPEN',
     name: 'พร้อมเปิดสาขา',
-    sequence: 12,
+    sequence: 13,
     description: 'เตรียมการขาย สินค้า และพนักงานพร้อมเริ่มดำเนินงาน',
     defaultTasks: [
       {
@@ -230,7 +249,7 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'OPENED',
     name: 'เปิดสาขาเรียบร้อย',
-    sequence: 13,
+    sequence: 14,
     description: 'เปิดให้บริการอย่างเป็นทางการเรียบร้อย',
     defaultTasks: [
       {

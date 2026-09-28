@@ -14,52 +14,36 @@ import {
   type TaskChecklistFormValues,
   type WorkflowStageModel,
 } from '@/lib/types/opening'
+import { parseLeadMetadata } from '@/lib/utils/lead-metadata'
 import type { ActionResponse } from './customers'
 
 /**
- * Ensure the 13 standard workflow stages exist in the database.
- * If not, seed them automatically.
+ * Ensure all workflow stages exist and have up-to-date sequences in the database.
+ * Uses upsert so that newly added stages (e.g. TM30_NOTIFY) are inserted,
+ * and existing stages get their sequence/name updated if the definitions change.
  */
 export async function ensureWorkflowStagesAction(): Promise<WorkflowStageModel[]> {
   const supabase = await createClient()
 
-  const { data: existing, error: fetchErr } = await supabase
+  // Upsert all stage definitions (insert new ones, update sequences of existing)
+  const stagesToUpsert = STAGE_DEFINITIONS.map((def) => ({
+    stage_code: def.code,
+    stage_name: def.name,
+    sequence: def.sequence,
+    is_required: true,
+    is_active: true,
+  }))
+
+  await supabase
+    .from('workflow_stages')
+    .upsert(stagesToUpsert, { onConflict: 'stage_code' })
+
+  const { data: stages } = await supabase
     .from('workflow_stages')
     .select('*')
     .order('sequence', { ascending: true })
 
-  if (!fetchErr && existing && existing.length >= STAGE_DEFINITIONS.length) {
-    return existing as WorkflowStageModel[]
-  }
-
-  // Seed missing stages
-  const existingCodes = new Set((existing || []).map((s: { stage_code: string }) => s.stage_code))
-  const stagesToInsert = STAGE_DEFINITIONS.filter((def) => !existingCodes.has(def.code)).map(
-    (def) => ({
-      stage_code: def.code,
-      stage_name: def.name,
-      sequence: def.sequence,
-      is_required: true,
-      is_active: true,
-    })
-  )
-
-  if (stagesToInsert.length > 0) {
-    const { data: inserted, error: insertErr } = await supabase
-      .from('workflow_stages')
-      .insert(stagesToInsert)
-      .select()
-
-    if (insertErr) {
-      console.error('Failed to seed workflow stages:', insertErr)
-    } else if (inserted) {
-      const allStages = [...(existing || []), ...inserted]
-      allStages.sort((a, b) => a.sequence - b.sequence)
-      return allStages as WorkflowStageModel[]
-    }
-  }
-
-  return (existing as WorkflowStageModel[]) || []
+  return (stages as WorkflowStageModel[]) || []
 }
 
 /**
@@ -149,11 +133,22 @@ export async function createOpeningProjectAction(
     return { success: false, error: projErr?.message || 'ไม่สามารถสร้างโครงการได้' }
   }
 
-  // 4. Generate default tasks and checklists according to contract conditions
+  // 4. Parse hasForeignResident from contract note (stored as TM30 tag in note field)
+  const { hasForeignResident } = parseLeadMetadata(contract.note)
+
+  // Build a combined conditions object: DB columns + note-parsed flags
+  const contractConditions: Record<string, boolean> = {
+    need_branch_registration: Boolean(contract.need_branch_registration),
+    need_vat_registration: Boolean(contract.need_vat_registration),
+    need_employer_change: Boolean(contract.need_employer_change),
+    need_signboard: Boolean(contract.need_signboard),
+    hasForeignResident,
+  }
+
+  // 5. Generate default tasks and checklists according to contract conditions
   for (const def of STAGE_DEFINITIONS) {
-    // Condition check:
-    // If def requires need_branch_registration and contract has it as false -> skip!
-    if (def.requiresCondition && !contract[def.requiresCondition]) {
+    // Skip stages that require a condition that is not met
+    if (def.requiresCondition && !contractConditions[def.requiresCondition]) {
       continue
     }
 
