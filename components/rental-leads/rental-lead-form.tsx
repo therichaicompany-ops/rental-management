@@ -55,6 +55,8 @@ interface RentalLeadFormProps {
   landlords: Pick<Landlord, 'id' | 'landlord_code' | 'name' | 'company_name'>[]
   staffProfiles: Pick<UserProfile, 'id' | 'full_name' | 'email'>[]
   userRole: UserRole
+  onSuccess?: () => void
+  onCancel?: () => void
 }
 
 export function RentalLeadForm({
@@ -64,6 +66,8 @@ export function RentalLeadForm({
   landlords,
   staffProfiles,
   userRole,
+  onSuccess,
+  onCancel,
 }: RentalLeadFormProps) {
   const router = useRouter()
   const isEdit = Boolean(initialData)
@@ -85,9 +89,16 @@ export function RentalLeadForm({
     initialParsed.hasForeignResident
   )
 
+  const isOperation = userRole === 'operation'
+
   // Property type: House vs Branch
   const [propertyType, setPropertyType] = React.useState<'house' | 'branch'>(() => {
+    if (isOperation) return 'branch'
     if (initialParsed.financial.property_type) return initialParsed.financial.property_type
+    const leadName = initialData?.lead_name || ''
+    if (leadName.includes('สาขา') || leadName.toLowerCase().includes('branch')) {
+      return 'branch'
+    }
     if (initialParsed.isHouse) return 'house'
     return 'branch'
   })
@@ -173,13 +184,14 @@ export function RentalLeadForm({
     setServerError(null)
 
     startTransition(async () => {
+      const isHouseType = propertyType === 'house'
       const financialTerms: LeadFinancialTerms = {
         property_type: propertyType,
         contract_party_role: contractPartyRole,
-        property_price: propertyPrice,
-        down_payment: downPayment,
-        interest_rate: interestRate,
-        installment_years: installmentYears,
+        property_price: isHouseType ? propertyPrice : null,
+        down_payment: isHouseType ? downPayment : null,
+        interest_rate: isHouseType ? interestRate : null,
+        installment_years: isHouseType ? installmentYears : null,
         payment_due_day: paymentDueDay,
         contract_end_date: contractEndDate,
       }
@@ -207,7 +219,11 @@ export function RentalLeadForm({
         return
       }
 
-      router.push(isEdit && initialData ? `/rental-leads/${initialData.id}` : '/rental-leads')
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        router.push(isEdit && initialData ? `/rental-leads/${initialData.id}` : '/rental-leads')
+      }
       router.refresh()
     })
   }
@@ -239,11 +255,23 @@ export function RentalLeadForm({
       {/* Top bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href={isEdit ? `/rental-leads/${initialData?.id}` : '/rental-leads'}>
-            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900">
+          {onCancel ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900"
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-          </Link>
+          ) : (
+            <Link href={isEdit ? `/rental-leads/${initialData?.id}` : '/rental-leads'}>
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-slate-500 hover:text-slate-900">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
           <div>
             <h1 className="text-xl font-bold text-slate-900">
               {isEdit ? 'แก้ไขข้อมูลประเภทงาน' : 'เพิ่มประเภทงานใหม่'}
@@ -290,29 +318,31 @@ export function RentalLeadForm({
               <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
                 รูปแบบประเภทงาน / สถานที่ <span className="text-rose-500">*</span>
               </Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
-                <button
-                  type="button"
-                  disabled={!allowEdit}
-                  onClick={() => {
-                    setPropertyType('house')
-                    setContractPartyRole('payable')
-                    setNeedForeignResident(true)
-                  }}
-                  className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
-                    propertyType === 'house'
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <Home className={`h-5 w-5 shrink-0 ${propertyType === 'house' ? 'text-white' : 'text-amber-500'}`} />
-                  <div>
-                    <div className="text-xs font-bold">บ้าน / ที่พักอาศัย</div>
-                    <div className={`text-[11px] ${propertyType === 'house' ? 'text-amber-100' : 'text-slate-400'}`}>
-                      เช่าซื้อ, ซื้อบ้าน, แจ้ง ตม.30
+              <div className={`grid ${isOperation ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'} gap-3 max-w-lg`}>
+                {!isOperation && (
+                  <button
+                    type="button"
+                    disabled={!allowEdit}
+                    onClick={() => {
+                      setPropertyType('house')
+                      setContractPartyRole('payable')
+                      setNeedForeignResident(true)
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                      propertyType === 'house'
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Home className={`h-5 w-5 shrink-0 ${propertyType === 'house' ? 'text-white' : 'text-amber-500'}`} />
+                    <div>
+                      <div className="text-xs font-bold">บ้าน / ที่พักอาศัย</div>
+                      <div className={`text-[11px] ${propertyType === 'house' ? 'text-amber-100' : 'text-slate-400'}`}>
+                        เช่าซื้อ, ซื้อบ้าน, แจ้ง ตม.30
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -561,70 +591,72 @@ export function RentalLeadForm({
             </div>
 
             {/* หมวดที่ 2: สำหรับบ้าน / เช่าซื้อ (ราคาบ้าน, เงินดาวน์, ดอกเบี้ย, ระยะเวลาการผ่อน) */}
-            <div className="space-y-2 pt-3 border-t border-dashed border-slate-200">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
-                  <Home className="h-3.5 w-3.5 text-amber-600" />
-                  สำหรับบ้าน / เช่าซื้อ (ราคาบ้าน, เงินดาวน์, ดอกเบี้ย, ระยะเวลาผ่อน)
-                </span>
-                {estimatedMonthlyInstallment > 0 && (
-                  <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    ยอดผ่อนประมาณการ: <strong className="font-semibold">฿{estimatedMonthlyInstallment.toLocaleString('th-TH')}</strong> /เดือน
+            {propertyType === 'house' && (
+              <div className="space-y-2 pt-3 border-t border-dashed border-slate-200">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
+                    <Home className="h-3.5 w-3.5 text-amber-600" />
+                    สำหรับบ้าน / เช่าซื้อ (ราคาบ้าน, เงินดาวน์, ดอกเบี้ย, ระยะเวลาผ่อน)
                   </span>
-                )}
+                  {estimatedMonthlyInstallment > 0 && (
+                    <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                      ยอดผ่อนประมาณการ: <strong className="font-semibold">฿{estimatedMonthlyInstallment.toLocaleString('th-TH')}</strong> /เดือน
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="property_price">ราคาบ้าน (บาท)</Label>
+                    <Input
+                      id="property_price"
+                      type="number"
+                      placeholder="0.00"
+                      disabled={!allowEdit}
+                      value={propertyPrice !== null && propertyPrice !== undefined ? propertyPrice : ''}
+                      onChange={(e) => setPropertyPrice(e.target.value ? Number(e.target.value) : null)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="down_payment">เงินดาวน์ (บาท)</Label>
+                    <Input
+                      id="down_payment"
+                      type="number"
+                      placeholder="0.00"
+                      disabled={!allowEdit}
+                      value={downPayment !== null && downPayment !== undefined ? downPayment : ''}
+                      onChange={(e) => setDownPayment(e.target.value ? Number(e.target.value) : null)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="interest_rate">ดอกเบี้ย (% ต่อปี)</Label>
+                    <Input
+                      id="interest_rate"
+                      type="number"
+                      step="0.01"
+                      placeholder="เช่น 3.50"
+                      disabled={!allowEdit}
+                      value={interestRate !== null && interestRate !== undefined ? interestRate : ''}
+                      onChange={(e) => setInterestRate(e.target.value ? Number(e.target.value) : null)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="installment_years">ระยะเวลาการผ่อน (ปี)</Label>
+                    <Input
+                      id="installment_years"
+                      type="number"
+                      placeholder="เช่น 30"
+                      disabled={!allowEdit}
+                      value={installmentYears !== null && installmentYears !== undefined ? installmentYears : ''}
+                      onChange={(e) => setInstallmentYears(e.target.value ? Number(e.target.value) : null)}
+                    />
+                  </div>
+                </div>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="property_price">ราคาบ้าน (บาท)</Label>
-                  <Input
-                    id="property_price"
-                    type="number"
-                    placeholder="0.00"
-                    disabled={!allowEdit}
-                    value={propertyPrice !== null && propertyPrice !== undefined ? propertyPrice : ''}
-                    onChange={(e) => setPropertyPrice(e.target.value ? Number(e.target.value) : null)}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="down_payment">เงินดาวน์ (บาท)</Label>
-                  <Input
-                    id="down_payment"
-                    type="number"
-                    placeholder="0.00"
-                    disabled={!allowEdit}
-                    value={downPayment !== null && downPayment !== undefined ? downPayment : ''}
-                    onChange={(e) => setDownPayment(e.target.value ? Number(e.target.value) : null)}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="interest_rate">ดอกเบี้ย (% ต่อปี)</Label>
-                  <Input
-                    id="interest_rate"
-                    type="number"
-                    step="0.01"
-                    placeholder="เช่น 3.50"
-                    disabled={!allowEdit}
-                    value={interestRate !== null && interestRate !== undefined ? interestRate : ''}
-                    onChange={(e) => setInterestRate(e.target.value ? Number(e.target.value) : null)}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="installment_years">ระยะเวลาการผ่อน (ปี)</Label>
-                  <Input
-                    id="installment_years"
-                    type="number"
-                    placeholder="เช่น 30"
-                    disabled={!allowEdit}
-                    value={installmentYears !== null && installmentYears !== undefined ? installmentYears : ''}
-                    onChange={(e) => setInstallmentYears(e.target.value ? Number(e.target.value) : null)}
-                  />
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Section 4: Target Dates & Next Follow-up */}
@@ -707,76 +739,94 @@ export function RentalLeadForm({
             </h2>
 
             {/* หมวดที่ 1: สำหรับสาขา */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                <Building className="h-3.5 w-3.5 text-slate-500" />
-                <span>สำหรับสาขา / สถานประกอบการ</span>
+            {propertyType !== 'house' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                  <Building className="h-3.5 w-3.5 text-slate-500" />
+                  <span>สำหรับสาขา / สถานประกอบการ</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      disabled={!allowEdit}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      {...register('need_branch_registration')}
+                    />
+                    <span className="text-xs font-medium text-slate-700">ต้องจดทะเบียนสาขา</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      disabled={!allowEdit}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      {...register('need_vat_registration')}
+                    />
+                    <span className="text-xs font-medium text-slate-700">ต้องจดภาษีมูลค่าเพิ่ม (VAT)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      disabled={!allowEdit}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      {...register('need_employer_change')}
+                    />
+                    <span className="text-xs font-medium text-slate-700">ต้องเปลี่ยนนายจ้างประกันสังคม</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      disabled={!allowEdit}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      {...register('need_signboard')}
+                    />
+                    <span className="text-xs font-medium text-slate-700">ต้องขออนุญาตติดตั้งป้ายร้าน</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      disabled={!allowEdit}
+                      checked={needForeignResident}
+                      onChange={(e) => setNeedForeignResident(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-medium text-slate-700">แจ้งที่พักอาศัยคนต่างด้าว</span>
+                      <p className="text-[10px] text-slate-500">แจ้ง ตม.30 ภายใน 24 ชม.</p>
+                    </div>
+                  </label>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    disabled={!allowEdit}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                    {...register('need_branch_registration')}
-                  />
-                  <span className="text-xs font-medium text-slate-700">ต้องจดทะเบียนสาขา</span>
-                </label>
-
-                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    disabled={!allowEdit}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                    {...register('need_vat_registration')}
-                  />
-                  <span className="text-xs font-medium text-slate-700">ต้องจดภาษีมูลค่าเพิ่ม (VAT)</span>
-                </label>
-
-                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    disabled={!allowEdit}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                    {...register('need_employer_change')}
-                  />
-                  <span className="text-xs font-medium text-slate-700">ต้องเปลี่ยนนายจ้างประกันสังคม</span>
-                </label>
-
-                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    disabled={!allowEdit}
-                    className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                    {...register('need_signboard')}
-                  />
-                  <span className="text-xs font-medium text-slate-700">ต้องขออนุญาตติดตั้งป้ายร้าน</span>
-                </label>
-              </div>
-            </div>
+            )}
 
             {/* หมวดที่ 2: สำหรับบ้าน / ที่พักอาศัย */}
-            <div className="space-y-2 pt-2 border-t border-dashed border-slate-200">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                <Home className="h-3.5 w-3.5 text-amber-600" />
-                <span>สำหรับบ้าน / ที่พักอาศัย</span>
+            {propertyType === 'house' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                  <Home className="h-3.5 w-3.5 text-amber-600" />
+                  <span>สำหรับบ้าน / ที่พักอาศัย</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <label className="flex items-center gap-2.5 p-3 rounded-lg border border-amber-200 bg-amber-50/40 cursor-pointer hover:bg-amber-50 transition-colors">
+                    <input
+                      type="checkbox"
+                      disabled={!allowEdit}
+                      checked={needForeignResident}
+                      onChange={(e) => setNeedForeignResident(e.target.checked)}
+                      className="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-semibold text-slate-800">แจ้งที่พักอาศัยคนต่างด้าว</span>
+                      <p className="text-[10px] text-slate-500">แจ้ง ตม.30 ภายใน 24 ชม.</p>
+                    </div>
+                  </label>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                <label className="flex items-center gap-2.5 p-3 rounded-lg border border-amber-200 bg-amber-50/40 cursor-pointer hover:bg-amber-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    disabled={!allowEdit}
-                    checked={needForeignResident}
-                    onChange={(e) => setNeedForeignResident(e.target.checked)}
-                    className="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                  />
-                  <div className="space-y-0.5">
-                    <span className="text-xs font-semibold text-slate-800">แจ้งที่พักอาศัยคนต่างด้าว</span>
-                    <p className="text-[10px] text-slate-500">แจ้ง ตม.30 ภายใน 24 ชม.</p>
-                  </div>
-                </label>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Section 6: Notes */}
@@ -796,11 +846,17 @@ export function RentalLeadForm({
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-3">
-          <Link href={isEdit ? `/rental-leads/${initialData?.id}` : '/rental-leads'}>
-            <Button type="button" variant="outline">
+          {onCancel ? (
+            <Button type="button" variant="outline" onClick={onCancel}>
               ยกเลิก
             </Button>
-          </Link>
+          ) : (
+            <Link href={isEdit ? `/rental-leads/${initialData?.id}` : '/rental-leads'}>
+              <Button type="button" variant="outline">
+                ยกเลิก
+              </Button>
+            </Link>
+          )}
           {allowEdit && (
             <Button type="submit" disabled={isSubmitting} className="gap-2 min-w-[120px]">
               {isSubmitting ? (

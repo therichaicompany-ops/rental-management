@@ -108,6 +108,19 @@ export function calculateMonthlyInstallment(
 }
 
 /**
+ * Helper to strip metadata tags, financial comments, and TM30 tags from a note
+ */
+export function cleanRawNote(text?: string | null): string {
+  if (!text) return ''
+  return text
+    .replaceAll(TM30_TAG, '')
+    .replace(/\[แจ้งที่พักอาศัยคนต่างด้าว[^\]]*\]/g, '')
+    .replace(FINANCIAL_META_REGEX, '')
+    .replace(FINANCIAL_TEXT_REGEX, '')
+    .trim()
+}
+
+/**
  * Parse structured metadata from lead note
  */
 export function parseLeadMetadata(rawNote?: string | null): {
@@ -125,9 +138,6 @@ export function parseLeadMetadata(rawNote?: string | null): {
     }
   }
 
-  const hasForeignResident =
-    rawNote.includes(TM30_TAG) || rawNote.includes('แจ้งที่พักอาศัยคนต่างด้าว')
-
   let financial: LeadFinancialTerms = {}
   const match = rawNote.match(FINANCIAL_META_REGEX)
   if (match && match[1]) {
@@ -138,20 +148,31 @@ export function parseLeadMetadata(rawNote?: string | null): {
     }
   }
 
-  const isHouse =
-    financial.property_type === 'house' ||
-    Boolean(financial.property_price) ||
-    Boolean(financial.down_payment) ||
-    hasForeignResident ||
-    rawNote.includes('ประเภท: บ้าน') ||
-    rawNote.includes('เช่าซื้อ') ||
-    rawNote.includes('สำหรับบ้าน')
+  const isBranchType = financial.property_type === 'branch'
+  const hasForeignResident =
+    rawNote.includes(TM30_TAG) || rawNote.includes('แจ้งที่พักอาศัยคนต่างด้าว')
 
-  let cleanNote = rawNote
-    .replace(new RegExp(`\\s*\\${TM30_TAG}\\s*`, 'g'), '')
-    .replace(FINANCIAL_META_REGEX, '')
-    .replace(FINANCIAL_TEXT_REGEX, '')
-    .trim()
+  // Priority 1: Explicitly saved property_type takes precedence
+  // If property_type is 'branch', it is NEVER a house.
+  // If property_type is 'house', it is ALWAYS a house.
+  // Fallback (for legacy data without property_type): infer from properties
+  const isBranchFallback =
+    rawNote.includes('ประเภท: สาขา') ||
+    rawNote.includes('สำหรับสาขา') ||
+    rawNote.includes('สาขา / สถานประกอบการ')
+
+  const isHouse =
+    financial.property_type === 'house'
+      ? true
+      : isBranchType || isBranchFallback
+      ? false
+      : Boolean(financial.property_price) ||
+        Boolean(financial.down_payment) ||
+        rawNote.includes('ประเภท: บ้าน') ||
+        rawNote.includes('เช่าซื้อ') ||
+        rawNote.includes('สำหรับบ้าน')
+
+  const cleanNote = cleanRawNote(rawNote)
 
   return { cleanNote, hasForeignResident, financial, isHouse }
 }
@@ -166,16 +187,13 @@ export function buildLeadMetadataNote(
 ): string {
   const parts: string[] = []
 
-  const clean = userNote
-    .replace(new RegExp(`\\s*\\${TM30_TAG}\\s*`, 'g'), '')
-    .replace(FINANCIAL_META_REGEX, '')
-    .replace(FINANCIAL_TEXT_REGEX, '')
-    .trim()
+  const clean = cleanRawNote(userNote)
 
   if (clean) {
     parts.push(clean)
   }
 
+  // Foreign resident (ตม.30) can be enabled for both branch and house
   if (needForeignResident) {
     parts.push(TM30_TAG)
   }
@@ -221,4 +239,52 @@ export function buildLeadMetadataNote(
   }
 
   return parts.join('\n\n')
+}
+
+/**
+ * Helper to determine if a contract, lead, or payment record represents a house/residential property
+ */
+export function isHouseRecord(record?: any): boolean {
+  if (!record) return false
+
+  // 1. Check location name for explicit branch indicators
+  const locName =
+    record.locations?.location_name ||
+    record.rental_contracts?.locations?.location_name ||
+    ''
+  const hasBranchInLocation =
+    locName.includes('สาขา') || locName.toLowerCase().includes('branch')
+
+  // 2. Check branch-specific registration flags
+  const hasBranchFlags =
+    Boolean(record.need_branch_registration) ||
+    Boolean(record.need_vat_registration) ||
+    Boolean(record.need_signboard) ||
+    Boolean(record.need_employer_change) ||
+    Boolean(record.rental_contracts?.need_branch_registration) ||
+    Boolean(record.rental_contracts?.need_vat_registration) ||
+    Boolean(record.rental_contracts?.need_signboard) ||
+    Boolean(record.rental_contracts?.need_employer_change)
+
+  const directNote =
+    record.note ||
+    (Array.isArray(record.rental_leads)
+      ? record.rental_leads[0]?.note
+      : record.rental_leads?.note)
+  const rc = record.rental_contracts
+  const contractNote =
+    rc?.note ||
+    (Array.isArray(rc?.rental_leads) ? rc?.rental_leads[0]?.note : rc?.rental_leads?.note)
+
+  const effectiveNote = directNote || contractNote || ''
+  const parsed = parseLeadMetadata(effectiveNote)
+
+  // Explicit property_type in metadata has highest priority
+  if (parsed.financial.property_type === 'house') return true
+  if (parsed.financial.property_type === 'branch') return false
+
+  // If location has สาขา or has branch registration flags -> it is a branch!
+  if (hasBranchInLocation || hasBranchFlags) return false
+
+  return parsed.isHouse
 }

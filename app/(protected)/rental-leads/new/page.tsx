@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { requireUser } from '@/lib/auth/route-guard'
+import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/route-guard'
+import { canWrite } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { RentalLeadForm } from '@/components/rental-leads/rental-lead-form'
 import type { Location, Customer, Landlord } from '@/lib/types/master-data'
@@ -10,7 +12,10 @@ export const metadata: Metadata = {
 }
 
 export default async function NewRentalLeadPage() {
-  const user = await requireUser()
+  const user = await requireRole('rentals')
+  if (!canWrite(user.profile.role, 'rentals')) {
+    redirect('/rental-leads')
+  }
   const supabase = await createClient()
 
   const [locRes, custRes, llRes, staffRes] = await Promise.all([

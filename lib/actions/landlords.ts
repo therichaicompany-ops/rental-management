@@ -15,8 +15,8 @@ export async function createLandlordAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
-    return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูล (สิทธิ์ Viewer ไม่สามารถสร้างได้)' }
+  if (!canWrite(currentUser.profile.role, 'landlords')) {
+    return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูล' }
   }
 
   const parsed = landlordSchema.safeParse(values)
@@ -69,7 +69,7 @@ export async function updateLandlordAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'landlords')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูล' }
   }
 

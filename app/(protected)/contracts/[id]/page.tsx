@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { ContractDetailView } from '@/components/contracts/contract-detail-view'
 import type { ContractWithRelations } from '@/lib/types/contracts-payments'
+import { isHouseRecord } from '@/lib/utils/lead-metadata'
 
 export const metadata: Metadata = {
   title: 'รายละเอียดสัญญาเช่า | ระบบบริหารงานเช่าและเปิดสาขา',
@@ -15,7 +16,7 @@ interface ContractDetailPageProps {
 
 export default async function ContractDetailPage({ params }: ContractDetailPageProps) {
   const { id } = await params
-  const user = await requireUser()
+  const user = await requireRole('contracts')
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -27,7 +28,7 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
       customers (id, customer_code, name, company_name, phone),
       landlords (id, landlord_code, name, company_name, phone, bank_name, bank_account_number),
       profiles!rental_contracts_assigned_to_fkey (id, full_name, email),
-      rental_leads (id, lead_no, lead_name),
+      rental_leads (id, lead_no, lead_name, note),
       rent_payments (*)
     `
     )
@@ -35,6 +36,11 @@ export default async function ContractDetailPage({ params }: ContractDetailPageP
     .single()
 
   if (error || !data) {
+    notFound()
+  }
+
+  // Operation role cannot view house contracts
+  if (user.profile.role === 'operation' && isHouseRecord(data)) {
     notFound()
   }
 

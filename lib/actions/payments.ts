@@ -10,6 +10,7 @@ import {
   type RentPaymentFormValues,
   type PaymentTransactionFormValues,
 } from '@/lib/types/contracts-payments'
+import { isHouseRecord } from '@/lib/utils/lead-metadata'
 import type { ActionResponse } from './customers'
 
 export async function createRentPaymentAction(
@@ -20,7 +21,7 @@ export async function createRentPaymentAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'rentPayments')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูลงวดชำระ' }
   }
 
@@ -33,6 +34,18 @@ export async function createRentPaymentAction(
   }
 
   const supabase = await createClient()
+
+  // Operation role cannot create payments for house contracts
+  if (currentUser.profile.role === 'operation') {
+    const { data: ctr } = await supabase
+      .from('rental_contracts')
+      .select('note, rental_leads(note)')
+      .eq('id', parsed.data.contract_id)
+      .single()
+    if (isHouseRecord(ctr)) {
+      return { success: false, error: 'ฝ่ายปฏิบัติการสามารถสร้างงวดชำระได้เฉพาะสัญญาประเภทสาขาเท่านั้น' }
+    }
+  }
 
   // Note: gross_amount, net_amount, balance_amount are GENERATED ALWAYS AS STORED in Postgres
   const { data, error } = await supabase
@@ -75,7 +88,7 @@ export async function updateRentPaymentAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'rentPayments')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูลงวดชำระ' }
   }
 
@@ -154,7 +167,7 @@ export async function addPaymentTransactionAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'rentPayments')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการบันทึกการชำระเงิน' }
   }
 
@@ -239,7 +252,7 @@ export async function deletePaymentTransactionAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'rentPayments')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการลบรายการชำระเงิน' }
   }
 

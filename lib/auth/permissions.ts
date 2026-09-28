@@ -1,4 +1,5 @@
 import type { UserRole } from '@/lib/types/auth'
+import rolePermissionsJson from '@/lib/config/role-permissions.json'
 
 // ----------------------------------------------------------------
 // Resource keys — all routes that require permissions
@@ -19,9 +20,9 @@ export type Resource =
   | 'settings'
 
 // ----------------------------------------------------------------
-// Permission map — which roles can access which resources
+// Default Permission map — which roles can access which resources
 // ----------------------------------------------------------------
-const PERMISSIONS: Record<UserRole, Resource[]> = {
+export const DEFAULT_PERMISSIONS: Record<UserRole, Resource[]> = {
   owner: [
     'dashboard', 'customers', 'landlords', 'locations', 'rentals', 'contracts', 'rentPayments',
     'opening', 'documents', 'calendar', 'reports', 'users', 'settings',
@@ -31,27 +32,43 @@ const PERMISSIONS: Record<UserRole, Resource[]> = {
     'opening', 'documents', 'calendar', 'reports', 'users', 'settings',
   ],
   accounting: [
-    'dashboard', 'customers', 'landlords', 'locations', 'rentPayments', 'contracts', 'documents', 'reports',
+    'dashboard', 'customers', 'landlords', 'locations', 'rentals', 'contracts', 'rentPayments', 'opening',
   ],
   hr: [
-    'dashboard', 'customers', 'landlords', 'locations', 'opening', 'documents',
+    'dashboard', 'customers', 'locations', 'opening',
   ],
   operation: [
-    'dashboard', 'customers', 'landlords', 'locations', 'rentals', 'contracts', 'opening', 'documents', 'calendar',
+    'dashboard', 'customers', 'landlords', 'locations', 'rentals', 'contracts', 'rentPayments', 'opening',
   ],
   staff: [
-    'dashboard', 'customers', 'landlords', 'locations', 'rentals', 'opening', 'documents', 'calendar',
+    'dashboard', 'customers', 'locations', 'opening',
   ],
   viewer: [
-    'dashboard', 'customers', 'landlords', 'locations', 'rentals', 'reports',
+    'dashboard', 'customers', 'locations', 'opening',
   ],
+}
+
+// Active permissions resolved from config file or defaults
+export function getActivePermissions(): Record<UserRole, Resource[]> {
+  try {
+    if (rolePermissionsJson && typeof rolePermissionsJson === 'object') {
+      return {
+        ...DEFAULT_PERMISSIONS,
+        ...(rolePermissionsJson as unknown as Record<UserRole, Resource[]>),
+      }
+    }
+  } catch {
+    // Fallback to defaults
+  }
+  return DEFAULT_PERMISSIONS
 }
 
 // ----------------------------------------------------------------
 // Core permission check
 // ----------------------------------------------------------------
 export function canAccess(role: UserRole, resource: Resource): boolean {
-  return PERMISSIONS[role]?.includes(resource) ?? false
+  const permissions = getActivePermissions()
+  return permissions[role]?.includes(resource) ?? false
 }
 
 // ----------------------------------------------------------------
@@ -89,10 +106,52 @@ export function hasFullAccess(role: UserRole): boolean {
 }
 
 /**
- * Can write (create/edit) = any role except viewer
+ * Can write (create/edit) check based on user role and optional target resource.
+ * - owner, admin: full write on all resources
+ * - operation: write on customers, landlords, locations, rentals (branch only), contracts (branch only), rentPayments (branch only), opening
+ * - staff: write on customers, locations, opening
+ * - accounting: read-only ("ดูอย่างเดียว")
+ * - hr: read-only ("ดูและโหลดเอกสารลูกค้าได้")
+ * - viewer: read-only ("ดูอย่างเดียว ห้ามแก้ไข")
  */
-export function canWrite(role: UserRole): boolean {
-  return role !== 'viewer'
+export function canWrite(role: UserRole, resource?: Resource): boolean {
+  if (role === 'owner' || role === 'admin') return true
+  if (role === 'viewer' || role === 'accounting' || role === 'hr') return false
+
+  if (role === 'staff') {
+    if (!resource) return true
+    return ['customers', 'locations', 'opening'].includes(resource)
+  }
+
+  if (role === 'operation') {
+    if (!resource) return true
+    return [
+      'customers',
+      'landlords',
+      'locations',
+      'rentals',
+      'contracts',
+      'rentPayments',
+      'opening',
+    ].includes(resource)
+  }
+
+  return false
+}
+
+/**
+ * Helper to check if a role is restricted to branch-only operations
+ * (operation role cannot see or create house/residential data)
+ */
+export function isBranchOnlyRole(role: UserRole): boolean {
+  return role === 'operation'
+}
+
+/**
+ * Check whether a user with given role can access house data
+ */
+export function canAccessHouseData(role: UserRole): boolean {
+  return role !== 'operation'
 }
 
 // ----------------------------------------------------------------
@@ -113,7 +172,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { key: 'rentals', label: 'ประเภทงาน', href: '/rental-leads', icon: 'Home' },
   { key: 'contracts', label: 'สัญญาเช่า', href: '/contracts', icon: 'FileSignature' },
   { key: 'rentPayments', label: 'ค่าเช่า', href: '/rent-payments', icon: 'CreditCard' },
-  { key: 'opening', label: 'บ้าน/สาขา', href: '/opening', icon: 'Building2' },
+  { key: 'opening', label: 'ความคืบหน้าของงาน', href: '/opening', icon: 'Building2' },
   { key: 'documents', label: 'เอกสาร', href: '/documents', icon: 'FileText' },
   { key: 'calendar', label: 'Calendar', href: '/calendar', icon: 'Calendar' },
   { key: 'reports', label: 'รายงาน', href: '/reports', icon: 'BarChart3' },

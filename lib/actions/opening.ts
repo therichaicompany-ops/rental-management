@@ -74,7 +74,7 @@ export async function createOpeningProjectAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'opening')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างโครงการเปิดสาขา' }
   }
 
@@ -201,7 +201,7 @@ export async function updateOpeningProjectAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'opening')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการแก้ไขโครงการเปิดสาขา' }
   }
 
@@ -236,7 +236,7 @@ export async function advanceProjectStageAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'opening')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการเปลี่ยนขั้นตอน' }
   }
 
@@ -264,7 +264,7 @@ export async function createTaskAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'opening')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างงาน' }
   }
 
@@ -315,7 +315,7 @@ export async function updateTaskAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'opening')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการแก้ไขงาน' }
   }
 
@@ -407,7 +407,7 @@ export async function toggleChecklistAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'opening')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการปรับปรุงเช็คลิสต์' }
   }
 
@@ -439,7 +439,7 @@ export async function addChecklistAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'opening')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการเพิ่มเช็คลิสต์' }
   }
 
@@ -481,7 +481,7 @@ export async function deleteChecklistAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'opening')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการลบเช็คลิสต์' }
   }
 

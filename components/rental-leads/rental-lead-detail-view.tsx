@@ -86,6 +86,8 @@ export function RentalLeadDetailView({
           landlords={landlords}
           staffProfiles={staffProfiles}
           userRole={userRole}
+          onSuccess={() => setIsEditing(false)}
+          onCancel={() => setIsEditing(false)}
         />
       </div>
     )
@@ -384,7 +386,7 @@ export function RentalLeadDetailView({
                 </div>
 
                 {/* House Pricing & Financing Card (for Residential / Hire-Purchase) */}
-                {hasHouseTerms && (
+                {isHouse && hasHouseTerms && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm space-y-3">
                     <div className="flex items-center justify-between border-b border-amber-200/60 pb-2">
                       <h3 className="text-xs font-semibold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -449,74 +451,88 @@ export function RentalLeadDetailView({
                   </h3>
 
                   {/* หมวดสำหรับสาขา */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
-                      <Building className="h-3.5 w-3.5 text-slate-500" />
-                      <span>สำหรับสาขา / สถานประกอบการ</span>
+                  {!isHouse && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                        <Building className="h-3.5 w-3.5 text-slate-500" />
+                        <span>สำหรับสาขา / สถานประกอบการ</span>
+                      </div>
+                      <div className="space-y-1.5 text-xs pl-2 border-l-2 border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">จดทะเบียนสาขา:</span>
+                          <span
+                            className={`font-semibold ${
+                              lead.need_branch_registration ? 'text-emerald-700' : 'text-slate-400'
+                            }`}
+                          >
+                            {lead.need_branch_registration ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">จดภาษีมูลค่าเพิ่ม (VAT):</span>
+                          <span
+                            className={`font-semibold ${
+                              lead.need_vat_registration ? 'text-emerald-700' : 'text-slate-400'
+                            }`}
+                          >
+                            {lead.need_vat_registration ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">เปลี่ยนนายจ้างประกันสังคม:</span>
+                          <span
+                            className={`font-semibold ${
+                              lead.need_employer_change ? 'text-emerald-700' : 'text-slate-400'
+                            }`}
+                          >
+                            {lead.need_employer_change ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">ขออนุญาตติดตั้งป้ายร้าน:</span>
+                          <span
+                            className={`font-semibold ${
+                              lead.need_signboard ? 'text-emerald-700' : 'text-slate-400'
+                            }`}
+                          >
+                            {lead.need_signboard ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">แจ้งที่พักอาศัยคนต่างด้าว (ตม.30):</span>
+                          <span
+                            className={`font-semibold ${
+                              hasForeignResident ? 'text-emerald-700' : 'text-slate-400'
+                            }`}
+                          >
+                            {hasForeignResident ? '✓ ต้องดำเนินการ (ตม.30)' : 'ไม่ระบุ'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-1.5 text-xs pl-2 border-l-2 border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">จดทะเบียนสาขา:</span>
-                        <span
-                          className={`font-semibold ${
-                            lead.need_branch_registration ? 'text-emerald-700' : 'text-slate-400'
-                          }`}
-                        >
-                          {lead.need_branch_registration ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">จดภาษีมูลค่าเพิ่ม (VAT):</span>
-                        <span
-                          className={`font-semibold ${
-                            lead.need_vat_registration ? 'text-emerald-700' : 'text-slate-400'
-                          }`}
-                        >
-                          {lead.need_vat_registration ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">เปลี่ยนนายจ้างประกันสังคม:</span>
-                        <span
-                          className={`font-semibold ${
-                            lead.need_employer_change ? 'text-emerald-700' : 'text-slate-400'
-                          }`}
-                        >
-                          {lead.need_employer_change ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">ขออนุญาตติดตั้งป้ายร้าน:</span>
-                        <span
-                          className={`font-semibold ${
-                            lead.need_signboard ? 'text-emerald-700' : 'text-slate-400'
-                          }`}
-                        >
-                          {lead.need_signboard ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  )}
 
                   {/* หมวดสำหรับบ้าน */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
-                      <Home className="h-3.5 w-3.5 text-amber-600" />
-                      <span>สำหรับบ้าน / ที่พักอาศัย</span>
-                    </div>
-                    <div className="space-y-1.5 text-xs pl-2 border-l-2 border-amber-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">แจ้งที่พักอาศัยคนต่างด้าว (ตม.30):</span>
-                        <span
-                          className={`font-semibold ${
-                            hasForeignResident ? 'text-amber-700 font-bold' : 'text-slate-400'
-                          }`}
-                        >
-                          {hasForeignResident ? '✓ ต้องดำเนินการ (ตม.30)' : 'ไม่ระบุ'}
-                        </span>
+                  {isHouse && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
+                        <Home className="h-3.5 w-3.5 text-amber-600" />
+                        <span>สำหรับบ้าน / ที่พักอาศัย</span>
+                      </div>
+                      <div className="space-y-1.5 text-xs pl-2 border-l-2 border-amber-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">แจ้งที่พักอาศัยคนต่างด้าว (ตม.30):</span>
+                          <span
+                            className={`font-semibold ${
+                              hasForeignResident ? 'text-amber-700 font-bold' : 'text-slate-400'
+                            }`}
+                          >
+                            {hasForeignResident ? '✓ ต้องดำเนินการ (ตม.30)' : 'ไม่ระบุ'}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Notes */}

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { LanguagePreferenceCard } from '@/components/settings/language-preference-card'
+import { RolePermissionsMatrix } from '@/components/settings/role-permissions-matrix'
 import { useI18n } from '@/lib/i18n/context'
 import type { UserProfile, UserRole } from '@/lib/types/auth'
 
@@ -295,6 +296,9 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Role & Permissions Configuration Matrix */}
+      <RolePermissionsMatrix currentUserRole={userRole} />
     </div>
   )
 }

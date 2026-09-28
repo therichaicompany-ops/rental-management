@@ -15,8 +15,8 @@ export async function createLocationAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
-    return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูล (สิทธิ์ Viewer ไม่สามารถสร้างได้)' }
+  if (!canWrite(currentUser.profile.role, 'locations')) {
+    return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูล' }
   }
 
   const parsed = locationSchema.safeParse(values)
@@ -72,7 +72,7 @@ export async function updateLocationAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'locations')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูล' }
   }
 

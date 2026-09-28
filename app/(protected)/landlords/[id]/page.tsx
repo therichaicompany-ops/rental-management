@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { LandlordForm } from '@/components/landlords/landlord-form'
 import type { Landlord } from '@/lib/types/master-data'
@@ -15,7 +15,7 @@ interface LandlordDetailPageProps {
 
 export default async function LandlordDetailPage({ params }: LandlordDetailPageProps) {
   const { id } = await params
-  const user = await requireUser()
+  const user = await requireRole('landlords')
   const supabase = await createClient()
 
   const { data, error } = await supabase

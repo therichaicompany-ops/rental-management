@@ -1,18 +1,19 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { canWrite } from '@/lib/auth/permissions'
 import { ContractForm } from '@/components/contracts/contract-form'
+import { isHouseRecord } from '@/lib/utils/lead-metadata'
 
 export const metadata: Metadata = {
   title: 'สร้างสัญญาเช่าใหม่ | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 export default async function NewContractPage() {
-  const user = await requireUser()
+  const user = await requireRole('contracts')
 
-  if (!canWrite(user.profile.role)) {
+  if (!canWrite(user.profile.role, 'contracts')) {
     redirect('/contracts')
   }
 
@@ -33,7 +34,7 @@ export default async function NewContractPage() {
       .order('name', { ascending: true }),
     supabase
       .from('rental_leads')
-      .select('id, lead_no, lead_name')
+      .select('id, lead_no, lead_name, note')
       .order('created_at', { ascending: false }),
     supabase
       .from('profiles')
@@ -42,13 +43,19 @@ export default async function NewContractPage() {
       .order('full_name', { ascending: true }),
   ])
 
+  let leads = leadsRes.data ?? []
+  if (user.profile.role === 'operation') {
+    leads = leads.filter((l) => !isHouseRecord(l))
+  }
+
   return (
     <ContractForm
       locations={locationsRes.data ?? []}
       landlords={landlordsRes.data ?? []}
       customers={customersRes.data ?? []}
-      leads={leadsRes.data ?? []}
+      leads={leads}
       staffProfiles={staffRes.data ?? []}
+      userRole={user.profile.role}
     />
   )
 }

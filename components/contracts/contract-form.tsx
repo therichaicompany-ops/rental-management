@@ -27,7 +27,7 @@ import {
   type ContractStatus,
   CONTRACT_STATUS_LABELS,
 } from '@/lib/types/contracts-payments'
-import type { UserProfile } from '@/lib/types/auth'
+import type { UserProfile, UserRole } from '@/lib/types/auth'
 import { createContractAction, updateContractAction } from '@/lib/actions/contracts'
 import {
   parseLeadMetadata,
@@ -44,6 +44,7 @@ interface ContractFormProps {
   customers: { id: string; name: string; company_name: string | null; customer_code: string }[]
   leads?: { id: string; lead_no: string; lead_name: string }[]
   staffProfiles?: Pick<UserProfile, 'id' | 'full_name' | 'email'>[]
+  userRole?: UserRole
 }
 
 export function ContractForm({
@@ -53,10 +54,12 @@ export function ContractForm({
   customers,
   leads = [],
   staffProfiles = [],
+  userRole,
 }: ContractFormProps) {
   const router = useRouter()
   const isEdit = Boolean(initialData)
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
+  const isOperation = userRole === 'operation'
 
   const TM30_TAG = '[แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)]'
 
@@ -66,12 +69,26 @@ export function ContractForm({
   )
 
   const [propertyType, setPropertyType] = React.useState<'house' | 'branch'>(() => {
+    if (isOperation) return 'branch'
     if (parsedMeta.financial.property_type) return parsedMeta.financial.property_type
+
+    const locName = initialData?.locations?.location_name || ''
+    const isBranchLoc = locName.includes('สาขา') || locName.toLowerCase().includes('branch')
+    const isBranchFlags =
+      Boolean(initialData?.need_branch_registration) ||
+      Boolean(initialData?.need_vat_registration) ||
+      Boolean(initialData?.need_signboard) ||
+      Boolean(initialData?.need_employer_change)
+
+    if (isBranchLoc || isBranchFlags) {
+      return 'branch'
+    }
+
     if (
       parsedMeta.isHouse ||
-      initialData?.locations?.location_name?.toLowerCase().includes('sense') ||
-      initialData?.locations?.location_name?.toLowerCase().includes('house') ||
-      initialData?.locations?.location_name?.toLowerCase().includes('บ้าน')
+      locName.toLowerCase().includes('sense') ||
+      locName.toLowerCase().includes('house') ||
+      (locName.toLowerCase().includes('บ้าน') && !locName.includes('สาขา'))
     ) {
       return 'house'
     }
@@ -171,20 +188,21 @@ export function ContractForm({
   const onSubmit = async (values: RentalContractFormValues) => {
     setErrorMsg(null)
     try {
+      const isHouseType = propertyType === 'house'
       const financialTerms: LeadFinancialTerms = {
         property_type: propertyType,
         contract_party_role: contractPartyRole,
-        property_price: propertyPrice,
-        down_payment: downPayment,
-        interest_rate: interestRate,
-        installment_years: installmentYears,
+        property_price: isHouseType ? propertyPrice : null,
+        down_payment: isHouseType ? downPayment : null,
+        interest_rate: isHouseType ? interestRate : null,
+        installment_years: isHouseType ? installmentYears : null,
         payment_due_day: Number(values.payment_due_day) || 5,
         contract_end_date: values.end_date || null,
       }
 
       const finalNote = buildLeadMetadataNote(
         values.note || '',
-        propertyType === 'house' ? true : needForeignResident,
+        needForeignResident,
         financialTerms
       )
 
@@ -279,28 +297,30 @@ export function ContractForm({
               <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
                 รูปแบบสัญญา / ประเภทสถานที่ <span className="text-rose-500">*</span>
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPropertyType('house')
-                    setContractPartyRole('payable')
-                    setNeedForeignResident(true)
-                  }}
-                  className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
-                    propertyType === 'house'
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300'
-                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                  }`}
-                >
-                  <Home className={`h-5 w-5 shrink-0 ${propertyType === 'house' ? 'text-white' : 'text-amber-500'}`} />
-                  <div>
-                    <div className="text-xs font-bold">บ้าน / ที่พักอาศัย</div>
-                    <div className={`text-[11px] ${propertyType === 'house' ? 'text-amber-100' : 'text-slate-400'}`}>
-                      เช่าซื้อ, ซื้อบ้าน, แจ้ง ตม.30
+              <div className={`grid ${isOperation ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'} gap-3`}>
+                {!isOperation && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPropertyType('house')
+                      setContractPartyRole('payable')
+                      setNeedForeignResident(true)
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                      propertyType === 'house'
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Home className={`h-5 w-5 shrink-0 ${propertyType === 'house' ? 'text-white' : 'text-amber-500'}`} />
+                    <div>
+                      <div className="text-xs font-bold">บ้าน / ที่พักอาศัย</div>
+                      <div className={`text-[11px] ${propertyType === 'house' ? 'text-amber-100' : 'text-slate-400'}`}>
+                        เช่าซื้อ, ซื้อบ้าน, แจ้ง ตม.30
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -676,71 +696,88 @@ export function ContractForm({
             </h2>
 
             {/* สำหรับสาขา */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                <Building className="h-3.5 w-3.5 text-slate-500" />
-                <span>สำหรับสาขา / สถานประกอบการ</span>
+            {propertyType !== 'house' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                  <Building className="h-3.5 w-3.5 text-slate-500" />
+                  <span>สำหรับสาขา / สถานประกอบการ</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      {...register('need_branch_registration')}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span>ต้องจดทะเบียนเปิดสาขา</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      {...register('need_vat_registration')}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span>ต้องจดทะเบียนภาษีมูลค่าเพิ่ม (VAT)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      {...register('need_employer_change')}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span>ต้องขึ้นทะเบียน/เปลี่ยนนายจ้าง</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      {...register('need_signboard')}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span>ต้องขออนุญาตป้ายโฆษณา/ป้ายสาขา</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={needForeignResident}
+                      onChange={(e) => setNeedForeignResident(e.target.checked)}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <div>
+                      <span className="font-medium text-slate-800">แจ้งที่พักอาศัยคนต่างด้าว</span>
+                      <span className="block text-[11px] text-slate-500">แจ้ง ตม.30 ภายใน 24 ชม.</span>
+                    </div>
+                  </label>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    {...register('need_branch_registration')}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span>ต้องจดทะเบียนเปิดสาขา</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    {...register('need_vat_registration')}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span>ต้องจดทะเบียนภาษีมูลค่าเพิ่ม (VAT)</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    {...register('need_employer_change')}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span>ต้องขึ้นทะเบียน/เปลี่ยนนายจ้าง</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
-                  <input
-                    type="checkbox"
-                    {...register('need_signboard')}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                  />
-                  <span>ต้องขออนุญาตป้ายโฆษณา/ป้ายสาขา</span>
-                </label>
-              </div>
-            </div>
+            )}
 
             {/* สำหรับบ้าน */}
-            <div className="space-y-2 pt-2 border-t border-dashed border-slate-200">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                <Home className="h-3.5 w-3.5 text-amber-600" />
-                <span>สำหรับบ้าน / ที่พักอาศัย</span>
+            {propertyType === 'house' && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                  <Home className="h-3.5 w-3.5 text-amber-600" />
+                  <span>สำหรับบ้าน / ที่พักอาศัย</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="flex items-center gap-2.5 text-sm text-slate-700 p-2.5 rounded-lg border border-amber-200 bg-amber-50/40 cursor-pointer hover:bg-amber-50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={needForeignResident}
+                      onChange={(e) => setNeedForeignResident(e.target.checked)}
+                      className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div>
+                      <span className="font-medium text-slate-800">แจ้งที่พักอาศัยคนต่างด้าว</span>
+                      <span className="block text-[11px] text-amber-800">แจ้ง ตม.30 ภายใน 24 ชม.</span>
+                    </div>
+                  </label>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label className="flex items-center gap-2.5 text-sm text-slate-700 p-2.5 rounded-lg border border-amber-200 bg-amber-50/40 cursor-pointer hover:bg-amber-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={needForeignResident}
-                    onChange={(e) => setNeedForeignResident(e.target.checked)}
-                    className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
-                  />
-                  <div>
-                    <span className="font-medium text-slate-800">แจ้งที่พักอาศัยคนต่างด้าว</span>
-                    <span className="block text-[11px] text-amber-800">แจ้ง ตม.30 ภายใน 24 ชม.</span>
-                  </div>
-                </label>
-              </div>
-            </div>
+            )}
 
             <div className="pt-2">
               <label className="block text-xs font-medium text-slate-700 mb-1">

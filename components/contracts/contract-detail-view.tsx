@@ -91,14 +91,30 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
     [rawNote]
   )
 
+  const locName = contract.locations?.location_name || ''
+  const isBranchLocation =
+    locName.includes('สาขา') || locName.toLowerCase().includes('branch')
+
+  const isBranchByFlags =
+    Boolean(contract.need_branch_registration) ||
+    Boolean(contract.need_vat_registration) ||
+    Boolean(contract.need_signboard) ||
+    Boolean(contract.need_employer_change)
+
   const isHouse =
-    metaIsHouse ||
-    financial.property_type === 'house' ||
-    Boolean(financial.property_price) ||
-    Boolean(financial.down_payment) ||
-    contract.locations?.location_name?.toLowerCase().includes('sense') ||
-    contract.locations?.location_name?.toLowerCase().includes('house') ||
-    contract.locations?.location_name?.toLowerCase().includes('บ้าน')
+    financial.property_type === 'house'
+      ? true
+      : financial.property_type === 'branch'
+      ? false
+      : isBranchLocation || isBranchByFlags
+      ? false
+      : Boolean(financial.property_price) ||
+        Boolean(financial.down_payment) ||
+        rawNote.includes('ประเภท: บ้าน') ||
+        rawNote.includes('เช่าซื้อ') ||
+        locName.toLowerCase().includes('sense') ||
+        locName.toLowerCase().includes('house') ||
+        (locName.toLowerCase().includes('บ้าน') && !locName.includes('สาขา'))
 
   // Determine contract party role (บริษัทเช่ากับเจ้าของ vs ลูกค้าเช่ากับบริษัท)
   const partyRole = React.useMemo(() => {
@@ -188,7 +204,7 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
     if (res.success) {
       setGenerateMsg({
         type: 'success',
-        text: `สร้างงวดการชำระเงินเรียบร้อยแล้ว จำนวน ${res.count || 0} งวด`,
+        text: res.message || `สร้างและอัปเดตงวดการชำระเงินเรียบร้อยแล้ว`,
       })
       router.refresh()
     } else {
@@ -233,8 +249,8 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
                   variant="outline"
                   className="bg-sky-50 text-sky-800 border-sky-300 text-xs font-semibold flex items-center gap-1"
                 >
-                  <Building className="h-3 w-3 text-sky-600" />
-                  สาขา / เช่าพาณิชย์
+                  <Building2 className="h-3 w-3 text-sky-600" />
+                  สาขา / สถานประกอบการ
                 </Badge>
               )}
               {partyRole === 'payable' ? (
@@ -624,88 +640,103 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
                       รายการที่ต้องดำเนินการทางทะเบียน & เอกสาร:
                     </span>
 
-                    {/* สำหรับสาขา */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
-                        <Building className="h-3.5 w-3.5" />
-                        <span>สำหรับสาขา / สถานประกอบการ</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 pl-2 border-l-2 border-slate-100">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs ${
-                            contract.need_branch_registration ? 'text-emerald-700' : 'text-slate-400'
-                          }`}
-                        >
+                    {!isHouse ? (
+                      /* สำหรับสาขา / สถานประกอบการ */
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-700">
+                          <Building2 className="h-3.5 w-3.5 text-sky-600" />
+                          <span>สำหรับสาขา / สถานประกอบการ</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pl-2 border-l-2 border-sky-200">
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              contract.need_branch_registration ? 'bg-emerald-500' : 'bg-slate-300'
+                            className={`inline-flex items-center gap-1.5 text-xs ${
+                              contract.need_branch_registration ? 'text-emerald-700 font-medium' : 'text-slate-400'
                             }`}
-                          />
-                          จดทะเบียนสาขา
-                        </span>
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                contract.need_branch_registration ? 'bg-emerald-500' : 'bg-slate-300'
+                              }`}
+                            />
+                            จดทะเบียนสาขา
+                          </span>
 
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs ${
-                            contract.need_vat_registration ? 'text-emerald-700' : 'text-slate-400'
-                          }`}
-                        >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              contract.need_vat_registration ? 'bg-emerald-500' : 'bg-slate-300'
+                            className={`inline-flex items-center gap-1.5 text-xs ${
+                              contract.need_vat_registration ? 'text-emerald-700 font-medium' : 'text-slate-400'
                             }`}
-                          />
-                          จดทะเบียน VAT
-                        </span>
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                contract.need_vat_registration ? 'bg-emerald-500' : 'bg-slate-300'
+                              }`}
+                            />
+                            จดทะเบียน VAT
+                          </span>
 
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs ${
-                            contract.need_employer_change ? 'text-emerald-700' : 'text-slate-400'
-                          }`}
-                        >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              contract.need_employer_change ? 'bg-emerald-500' : 'bg-slate-300'
+                            className={`inline-flex items-center gap-1.5 text-xs ${
+                              contract.need_employer_change ? 'text-emerald-700 font-medium' : 'text-slate-400'
                             }`}
-                          />
-                          เปลี่ยนนายจ้าง
-                        </span>
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                contract.need_employer_change ? 'bg-emerald-500' : 'bg-slate-300'
+                              }`}
+                            />
+                            เปลี่ยนนายจ้าง
+                          </span>
 
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs ${
-                            contract.need_signboard ? 'text-emerald-700' : 'text-slate-400'
-                          }`}
-                        >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              contract.need_signboard ? 'bg-emerald-500' : 'bg-slate-300'
+                            className={`inline-flex items-center gap-1.5 text-xs ${
+                              contract.need_signboard ? 'text-emerald-700 font-medium' : 'text-slate-400'
                             }`}
-                          />
-                          ป้ายโฆษณา/สาขา
-                        </span>
-                      </div>
-                    </div>
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                contract.need_signboard ? 'bg-emerald-500' : 'bg-slate-300'
+                              }`}
+                            />
+                            ป้ายโฆษณา/สาขา
+                          </span>
 
-                    {/* สำหรับบ้าน */}
-                    <div className="space-y-1.5 pt-1.5 border-t border-slate-100">
-                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
-                        <Home className="h-3.5 w-3.5 text-amber-600" />
-                        <span>สำหรับบ้าน / ที่พักอาศัย</span>
-                      </div>
-                      <div className="pl-2 border-l-2 border-amber-200">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs ${
-                            hasForeignResident ? 'text-amber-800 font-medium' : 'text-slate-400'
-                          }`}
-                        >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              hasForeignResident ? 'bg-amber-500' : 'bg-slate-300'
+                            className={`inline-flex items-center gap-1.5 text-xs ${
+                              hasForeignResident ? 'text-emerald-700 font-medium' : 'text-slate-400'
                             }`}
-                          />
-                          แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)
-                        </span>
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                hasForeignResident ? 'bg-emerald-500' : 'bg-slate-300'
+                              }`}
+                            />
+                            แจ้งคนต่างด้าว (ตม.30)
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* สำหรับบ้าน / ที่พักอาศัย */
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
+                          <Home className="h-3.5 w-3.5 text-amber-600" />
+                          <span>สำหรับบ้าน / ที่พักอาศัย</span>
+                        </div>
+                        <div className="pl-2 border-l-2 border-amber-200">
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-xs ${
+                              hasForeignResident ? 'text-amber-800 font-medium' : 'text-slate-400'
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                hasForeignResident ? 'bg-amber-500' : 'bg-slate-300'
+                              }`}
+                            />
+                            แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {cleanNote && (

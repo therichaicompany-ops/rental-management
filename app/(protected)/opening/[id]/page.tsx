@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { OpeningDetailView } from '@/components/opening/opening-detail-view'
 import { ensureWorkflowStagesAction } from '@/lib/actions/opening'
 import type { OpeningProjectWithRelations } from '@/lib/types/opening'
 import type { UserProfile } from '@/lib/types/auth'
+import { isHouseRecord } from '@/lib/utils/lead-metadata'
 
 export const metadata: Metadata = {
   title: 'รายละเอียดบ้าน/สาขา | ระบบบริหารงานเช่าและเปิดสาขา',
@@ -17,7 +18,7 @@ interface OpeningDetailPageProps {
 
 export default async function OpeningDetailPage({ params }: OpeningDetailPageProps) {
   const { id } = await params
-  const user = await requireUser()
+  const user = await requireRole('opening')
   const supabase = await createClient()
 
   // Ensure standard stages exist
@@ -33,6 +34,7 @@ export default async function OpeningDetailPage({ params }: OpeningDetailPagePro
         rental_contracts (
           id,
           contract_no,
+          note,
           status,
           need_branch_registration,
           need_vat_registration,
@@ -64,6 +66,11 @@ export default async function OpeningDetailPage({ params }: OpeningDetailPagePro
   ])
 
   if (projectRes.error || !projectRes.data) {
+    notFound()
+  }
+
+  // Operation role cannot view house projects
+  if (user.profile.role === 'operation' && isHouseRecord(projectRes.data.rental_contracts)) {
     notFound()
   }
 

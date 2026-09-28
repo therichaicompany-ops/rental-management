@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { requireUser } from '@/lib/auth/route-guard'
+import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/route-guard'
+import { canWrite } from '@/lib/auth/permissions'
 import { CustomerForm } from '@/components/customers/customer-form'
 
 export const metadata: Metadata = {
@@ -7,7 +9,10 @@ export const metadata: Metadata = {
 }
 
 export default async function NewCustomerPage() {
-  const user = await requireUser()
+  const user = await requireRole('customers')
+  if (!canWrite(user.profile.role, 'customers')) {
+    redirect('/customers')
+  }
 
   return <CustomerForm userRole={user.profile.role} />
 }

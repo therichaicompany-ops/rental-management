@@ -25,6 +25,15 @@ export type DocumentType =
   | 'EMPLOYMENT_DOCUMENT'
   | 'SIGNBOARD'
   | 'PRE_OPEN_DOCUMENT'
+  | 'PASSPORT'
+  | 'VISA'
+  | 'WORK_PERMIT'
+  | 'SMART_CARD'
+  | 'PINK_CARD'
+  | 'OVERSTAY_90_DAYS_NOTICE'
+  | 'ID_CARD'
+  | 'COMPANY_CERTIFICATE'
+  | 'DIRECTOR_ID_CARD'
   | 'OTHER'
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
@@ -36,6 +45,15 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   EMPLOYMENT_DOCUMENT: 'เอกสารแรงงาน',
   SIGNBOARD: 'ป้ายบริษัท',
   PRE_OPEN_DOCUMENT: 'เอกสารก่อนเปิดร้าน',
+  PASSPORT: 'หน้าพาสปอร์ต',
+  VISA: 'หน้าวีซ่า',
+  WORK_PERMIT: 'ใบอนุญาตทำงาน (Work permit)',
+  SMART_CARD: 'Smart card',
+  PINK_CARD: 'บัตรประจำตัวคนซึ่งไม่มีสัญชาติไทย (บัตรชมพู)',
+  OVERSTAY_90_DAYS_NOTICE: 'ใบรับแจ้งการอยู่เกิน 90 วัน ของคนต่างด่าว',
+  ID_CARD: 'สำเนาบัตรประชาชน',
+  COMPANY_CERTIFICATE: 'หนังสือรับรองบริษัท',
+  DIRECTOR_ID_CARD: 'สำเนาบัตรประชาชนกรรมการ',
   OTHER: 'อื่นๆ',
 }
 
@@ -48,6 +66,15 @@ export const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
   { value: 'EMPLOYMENT_DOCUMENT', label: 'เอกสารแรงงาน' },
   { value: 'SIGNBOARD', label: 'ป้ายบริษัท' },
   { value: 'PRE_OPEN_DOCUMENT', label: 'เอกสารก่อนเปิดร้าน' },
+  { value: 'PASSPORT', label: 'หน้าพาสปอร์ต' },
+  { value: 'VISA', label: 'หน้าวีซ่า' },
+  { value: 'WORK_PERMIT', label: 'ใบอนุญาตทำงาน (Work permit)' },
+  { value: 'SMART_CARD', label: 'Smart card' },
+  { value: 'PINK_CARD', label: 'บัตรชมพู' },
+  { value: 'OVERSTAY_90_DAYS_NOTICE', label: 'ใบรับแจ้งอยู่เกิน 90 วัน' },
+  { value: 'ID_CARD', label: 'สำเนาบัตรประชาชน' },
+  { value: 'COMPANY_CERTIFICATE', label: 'หนังสือรับรองบริษัท' },
+  { value: 'DIRECTOR_ID_CARD', label: 'สำเนาบัตรประชาชนกรรมการ' },
   { value: 'OTHER', label: 'อื่นๆ' },
 ]
 
@@ -125,6 +152,15 @@ export const uploadDocumentSchema = z.object({
     'EMPLOYMENT_DOCUMENT',
     'SIGNBOARD',
     'PRE_OPEN_DOCUMENT',
+    'PASSPORT',
+    'VISA',
+    'WORK_PERMIT',
+    'SMART_CARD',
+    'PINK_CARD',
+    'OVERSTAY_90_DAYS_NOTICE',
+    'ID_CARD',
+    'COMPANY_CERTIFICATE',
+    'DIRECTOR_ID_CARD',
     'OTHER',
   ]),
 })

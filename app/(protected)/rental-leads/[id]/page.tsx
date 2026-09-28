@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { RentalLeadDetailView } from '@/components/rental-leads/rental-lead-detail-view'
 import type { RentalLeadWithRelations } from '@/lib/types/rental-leads'
 import type { Customer, Landlord, Location } from '@/lib/types/master-data'
 import type { UserProfile } from '@/lib/types/auth'
+import { isHouseRecord } from '@/lib/utils/lead-metadata'
 
 export const metadata: Metadata = {
   title: 'รายละเอียดประเภทงาน | ระบบบริหารงานเช่าและเปิดสาขา',
@@ -17,7 +18,7 @@ interface RentalLeadDetailPageProps {
 
 export default async function RentalLeadDetailPage({ params }: RentalLeadDetailPageProps) {
   const { id } = await params
-  const user = await requireUser()
+  const user = await requireRole('rentals')
   const supabase = await createClient()
 
   // 1. Fetch Lead with relations and negotiation logs
@@ -34,6 +35,11 @@ export default async function RentalLeadDetailPage({ params }: RentalLeadDetailP
   }
 
   const lead: RentalLeadWithRelations = leadData as unknown as RentalLeadWithRelations
+
+  // Operation role cannot view house leads
+  if (user.profile.role === 'operation' && isHouseRecord(lead)) {
+    notFound()
+  }
 
   // 2. Check if a contract has already been created for this lead
   const { data: contractData } = await supabase

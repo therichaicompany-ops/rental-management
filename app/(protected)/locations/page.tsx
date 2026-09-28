@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { LocationListView } from '@/components/locations/location-list-view'
 import type { LocationWithLandlord } from '@/lib/types/master-data'
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 export default async function LocationsPage() {
-  const user = await requireUser()
+  const user = await requireRole('locations')
   const supabase = await createClient()
 
   const { data } = await supabase

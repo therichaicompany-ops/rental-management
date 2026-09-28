@@ -1,0 +1,70 @@
+{
+  "owner": [
+    "dashboard",
+    "customers",
+    "landlords",
+    "locations",
+    "rentals",
+    "contracts",
+    "rentPayments",
+    "opening",
+    "documents",
+    "calendar",
+    "reports",
+    "users",
+    "settings"
+  ],
+  "admin": [
+    "dashboard",
+    "customers",
+    "landlords",
+    "locations",
+    "rentals",
+    "contracts",
+    "rentPayments",
+    "opening",
+    "documents",
+    "calendar",
+    "reports",
+    "users",
+    "settings"
+  ],
+  "accounting": [
+    "dashboard",
+    "customers",
+    "landlords",
+    "locations",
+    "rentals",
+    "contracts",
+    "rentPayments",
+    "opening"
+  ],
+  "hr": [
+    "dashboard",
+    "customers",
+    "locations",
+    "opening"
+  ],
+  "operation": [
+    "dashboard",
+    "customers",
+    "landlords",
+    "locations",
+    "rentals",
+    "contracts",
+    "rentPayments",
+    "opening"
+  ],
+  "staff": [
+    "dashboard",
+    "customers",
+    "locations",
+    "opening"
+  ],
+  "viewer": [
+    "dashboard",
+    "customers",
+    "locations",
+    "opening"
+  ]
+}

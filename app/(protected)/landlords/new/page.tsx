@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { requireUser } from '@/lib/auth/route-guard'
+import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/route-guard'
+import { canWrite } from '@/lib/auth/permissions'
 import { LandlordForm } from '@/components/landlords/landlord-form'
 
 export const metadata: Metadata = {
@@ -7,7 +9,10 @@ export const metadata: Metadata = {
 }
 
 export default async function NewLandlordPage() {
-  const user = await requireUser()
+  const user = await requireRole('landlords')
+  if (!canWrite(user.profile.role, 'landlords')) {
+    redirect('/landlords')
+  }
 
   return <LandlordForm userRole={user.profile.role} />
 }

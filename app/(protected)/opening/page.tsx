@@ -1,17 +1,18 @@
 import type { Metadata } from 'next'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { OpeningListView } from '@/components/opening/opening-list-view'
 import { ensureWorkflowStagesAction } from '@/lib/actions/opening'
 import type { OpeningProjectWithRelations } from '@/lib/types/opening'
 import type { UserProfile } from '@/lib/types/auth'
+import { isHouseRecord } from '@/lib/utils/lead-metadata'
 
 export const metadata: Metadata = {
   title: 'บ้าน/สาขา | ระบบบริหารงานเช่าและเปิดสาขา',
 }
 
 export default async function OpeningProjectsPage() {
-  const user = await requireUser()
+  const user = await requireRole('opening')
   const supabase = await createClient()
 
   // 1. Ensure workflow stages exist
@@ -27,6 +28,7 @@ export default async function OpeningProjectsPage() {
         rental_contracts (
           id,
           contract_no,
+          note,
           status,
           need_branch_registration,
           need_vat_registration,
@@ -41,10 +43,10 @@ export default async function OpeningProjectsPage() {
       )
       .order('created_at', { ascending: false }),
 
-    // Fetch contracts eligible to create an opening project
+    // Fetch contracts eligible to create an opening project (branch contracts only)
     supabase
       .from('rental_contracts')
-      .select('id, contract_no, status, locations(location_name, province)')
+      .select('id, contract_no, note, rental_leads(note), status, locations(location_name, province)')
       .in('status', ['agreed', 'active'])
       .order('created_at', { ascending: false }),
 
@@ -56,8 +58,12 @@ export default async function OpeningProjectsPage() {
       .order('full_name', { ascending: true }),
   ])
 
-  const projects: OpeningProjectWithRelations[] =
+  let projects: OpeningProjectWithRelations[] =
     (projectsRes.data as unknown as OpeningProjectWithRelations[]) ?? []
+
+  if (user.profile.role === 'operation') {
+    projects = projects.filter((p) => !isHouseRecord(p.rental_contracts))
+  }
 
   // Filter out contracts that already have an opening project
   const existingContractIds = new Set(projects.map((p) => p.contract_id))

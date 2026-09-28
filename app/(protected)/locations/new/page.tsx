@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { requireUser } from '@/lib/auth/route-guard'
+import { redirect } from 'next/navigation'
+import { requireRole } from '@/lib/auth/route-guard'
+import { canWrite } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { LocationForm } from '@/components/locations/location-form'
 import type { Landlord } from '@/lib/types/master-data'
@@ -9,7 +11,10 @@ export const metadata: Metadata = {
 }
 
 export default async function NewLocationPage() {
-  const user = await requireUser()
+  const user = await requireRole('locations')
+  if (!canWrite(user.profile.role, 'locations')) {
+    redirect('/locations')
+  }
   const supabase = await createClient()
 
   const { data: landlordsData } = await supabase

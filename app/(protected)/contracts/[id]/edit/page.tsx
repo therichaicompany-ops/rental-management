@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { canWrite } from '@/lib/auth/permissions'
 import { ContractForm } from '@/components/contracts/contract-form'
 import type { ContractWithRelations } from '@/lib/types/contracts-payments'
+import { isHouseRecord } from '@/lib/utils/lead-metadata'
 
 export const metadata: Metadata = {
   title: 'แก้ไขสัญญาเช่า | ระบบบริหารงานเช่าและเปิดสาขา',
@@ -16,9 +17,9 @@ interface EditContractPageProps {
 
 export default async function EditContractPage({ params }: EditContractPageProps) {
   const { id } = await params
-  const user = await requireUser()
+  const user = await requireRole('contracts')
 
-  if (!canWrite(user.profile.role)) {
+  if (!canWrite(user.profile.role, 'contracts')) {
     redirect(`/contracts/${id}`)
   }
 
@@ -45,7 +46,7 @@ export default async function EditContractPage({ params }: EditContractPageProps
         .order('name', { ascending: true }),
       supabase
         .from('rental_leads')
-        .select('id, lead_no, lead_name')
+        .select('id, lead_no, lead_name, note')
         .order('created_at', { ascending: false }),
       supabase
         .from('profiles')
@@ -56,6 +57,16 @@ export default async function EditContractPage({ params }: EditContractPageProps
 
   if (contractRes.error || !contractRes.data) {
     notFound()
+  }
+
+  // Operation role cannot view or edit house contracts
+  if (user.profile.role === 'operation' && isHouseRecord(contractRes.data)) {
+    notFound()
+  }
+
+  let leads = leadsRes.data ?? []
+  if (user.profile.role === 'operation') {
+    leads = leads.filter((l) => !isHouseRecord(l))
   }
 
   const contract = contractRes.data as unknown as ContractWithRelations

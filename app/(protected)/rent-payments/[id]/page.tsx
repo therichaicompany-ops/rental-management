@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { PaymentDetailView } from '@/components/payments/payment-detail-view'
 import type { RentPaymentWithRelations } from '@/lib/types/contracts-payments'
+import { isHouseRecord } from '@/lib/utils/lead-metadata'
 
 export const metadata: Metadata = {
   title: 'รายละเอียดงวดชำระค่าเช่า | ระบบบริหารงานเช่าและเปิดสาขา',
@@ -15,7 +16,7 @@ interface PaymentDetailPageProps {
 
 export default async function PaymentDetailPage({ params }: PaymentDetailPageProps) {
   const { id } = await params
-  const user = await requireUser()
+  const user = await requireRole('rentPayments')
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -26,6 +27,8 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
       rental_contracts (
         id,
         contract_no,
+        note,
+        rental_leads (id, note),
         locations (id, location_name, province),
         customers (id, name, company_name),
         landlords (id, name, company_name, bank_name, bank_account_number)
@@ -40,6 +43,11 @@ export default async function PaymentDetailPage({ params }: PaymentDetailPagePro
     .single()
 
   if (error || !data) {
+    notFound()
+  }
+
+  // Operation role cannot view payments for house contracts
+  if (user.profile.role === 'operation' && isHouseRecord(data.rental_contracts)) {
     notFound()
   }
 

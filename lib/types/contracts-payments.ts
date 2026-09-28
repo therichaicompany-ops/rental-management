@@ -161,9 +161,11 @@ export interface RentPaymentWithRelations extends RentPaymentModel {
   rental_contracts?: {
     id: string
     contract_no: string
+    note?: string | null
+    rental_leads?: { id: string; note?: string | null } | { id: string; note?: string | null }[] | null
     locations?: Pick<Location, 'id' | 'location_name' | 'province'> | null
-    customers?: Pick<Customer, 'id' | 'name' | 'company_name'> | null
-    landlords?: Pick<Landlord, 'id' | 'name' | 'company_name' | 'bank_name' | 'bank_account_number'> | null
+    customers?: Pick<Customer, 'id' | 'name' | 'company_name' | 'phone'> | null
+    landlords?: Pick<Landlord, 'id' | 'name' | 'company_name' | 'phone' | 'bank_name' | 'bank_account_number'> | null
   } | null
   payment_transactions?: PaymentTransactionModel[]
 }

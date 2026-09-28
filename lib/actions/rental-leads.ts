@@ -21,8 +21,16 @@ export async function createRentalLeadAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'rentals')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูล' }
+  }
+
+  // Operation role cannot create house leads
+  if (currentUser.profile.role === 'operation') {
+    const meta = parseLeadMetadata(values.note)
+    if (meta.isHouse || meta.financial.property_type === 'house') {
+      return { success: false, error: 'ฝ่ายปฏิบัติการสามารถสร้างข้อมูลได้เฉพาะประเภทงานสาขาเท่านั้น' }
+    }
   }
 
   const parsed = rentalLeadSchema.safeParse(values)
@@ -84,8 +92,16 @@ export async function updateRentalLeadAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'rentals')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูล' }
+  }
+
+  // Operation role cannot edit/save house leads
+  if (currentUser.profile.role === 'operation') {
+    const meta = parseLeadMetadata(values.note)
+    if (meta.isHouse || meta.financial.property_type === 'house') {
+      return { success: false, error: 'ฝ่ายปฏิบัติการสามารถแก้ไขข้อมูลได้เฉพาะประเภทงานสาขาเท่านั้น' }
+    }
   }
 
   const parsed = rentalLeadSchema.safeParse(values)

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { requireUser } from '@/lib/auth/route-guard'
+import { requireRole } from '@/lib/auth/route-guard'
 import { createClient } from '@/lib/supabase/server'
 import { LocationForm } from '@/components/locations/location-form'
 import type { Location, Landlord } from '@/lib/types/master-data'
@@ -15,7 +15,7 @@ interface LocationDetailPageProps {
 
 export default async function LocationDetailPage({ params }: LocationDetailPageProps) {
   const { id } = await params
-  const user = await requireUser()
+  const user = await requireRole('locations')
   const supabase = await createClient()
 
   const { data: locationData, error: locationError } = await supabase

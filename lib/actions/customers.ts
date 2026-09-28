@@ -20,8 +20,8 @@ export async function createCustomerAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
-    return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูล (สิทธิ์ Viewer ไม่สามารถสร้างได้)' }
+  if (!canWrite(currentUser.profile.role, 'customers')) {
+    return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูล' }
   }
 
   const parsed = customerSchema.safeParse(values)
@@ -74,7 +74,7 @@ export async function updateCustomerAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'customers')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูล' }
   }
 

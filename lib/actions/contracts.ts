@@ -19,8 +19,16 @@ export async function createContractAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'contracts')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการสร้างข้อมูล' }
+  }
+
+  // Operation role cannot create house contracts
+  if (currentUser.profile.role === 'operation') {
+    const meta = parseLeadMetadata(values.note)
+    if (meta.isHouse || meta.financial.property_type === 'house') {
+      return { success: false, error: 'ฝ่ายปฏิบัติการสามารถสร้างข้อมูลได้เฉพาะสัญญาเช่าประเภทสาขาเท่านั้น' }
+    }
   }
 
   const parsed = rentalContractSchema.safeParse(values)
@@ -85,8 +93,16 @@ export async function updateContractAction(
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
   }
 
-  if (!canWrite(currentUser.profile.role)) {
+  if (!canWrite(currentUser.profile.role, 'contracts')) {
     return { success: false, error: 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูล' }
+  }
+
+  // Operation role cannot update house contracts
+  if (currentUser.profile.role === 'operation' && values.note) {
+    const meta = parseLeadMetadata(values.note)
+    if (meta.isHouse || meta.financial.property_type === 'house') {
+      return { success: false, error: 'ฝ่ายปฏิบัติการสามารถแก้ไขข้อมูลได้เฉพาะสัญญาเช่าประเภทสาขาเท่านั้น' }
+    }
   }
 
   const supabase = await createClient()
@@ -110,9 +126,103 @@ export async function updateContractAction(
     return { success: false, error: error.message }
   }
 
+  // Synchronize existing payment records if due day or financial amounts were updated
+  if (
+    values.payment_due_day !== undefined ||
+    values.monthly_rent !== undefined ||
+    values.wht_rate !== undefined ||
+    values.wht_enabled !== undefined ||
+    values.other_service_amount !== undefined
+  ) {
+    await syncContractPaymentsDueDay(supabase, id, {
+      dueDay: values.payment_due_day !== undefined ? Number(values.payment_due_day) : undefined,
+      monthlyRent: values.monthly_rent !== undefined ? Number(values.monthly_rent) : undefined,
+      whtRate: values.wht_rate !== undefined ? Number(values.wht_rate) : undefined,
+      whtEnabled: values.wht_enabled !== undefined ? Boolean(values.wht_enabled) : undefined,
+      serviceAmount: values.other_service_amount !== undefined ? Number(values.other_service_amount) : undefined,
+    })
+  }
+
   revalidatePath('/contracts')
   revalidatePath(`/contracts/${id}`)
+  revalidatePath('/rent-payments')
   return { success: true, data }
+}
+
+/**
+ * Synchronize existing rent_payments records with the contract's payment_due_day and amounts
+ */
+export async function syncContractPaymentsDueDay(
+  supabase: any,
+  contractId: string,
+  options?: {
+    dueDay?: number
+    monthlyRent?: number
+    whtRate?: number
+    whtEnabled?: boolean
+    serviceAmount?: number
+  }
+) {
+  let dueDay = options?.dueDay
+  let rentAmount = options?.monthlyRent
+  let whtRate = options?.whtRate
+  let whtEnabled = options?.whtEnabled
+  let serviceAmount = options?.serviceAmount
+
+  if (dueDay === undefined || rentAmount === undefined || whtRate === undefined || whtEnabled === undefined) {
+    const { data: contract } = await supabase
+      .from('rental_contracts')
+      .select('payment_due_day, monthly_rent, wht_rate, wht_enabled, other_service_amount')
+      .eq('id', contractId)
+      .single()
+    if (!contract) return
+    if (dueDay === undefined) dueDay = contract.payment_due_day || 5
+    if (rentAmount === undefined) rentAmount = Number(contract.monthly_rent) || 0
+    if (whtRate === undefined) whtRate = Number(contract.wht_rate) || 0
+    if (whtEnabled === undefined) whtEnabled = Boolean(contract.wht_enabled)
+    if (serviceAmount === undefined) serviceAmount = Number(contract.other_service_amount) || 0
+  }
+
+  const whtAmount = whtEnabled ? Math.round(rentAmount * (whtRate / 100) * 100) / 100 : 0
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  const { data: payments } = await supabase
+    .from('rent_payments')
+    .select('id, billing_period, due_date, status, amount_paid')
+    .eq('contract_id', contractId)
+
+  if (!payments || payments.length === 0) return
+
+  for (const p of payments) {
+    if (!p.billing_period) continue
+    const [yStr, mStr] = p.billing_period.split('-')
+    const y = parseInt(yStr, 10)
+    const m = parseInt(mStr, 10)
+    const lastDayOfMonth = new Date(y, m, 0).getDate()
+    const clampedDay = Math.min(Math.max(1, Number(dueDay)), lastDayOfMonth)
+    const newDueDate = `${yStr}-${mStr}-${String(clampedDay).padStart(2, '0')}`
+
+    const updatePayload: Record<string, unknown> = {}
+    if (p.due_date !== newDueDate) {
+      updatePayload.due_date = newDueDate
+      if (Number(p.amount_paid) === 0) {
+        updatePayload.status = newDueDate < todayStr ? 'overdue' : 'pending'
+      }
+    }
+
+    if (Number(p.amount_paid) === 0 && options?.monthlyRent !== undefined) {
+      updatePayload.rent_amount = rentAmount
+      updatePayload.wht_amount = whtAmount
+      updatePayload.service_amount = serviceAmount
+    }
+
+    if (Object.keys(updatePayload).length > 0) {
+      await supabase
+        .from('rent_payments')
+        .update(updatePayload)
+        .eq('id', p.id)
+    }
+  }
 }
 
 export async function deleteContractAction(id: string): Promise<ActionResponse> {
@@ -162,7 +272,7 @@ export async function deleteContractAction(id: string): Promise<ActionResponse> 
  */
 export async function generatePaymentScheduleAction(
   contractId: string
-): Promise<ActionResponse & { count?: number }> {
+): Promise<ActionResponse & { count?: number; message?: string }> {
   const currentUser = await getCurrentUser()
   if (!currentUser) {
     return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' }
@@ -235,6 +345,15 @@ export async function generatePaymentScheduleAction(
     : 0
   const dueDay = contract.payment_due_day || 5
 
+  // 1. Synchronize all existing payments' due_date and amounts with the contract terms
+  await syncContractPaymentsDueDay(supabase, contractId, {
+    dueDay,
+    monthlyRent: rentAmount,
+    whtRate,
+    whtEnabled: contract.wht_enabled,
+    serviceAmount,
+  })
+
   const paymentsToInsert: {
     contract_id: string
     payment_type: 'payable' | 'receivable'
@@ -288,10 +407,12 @@ export async function generatePaymentScheduleAction(
   }
 
   if (paymentsToInsert.length === 0) {
+    revalidatePath('/rent-payments')
+    revalidatePath(`/contracts/${contractId}`)
     return {
       success: true,
       count: 0,
-      error: 'มีงวดการชำระครบถ้วนตามระยะเวลาสัญญาแล้ว ไม่จำเป็นต้องสร้างเพิ่ม',
+      message: 'อัปเดตวันครบกำหนดชำระและข้อมูลทุกงวดเรียบร้อยแล้ว',
     }
   }
 
@@ -309,7 +430,11 @@ export async function generatePaymentScheduleAction(
   revalidatePath('/rent-payments')
   revalidatePath(`/contracts/${contractId}`)
 
-  return { success: true, count: inserted?.length || paymentsToInsert.length }
+  return {
+    success: true,
+    count: inserted?.length || paymentsToInsert.length,
+    message: `สร้างและอัปเดตงวดการชำระเงินเรียบร้อยแล้ว จำนวน ${inserted?.length || paymentsToInsert.length} งวด`,
+  }
 }
 
 /**
