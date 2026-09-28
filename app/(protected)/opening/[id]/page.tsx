@@ -40,6 +40,7 @@ export default async function OpeningDetailPage({ params }: OpeningDetailPagePro
           need_vat_registration,
           need_employer_change,
           need_signboard,
+          need_excise_permit,
           locations (id, location_name, location_code, province, district)
         ),
         workflow_stages (*),

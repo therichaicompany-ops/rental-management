@@ -90,6 +90,7 @@ export interface RentalLead {
   need_vat_registration: boolean
   need_employer_change: boolean
   need_signboard: boolean
+  need_excise_permit: boolean
   status: LeadStatus
   assigned_to: string | null
   next_follow_up_date: string | null
@@ -164,6 +165,7 @@ export const rentalLeadSchema = z.object({
   need_vat_registration: z.boolean().default(false),
   need_employer_change: z.boolean().default(false),
   need_signboard: z.boolean().default(true),
+  need_excise_permit: z.boolean().default(false),
   status: z.enum([
     'new',
     'contacting',

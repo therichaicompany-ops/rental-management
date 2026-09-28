@@ -261,10 +261,12 @@ export function isHouseRecord(record?: any): boolean {
     Boolean(record.need_vat_registration) ||
     Boolean(record.need_signboard) ||
     Boolean(record.need_employer_change) ||
+    Boolean(record.need_excise_permit) ||
     Boolean(record.rental_contracts?.need_branch_registration) ||
     Boolean(record.rental_contracts?.need_vat_registration) ||
     Boolean(record.rental_contracts?.need_signboard) ||
-    Boolean(record.rental_contracts?.need_employer_change)
+    Boolean(record.rental_contracts?.need_employer_change) ||
+    Boolean(record.rental_contracts?.need_excise_permit)
 
   const directNote =
     record.note ||

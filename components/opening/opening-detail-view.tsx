@@ -350,7 +350,7 @@ export function OpeningDetailView({
         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
           <h2 className="text-xs font-bold text-slate-900 tracking-wide uppercase flex items-center gap-2">
             <Building2 className="h-4 w-4 text-primary-600" />
-            ขั้นตอนการเปิดสาขา (13 Workflow Stages)
+            ขั้นตอนการเปิดสาขา ({stages.length} Workflow Stages)
           </h2>
           <span className="text-[11px] text-slate-500">
             {allowWrite ? 'คลิกที่ขั้นตอนเพื่อขยับ Stage' : 'สัญลักษณ์: ✅ เสร็จสิ้น, 🟡 กำลังทำ, ⚪ รอดำเนินการ'}
@@ -610,11 +610,15 @@ export function OpeningDetailView({
                     )}
                   </div>
 
-                  {task.completed_at && (
-                    <span className="text-emerald-700 text-[11px]">
-                      เสร็จเมื่อ {new Date(task.completed_at).toLocaleDateString('th-TH')}
+                  {task.completed_at ? (
+                    <span className="text-emerald-700 text-[11px] flex items-center gap-1">
+                      ✓ เสร็จเมื่อ {new Date(task.completed_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' })}
                     </span>
-                  )}
+                  ) : task.updated_at && task.status !== 'todo' ? (
+                    <span className="text-amber-600 text-[11px]">
+                      อัปเดต {new Date(task.updated_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' })}
+                    </span>
+                  ) : null}
                 </div>
 
                 {/* Checklists Inside Task */}

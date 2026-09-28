@@ -19,6 +19,11 @@ import {
   Building,
   Home,
   User,
+  ClipboardList,
+  CheckCheck,
+  Loader2,
+  CircleDashed,
+  ArrowRight,
 } from 'lucide-react'
 import {
   parseLeadMetadata,
@@ -48,13 +53,21 @@ import {
   cleanupWrongPaymentTypesAction,
 } from '@/lib/actions/contracts'
 import { DocumentSection } from '@/components/documents/document-section'
+import type { OpeningProjectWithRelations } from '@/lib/types/opening'
+import {
+  STAGE_DEFINITIONS,
+  PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_BADGE_VARIANTS,
+  TASK_STATUS_LABELS,
+} from '@/lib/types/opening'
 
 interface ContractDetailViewProps {
   contract: ContractWithRelations
   userRole: UserRole
+  openingProject?: OpeningProjectWithRelations | null
 }
 
-export function ContractDetailView({ contract, userRole }: ContractDetailViewProps) {
+export function ContractDetailView({ contract, userRole, openingProject }: ContractDetailViewProps) {
   const router = useRouter()
   const allowWrite = canWrite(userRole)
   const allowDelete = hasFullAccess(userRole)
@@ -99,7 +112,8 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
     Boolean(contract.need_branch_registration) ||
     Boolean(contract.need_vat_registration) ||
     Boolean(contract.need_signboard) ||
-    Boolean(contract.need_employer_change)
+    Boolean(contract.need_employer_change) ||
+    Boolean(contract.need_excise_permit)
 
   const isHouse =
     financial.property_type === 'house'
@@ -702,6 +716,19 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
 
                           <span
                             className={`inline-flex items-center gap-1.5 text-xs ${
+                              contract.need_excise_permit ? 'text-emerald-700 font-medium' : 'text-slate-400'
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                contract.need_excise_permit ? 'bg-emerald-500' : 'bg-slate-300'
+                              }`}
+                            />
+                            ยื่นกรมสรรพสามิต
+                          </span>
+
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-xs ${
                               hasForeignResident ? 'text-emerald-700 font-medium' : 'text-slate-400'
                             }`}
                           >
@@ -753,6 +780,170 @@ export function ContractDetailView({ contract, userRole }: ContractDetailViewPro
           </div>
         </div>
       </div>
+
+      {/* ── Opening Project Status Section ── */}
+      {!isHouse && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-sky-600" />
+              <h2 className="text-sm font-bold text-slate-800">สถานะขั้นตอนการเปิดสาขา</h2>
+              {openingProject && (
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                    PROJECT_STATUS_BADGE_VARIANTS[
+                      openingProject.status as keyof typeof PROJECT_STATUS_BADGE_VARIANTS
+                    ]?.bg ?? 'bg-slate-100'
+                  } ${
+                    PROJECT_STATUS_BADGE_VARIANTS[
+                      openingProject.status as keyof typeof PROJECT_STATUS_BADGE_VARIANTS
+                    ]?.text ?? 'text-slate-700'
+                  } ${
+                    PROJECT_STATUS_BADGE_VARIANTS[
+                      openingProject.status as keyof typeof PROJECT_STATUS_BADGE_VARIANTS
+                    ]?.border ?? 'border-slate-200'
+                  }`}
+                >
+                  {PROJECT_STATUS_LABELS[
+                    openingProject.status as keyof typeof PROJECT_STATUS_LABELS
+                  ] ?? openingProject.status}
+                </span>
+              )}
+            </div>
+            {openingProject ? (
+              <Link
+                href={`/opening/${openingProject.id}`}
+                className="inline-flex items-center gap-1 text-xs font-medium text-sky-600 hover:text-sky-800 hover:underline transition-colors"
+              >
+                ดู/อัปเดตโครงการ <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            ) : (
+              allowWrite && (
+                <Link
+                  href="/opening"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-800 hover:underline transition-colors"
+                >
+                  + สร้างโครงการเปิดสาขา
+                </Link>
+              )
+            )}
+          </div>
+
+          <div className="p-5">
+            {!openingProject ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <CircleDashed className="h-8 w-8 text-slate-300 mb-2" />
+                <p className="text-sm text-slate-500 font-medium">ยังไม่มีโครงการเปิดสาขา</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  สร้างโครงการเพื่อติดตามสถานะขั้นตอนการเปิดสาขาทั้งหมด
+                </p>
+              </div>
+            ) : (() => {
+              // Build a map of stage_code → best task status
+              const tasksByStage = new Map<string, { status: string; completed_at: string | null; updated_at: string }>()
+              const tasks = (openingProject.opening_tasks ?? []) as Array<{
+                status: string
+                completed_at: string | null
+                updated_at: string
+                workflow_stages?: { stage_code: string; sequence: number } | null
+              }>
+              for (const t of tasks) {
+                const code = t.workflow_stages?.stage_code
+                if (!code) continue
+                const existing = tasksByStage.get(code)
+                // Prefer 'done' > 'in_progress' > 'waiting' > 'todo'
+                const rank = (s: string) =>
+                  s === 'done' ? 4 : s === 'in_progress' ? 3 : s === 'waiting' ? 2 : 1
+                if (!existing || rank(t.status) > rank(existing.status)) {
+                  tasksByStage.set(code, {
+                    status: t.status,
+                    completed_at: t.completed_at,
+                    updated_at: t.updated_at,
+                  })
+                }
+              }
+
+              const formatDate = (iso: string | null | undefined) => {
+                if (!iso) return null
+                return new Date(iso).toLocaleDateString('th-TH', {
+                  day: '2-digit', month: 'short', year: '2-digit',
+                })
+              }
+
+              // Filter only relevant stages based on contract conditions
+              const relevantStages = STAGE_DEFINITIONS.filter((def) => {
+                if (!def.requiresCondition) return true
+                if (def.requiresCondition === 'need_branch_registration') return Boolean(contract.need_branch_registration)
+                if (def.requiresCondition === 'need_vat_registration') return Boolean(contract.need_vat_registration)
+                if (def.requiresCondition === 'need_employer_change') return Boolean(contract.need_employer_change)
+                if (def.requiresCondition === 'need_signboard') return Boolean(contract.need_signboard)
+                if (def.requiresCondition === 'hasForeignResident') return hasForeignResident
+                if (def.requiresCondition === 'need_excise_permit') return Boolean(contract.need_excise_permit)
+                return false
+              })
+
+              return (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-slate-500 mb-3">
+                    โครงการ: <span className="font-semibold text-slate-700">{openingProject.project_no}</span>
+                    {openingProject.updated_at && (
+                      <span className="ml-2 text-slate-400">
+                        · อัปเดต {formatDate(openingProject.updated_at)}
+                      </span>
+                    )}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+                    {relevantStages.map((def) => {
+                      const task = tasksByStage.get(def.code)
+                      const status = task?.status ?? 'todo'
+                      const dateStr = status === 'done'
+                        ? formatDate(task?.completed_at ?? task?.updated_at)
+                        : task && status !== 'todo'
+                        ? formatDate(task.updated_at)
+                        : null
+
+                      return (
+                        <div key={def.code} className="flex items-center gap-2">
+                          {status === 'done' ? (
+                            <CheckCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          ) : status === 'in_progress' ? (
+                            <Loader2 className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          ) : status === 'waiting' ? (
+                            <Clock className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                          ) : (
+                            <CircleDashed className="h-3.5 w-3.5 text-slate-300 shrink-0" />
+                          )}
+                          <span
+                            className={`text-xs ${
+                              status === 'done'
+                                ? 'text-emerald-700 font-medium'
+                                : status === 'in_progress'
+                                ? 'text-amber-700 font-medium'
+                                : status === 'waiting'
+                                ? 'text-purple-600'
+                                : 'text-slate-400'
+                            }`}
+                          >
+                            {def.name}
+                          </span>
+                          {dateStr && (
+                            <span className="text-[10px] text-slate-400 ml-auto shrink-0">{dateStr}</span>
+                          )}
+                          {!dateStr && status !== 'todo' && (
+                            <span className="text-[10px] text-amber-500 ml-auto shrink-0">
+                              {TASK_STATUS_LABELS[status as keyof typeof TASK_STATUS_LABELS] ?? status}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Payment Schedule Section */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

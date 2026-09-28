@@ -172,6 +172,7 @@ export function RentalLeadForm({
       need_vat_registration: initialData?.need_vat_registration ?? false,
       need_employer_change: initialData?.need_employer_change ?? false,
       need_signboard: initialData?.need_signboard ?? true,
+      need_excise_permit: initialData?.need_excise_permit ?? false,
       status: (initialData?.status as LeadStatus) ?? 'new',
       assigned_to: initialData?.assigned_to ?? '',
       next_follow_up_date: initialData?.next_follow_up_date ?? '',
@@ -784,6 +785,16 @@ export function RentalLeadForm({
                       {...register('need_signboard')}
                     />
                     <span className="text-xs font-medium text-slate-700">ต้องขออนุญาตติดตั้งป้ายร้าน</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      disabled={!allowEdit}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      {...register('need_excise_permit')}
+                    />
+                    <span className="text-xs font-medium text-slate-700">ต้องยื่นกรมสรรพสามิต (เหล้า/ยาสูบ)</span>
                   </label>
 
                   <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">

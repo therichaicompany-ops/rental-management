@@ -34,6 +34,7 @@ export default async function OpeningProjectsPage() {
           need_vat_registration,
           need_employer_change,
           need_signboard,
+          need_excise_permit,
           locations (id, location_name, location_code, province, district)
         ),
         workflow_stages (id, stage_code, stage_name, sequence),

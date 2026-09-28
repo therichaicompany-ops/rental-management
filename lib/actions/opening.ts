@@ -142,6 +142,7 @@ export async function createOpeningProjectAction(
     need_vat_registration: Boolean(contract.need_vat_registration),
     need_employer_change: Boolean(contract.need_employer_change),
     need_signboard: Boolean(contract.need_signboard),
+    need_excise_permit: Boolean(contract.need_excise_permit),
     hasForeignResident,
   }
 

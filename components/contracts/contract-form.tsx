@@ -78,7 +78,8 @@ export function ContractForm({
       Boolean(initialData?.need_branch_registration) ||
       Boolean(initialData?.need_vat_registration) ||
       Boolean(initialData?.need_signboard) ||
-      Boolean(initialData?.need_employer_change)
+      Boolean(initialData?.need_employer_change) ||
+      Boolean(initialData?.need_excise_permit)
 
     if (isBranchLoc || isBranchFlags) {
       return 'branch'
@@ -158,6 +159,7 @@ export function ContractForm({
     need_vat_registration: initialData?.need_vat_registration ?? false,
     need_employer_change: initialData?.need_employer_change ?? false,
     need_signboard: initialData?.need_signboard ?? true,
+    need_excise_permit: initialData?.need_excise_permit ?? false,
     assigned_to: initialData?.assigned_to || '',
     note: parsedMeta.cleanNote,
   }
@@ -213,6 +215,7 @@ export function ContractForm({
         need_vat_registration: propertyType === 'house' ? false : values.need_vat_registration,
         need_employer_change: propertyType === 'house' ? false : values.need_employer_change,
         need_signboard: propertyType === 'house' ? false : values.need_signboard,
+        need_excise_permit: propertyType === 'house' ? false : values.need_excise_permit,
         note: finalNote || null,
       }
 
@@ -737,6 +740,15 @@ export function ContractForm({
                       className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     />
                     <span>ต้องขออนุญาตป้ายโฆษณา/ป้ายสาขา</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      {...register('need_excise_permit')}
+                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span>ต้องยื่นขออนุญาตกรมสรรพสามิต (เหล้า/ยาสูบ)</span>
                   </label>
 
                   <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">

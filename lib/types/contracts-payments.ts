@@ -109,6 +109,7 @@ export interface ContractModel {
   need_vat_registration: boolean
   need_employer_change: boolean
   need_signboard: boolean
+  need_excise_permit: boolean
   assigned_to: string | null
   note: string | null
   created_at: string
@@ -202,6 +203,7 @@ export const rentalContractSchema = z.object({
   need_vat_registration: z.boolean().default(false),
   need_employer_change: z.boolean().default(false),
   need_signboard: z.boolean().default(true),
+  need_excise_permit: z.boolean().default(false),
   assigned_to: z.string().uuid().or(z.literal('')).optional().nullable(),
   note: z.string().trim().max(2000, 'หมายเหตุต้องไม่เกิน 2,000 ตัวอักษร').optional().nullable(),
 })

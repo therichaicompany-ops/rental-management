@@ -69,6 +69,7 @@ export async function createContractAction(
       need_vat_registration: parsed.data.need_vat_registration ?? false,
       need_employer_change: parsed.data.need_employer_change ?? false,
       need_signboard: parsed.data.need_signboard ?? true,
+      need_excise_permit: parsed.data.need_excise_permit ?? false,
       assigned_to: parsed.data.assigned_to?.trim() || null,
       note: parsed.data.note?.trim() || null,
     })

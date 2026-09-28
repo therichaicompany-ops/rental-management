@@ -29,7 +29,7 @@ export interface StageDefinition {
   name: string
   sequence: number
   description: string
-  requiresCondition?: 'need_branch_registration' | 'need_signboard' | 'need_employer_change' | 'need_vat_registration' | 'hasForeignResident'
+  requiresCondition?: 'need_branch_registration' | 'need_signboard' | 'need_employer_change' | 'need_vat_registration' | 'hasForeignResident' | 'need_excise_permit'
   defaultTasks?: {
     name: string
     description?: string
@@ -149,9 +149,27 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
     ],
   },
   {
+    code: 'VAT_REGISTRATION',
+    name: 'ยื่นจด VAT สาขา',
+    sequence: 8,
+    description: 'ยื่นจดทะเบียนภาษีมูลค่าเพิ่ม (VAT) สำหรับสาขาต่อกรมสรรพากร',
+    requiresCondition: 'need_vat_registration',
+    defaultTasks: [
+      {
+        name: 'ยื่นจด VAT สาขา (สรรพากร)',
+        description: 'ยื่นแบบคำขอจดทะเบียนภาษีมูลค่าเพิ่มสำหรับสาขาต่อกรมสรรพากร',
+        checklists: [
+          { name: 'ส่งเอกสารให้บัญชีเพื่อเตรียมยื่นจด VAT', is_required: true },
+          { name: 'บัญชียื่นจด VAT สาขาต่อกรมสรรพากรเรียบร้อย', is_required: true },
+          { name: 'ได้รับใบทะเบียนภาษีมูลค่าเพิ่มฉบับสาขา', is_required: true },
+        ],
+      },
+    ],
+  },
+  {
     code: 'SIGNBOARD',
     name: 'ขออนุญาตป้าย',
-    sequence: 8,
+    sequence: 9,
     description: 'ยื่นแบบและขออนุญาตติดตั้งป้ายสาขาต่อหน่วยงานท้องถิ่น',
     requiresCondition: 'need_signboard',
     defaultTasks: [
@@ -168,7 +186,7 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'EMPLOYMENT_CHANGE',
     name: 'แจ้งย้าย/ขึ้นทะเบียนนายจ้าง',
-    sequence: 9,
+    sequence: 10,
     description: 'ดำเนินการแจ้งย้ายหรือขึ้นทะเบียนสาขากับประกันสังคม',
     requiresCondition: 'need_employer_change',
     defaultTasks: [
@@ -184,7 +202,7 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'TM30_NOTIFY',
     name: 'แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)',
-    sequence: 10,
+    sequence: 11,
     description: 'แจ้ง ตม.30 ต่อสำนักงานตรวจคนเข้าเมืองภายใน 24 ชั่วโมงหลังคนต่างด้าวเข้าพักอาศัย',
     requiresCondition: 'hasForeignResident',
     defaultTasks: [
@@ -201,9 +219,27 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
     ],
   },
   {
+    code: 'EXCISE_PERMIT',
+    name: 'ยื่นขออนุญาตกรมสรรพสามิต',
+    sequence: 12,
+    description: 'ยื่นขออนุญาตจำหน่ายสุรา/บุหรี่/ยาสูบ ต่อกรมสรรพสามิต (กรณีร้านจำหน่าย)',
+    requiresCondition: 'need_excise_permit',
+    defaultTasks: [
+      {
+        name: 'ยื่นขออนุญาตกรมสรรพสามิต (สุรา/บุหรี่)',
+        description: 'ยื่นคำขอใบอนุญาตจำหน่ายสุราและยาสูบต่อกรมสรรพสามิตหรือสรรพสามิตพื้นที่',
+        checklists: [
+          { name: 'เตรียมเอกสารประกอบการขอใบอนุญาตครบถ้วน', is_required: true },
+          { name: 'ยื่นคำขอใบอนุญาตต่อกรมสรรพสามิต/สรรพสามิตพื้นที่', is_required: true },
+          { name: 'ได้รับใบอนุญาตจำหน่ายสุรา/บุหรี่เรียบร้อย', is_required: true },
+        ],
+      },
+    ],
+  },
+  {
     code: 'JOB_APPROVAL',
     name: 'อนุมัติงาน/เปิดระบบ',
-    sequence: 11,
+    sequence: 13,
     description: 'อนุมัติระบบ IT, POS, และเครื่องมือการทำงาน',
     defaultTasks: [
       {
@@ -219,7 +255,7 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'PRE_OPEN_SIGN',
     name: 'ลงนามก่อนเปิดสาขา',
-    sequence: 12,
+    sequence: 14,
     description: 'ฝ่ายบริหารและผู้เกี่ยวข้องตรวจสอบและลงนามอนุมัติเปิด',
     defaultTasks: [
       {
@@ -234,7 +270,7 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'READY_TO_OPEN',
     name: 'พร้อมเปิดสาขา',
-    sequence: 13,
+    sequence: 15,
     description: 'เตรียมการขาย สินค้า และพนักงานพร้อมเริ่มดำเนินงาน',
     defaultTasks: [
       {
@@ -249,7 +285,7 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'OPENED',
     name: 'เปิดสาขาเรียบร้อย',
-    sequence: 14,
+    sequence: 16,
     description: 'เปิดให้บริการอย่างเป็นทางการเรียบร้อย',
     defaultTasks: [
       {

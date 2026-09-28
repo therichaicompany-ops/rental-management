@@ -499,6 +499,16 @@ export function RentalLeadDetailView({
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
+                          <span className="text-slate-600">ยื่นกรมสรรพสามิต (เหล้า/ยาสูบ):</span>
+                          <span
+                            className={`font-semibold ${
+                              lead.need_excise_permit ? 'text-emerald-700' : 'text-slate-400'
+                            }`}
+                          >
+                            {lead.need_excise_permit ? '✓ ต้องดำเนินการ' : 'ไม่ระบุ'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
                           <span className="text-slate-600">แจ้งที่พักอาศัยคนต่างด้าว (ตม.30):</span>
                           <span
                             className={`font-semibold ${
