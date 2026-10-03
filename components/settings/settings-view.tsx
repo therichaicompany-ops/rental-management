@@ -117,8 +117,8 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
           : locale === 'my'
           ? 'အလိုအလျောက် အငှားခ သတိပေးချက်စနစ် (Rent Reminder)'
           : 'Automated Rent Reminders',
-      status: 'upcoming',
-      desc: locale === 'th' ? 'Phase 9 (เร็วๆ นี้)' : locale === 'my' ? 'Phase 9 (မကြာမီ)' : 'Phase 9 (Upcoming)',
+      status: 'active',
+      desc: locale === 'th' ? 'Phase 9 (พร้อมใช้งาน)' : locale === 'my' ? 'Phase 9 (အဆင်သင့်ဖြစ်ပြီ)' : 'Phase 9 (Ready)',
     },
     {
       name:
@@ -127,8 +127,8 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
           : locale === 'my'
           ? 'ထပ်တလဲလဲ အငှားခနှင့် အလိုအလျောက်အချိန်ကိုက်စနစ် (Cron)'
           : 'Recurring Rent Generation & Production Cron',
-      status: 'upcoming',
-      desc: locale === 'th' ? 'Phase 10 (เร็วๆ นี้)' : locale === 'my' ? 'Phase 10 (မကြာမီ)' : 'Phase 10 (Upcoming)',
+      status: 'active',
+      desc: locale === 'th' ? 'Phase 10 (พร้อมใช้งาน)' : locale === 'my' ? 'Phase 10 (အဆင်သင့်ဖြစ်ပြီ)' : 'Phase 10 (Ready)',
     },
   ]
 
