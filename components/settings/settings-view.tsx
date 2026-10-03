@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import {
   Settings as SettingsIcon,
   User,
@@ -9,7 +10,10 @@ import {
   HardDrive,
   CheckCircle2,
   Lock,
+  MessageSquare,
+  ExternalLink,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { LanguagePreferenceCard } from '@/components/settings/language-preference-card'
 import { RolePermissionsMatrix } from '@/components/settings/role-permissions-matrix'
@@ -102,8 +106,8 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
           : locale === 'my'
           ? 'LINE Messaging API ချိတ်ဆက်မှုစနစ်'
           : 'LINE Messaging API Integration',
-      status: 'upcoming',
-      desc: locale === 'th' ? 'Phase 8 (เร็วๆ นี้)' : locale === 'my' ? 'Phase 8 (မကြာမီ)' : 'Phase 8 (Upcoming)',
+      status: 'active',
+      desc: locale === 'th' ? 'Phase 8 (พร้อมใช้งาน)' : locale === 'my' ? 'Phase 8 (အဆင်သင့်ဖြစ်ပြီ)' : 'Phase 8 (Ready)',
     },
     {
       name:
@@ -213,6 +217,29 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
                 <span className="font-medium">PDF, JPG, PNG, WEBP</span>
               </div>
             </div>
+          </div>
+
+          {/* LINE Messaging API Card */}
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-3 pb-3 border-b">
+              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold">LINE Messaging API</h2>
+                <p className="text-xs text-muted-foreground">ระบบแจ้งเตือนค่าเช่าอัตโนมัติ</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              จัดการกลุ่ม LINE แจ้งเตือน PAYABLE (บริษัทจ่าย) และ RECEIVABLE (ลูกค้าจ่าย) พร้อมทดสอบส่งข้อความ Flex Message
+            </p>
+            <Link href="/settings/line" className="block">
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9">
+                <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+                จัดการกลุ่ม LINE แจ้งเตือน
+                <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </div>
         </div>
 
