@@ -23,19 +23,19 @@ export async function requireUser(): Promise<CurrentUser> {
 export async function requireRole(resource: Resource): Promise<CurrentUser> {
   const user = await requireUser()
   if (!canAccess(user.profile.role, resource)) {
-    redirect('/dashboard')
+    redirect('/forbidden')
   }
   return user
 }
 
 /**
  * Require owner or admin role.
- * Redirects to /dashboard if not owner/admin.
+ * Redirects to /forbidden if not owner/admin.
  */
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await requireUser()
   if (!hasFullAccess(user.profile.role)) {
-    redirect('/dashboard')
+    redirect('/forbidden')
   }
   return user
 }
