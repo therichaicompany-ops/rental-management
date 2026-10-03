@@ -23,14 +23,19 @@ export async function POST(req: NextRequest) {
 
     const payload = JSON.parse(rawBody)
     const events: Array<Record<string, any>> = payload.events || []
-    const supabase = createAdminClient() as any
+    let supabase: any = null
+    try {
+      supabase = createAdminClient()
+    } catch (e) {
+      console.error('Webhook: Supabase admin client initialization failed:', e)
+    }
 
     for (const event of events) {
       const source = event.source || {}
       const targetGroupId = source.groupId || source.roomId
 
       // 1. Auto-register or reactivate group destination whenever an event is received from a group/room
-      if (targetGroupId) {
+      if (targetGroupId && supabase) {
         try {
           const { data: existing } = await supabase
             .from('line_destinations')
@@ -67,7 +72,7 @@ export async function POST(req: NextRequest) {
       }
 
       // 3. Handle Bot Leaving a Group / Room
-      if (event.type === 'leave' && targetGroupId) {
+      if (event.type === 'leave' && targetGroupId && supabase) {
         await supabase
           .from('line_destinations')
           .update({ is_active: false })
