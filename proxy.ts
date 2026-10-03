@@ -8,6 +8,7 @@ const PROTECTED_PATHS = [
   '/dashboard', '/customers', '/landlords', '/locations',
   '/rental-leads', '/rentals', '/contracts', '/rent-payments',
   '/opening', '/documents', '/calendar', '/reports', '/users', '/settings',
+  '/notifications',
 ]
 
 function isPublicPath(pathname: string): boolean {

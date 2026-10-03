@@ -42,6 +42,7 @@ export interface SendLineMessageOptions {
   entityType?: string
   entityId?: string
   destinationId?: string | null
+  notificationDate?: string
 }
 
 export interface SendLineMessageResult {
@@ -60,6 +61,7 @@ export async function sendLineMessage({
   entityType = 'test',
   entityId = '00000000-0000-0000-0000-000000000000',
   destinationId = null,
+  notificationDate,
 }: SendLineMessageOptions): Promise<SendLineMessageResult> {
   const token = process.env.LINE_CHANNEL_ACCESS_TOKEN
   if (!token) {
@@ -71,7 +73,9 @@ export async function sendLineMessage({
   }
 
   const supabase = createAdminClient() as any
-  const today = new Date().toISOString().split('T')[0]
+  const today =
+    notificationDate ||
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date())
   const messagePreview = JSON.stringify(messages).slice(0, 500)
 
   // 1. Send to LINE API

@@ -37,6 +37,8 @@ export const metadata: Metadata = {
   description: 'ระบบบริหารงานเช่าและเปิดสาขา — จัดการการเช่า สัญญา และการเปิดสาขาในที่เดียว',
 }
 
+import { ToastProvider } from '@/components/ui/toast'
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getServerLocale()
 
@@ -44,7 +46,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} className={`${inter.variable} ${notoSansMyanmar.variable}`}>
       <body className="min-h-screen min-h-dvh antialiased font-sans">
         <I18nProvider initialLocale={locale}>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </I18nProvider>
       </body>
     </html>

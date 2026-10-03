@@ -7,6 +7,7 @@ import {
   Shield,
   Server,
   Bell,
+  Clock,
   HardDrive,
   CheckCircle2,
   Lock,
@@ -227,7 +228,7 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
               </div>
               <div>
                 <h2 className="text-base font-semibold">LINE Messaging API</h2>
-                <p className="text-xs text-muted-foreground">ระบบแจ้งเตือนค่าเช่าอัตโนมัติ</p>
+                <p className="text-xs text-muted-foreground">กลุ่มและข้อความแจ้งเตือน</p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
@@ -240,6 +241,37 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
                 <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </Link>
+          </div>
+
+          {/* Rent Reminder Automation Card */}
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-3 pb-3 border-b">
+              <div className="p-2 rounded-lg bg-primary-50 text-primary-600 border border-primary-100">
+                <Bell className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold">การแจ้งเตือนอัตโนมัติ</h2>
+                <p className="text-xs text-muted-foreground">ตั้งเวลารอบวันเตือนค่าเช่า</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              กำหนดรอบวันแจ้งเตือนล่วงหน้า (7 วัน, 3 วัน, 1 วัน, วันครบกำหนด, Overdue) และดูประวัติการแจ้งเตือน
+            </p>
+            <div className="space-y-2">
+              <Link href="/settings/notifications" className="block">
+                <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white text-xs h-9">
+                  <Bell className="mr-1.5 h-3.5 w-3.5" />
+                  ตั้งค่ารอบแจ้งเตือนอัตโนมัติ
+                  <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                </Button>
+              </Link>
+              <Link href="/notifications" className="block">
+                <Button variant="outline" className="w-full text-xs h-9">
+                  <Clock className="mr-1.5 h-3.5 w-3.5" />
+                  ดูประวัติการแจ้งเตือน (Logs)
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
