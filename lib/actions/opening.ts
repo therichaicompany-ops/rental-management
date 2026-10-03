@@ -25,7 +25,17 @@ import type { ActionResponse } from './customers'
 export async function ensureWorkflowStagesAction(): Promise<WorkflowStageModel[]> {
   const supabase = await createClient()
 
-  // Upsert all stage definitions (insert new ones, update sequences of existing)
+  // 1. Fast read first: If stages already exist, return immediately without UPSERT write
+  const { data: stages } = await supabase
+    .from('workflow_stages')
+    .select('*')
+    .order('sequence', { ascending: true })
+
+  if (stages && stages.length >= STAGE_DEFINITIONS.length) {
+    return stages as WorkflowStageModel[]
+  }
+
+  // 2. Only upsert if missing or incomplete
   const stagesToUpsert = STAGE_DEFINITIONS.map((def) => ({
     stage_code: def.code,
     stage_name: def.name,
@@ -38,12 +48,12 @@ export async function ensureWorkflowStagesAction(): Promise<WorkflowStageModel[]
     .from('workflow_stages')
     .upsert(stagesToUpsert, { onConflict: 'stage_code' })
 
-  const { data: stages } = await supabase
+  const { data: reloaded } = await supabase
     .from('workflow_stages')
     .select('*')
     .order('sequence', { ascending: true })
 
-  return (stages as WorkflowStageModel[]) || []
+  return (reloaded as WorkflowStageModel[]) || []
 }
 
 /**
@@ -253,7 +263,7 @@ export async function advanceProjectStageAction(
 }
 
 export async function createTaskAction(
-  values: OpeningTaskFormValues
+  values: OpeningTaskFormValues & { auto_create_checklists?: boolean }
 ): Promise<ActionResponse & { data?: unknown }> {
   const currentUser = await getCurrentUser()
   if (!currentUser) {
@@ -289,8 +299,53 @@ export async function createTaskAction(
     .select()
     .single()
 
-  if (error) {
-    return { success: false, error: error.message }
+  if (error || !data) {
+    return { success: false, error: error?.message || 'ไม่สามารถสร้างงานได้' }
+  }
+
+  // Auto-create default checklists from STAGE_DEFINITIONS unless explicitly turned off
+  if (values.auto_create_checklists !== false) {
+    let matchedChecklists: { name: string; is_required: boolean }[] = []
+
+    if (parsed.data.stage_id) {
+      const { data: st } = await supabase
+        .from('workflow_stages')
+        .select('stage_code')
+        .eq('id', parsed.data.stage_id)
+        .maybeSingle()
+
+      if (st) {
+        const stageDef = STAGE_DEFINITIONS.find((d) => d.code === st.stage_code)
+        if (stageDef && stageDef.defaultTasks) {
+          const taskDef =
+            stageDef.defaultTasks.find((t) => t.name === parsed.data.task_name.trim()) ||
+            stageDef.defaultTasks[0]
+          if (taskDef?.checklists) {
+            matchedChecklists = taskDef.checklists
+          }
+        }
+      }
+    }
+
+    if (matchedChecklists.length === 0) {
+      for (const s of STAGE_DEFINITIONS) {
+        const t = (s.defaultTasks || []).find((dt) => dt.name === parsed.data.task_name.trim())
+        if (t && t.checklists) {
+          matchedChecklists = t.checklists
+          break
+        }
+      }
+    }
+
+    if (matchedChecklists.length > 0) {
+      const checklistsToInsert = matchedChecklists.map((c) => ({
+        task_id: data.id,
+        item_name: c.name,
+        is_required: c.is_required,
+        is_checked: false,
+      }))
+      await supabase.from('task_checklists').insert(checklistsToInsert)
+    }
   }
 
   revalidatePath(`/opening/${parsed.data.opening_project_id}`)

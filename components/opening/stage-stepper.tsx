@@ -11,6 +11,7 @@ interface StageStepperProps {
   currentStageId: string | null
   projectId: string
   allowEdit?: boolean
+  onStageChange?: (newStageId: string) => void
 }
 
 export function StageStepper({
@@ -18,30 +19,45 @@ export function StageStepper({
   currentStageId,
   projectId,
   allowEdit = false,
+  onStageChange,
 }: StageStepperProps) {
   const [isPending, setIsPending] = React.useState(false)
   const [selectedStage, setSelectedStage] = React.useState<WorkflowStageModel | null>(null)
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
+  const [optimisticStageId, setOptimisticStageId] = React.useState<string | null>(currentStageId)
 
-  const currentStage = stages.find((s) => s.id === currentStageId)
+  React.useEffect(() => {
+    setOptimisticStageId(currentStageId)
+  }, [currentStageId])
+
+  const activeStageId = optimisticStageId
+  const currentStage = stages.find((s) => s.id === activeStageId)
   const currentSeq = currentStage?.sequence ?? 1
 
   const handleStageClick = (stage: WorkflowStageModel) => {
-    if (!allowEdit || stage.id === currentStageId) return
+    if (!allowEdit || stage.id === activeStageId) return
     setSelectedStage(stage)
   }
 
   const handleConfirmChange = async () => {
     if (!selectedStage) return
+    const newStage = selectedStage
+    const prevStageId = optimisticStageId
+    setSelectedStage(null)
     setIsPending(true)
     setErrorMsg(null)
 
-    const res = await advanceProjectStageAction(projectId, selectedStage.id)
+    // Optimistically advance stage immediately
+    setOptimisticStageId(newStage.id)
+    onStageChange?.(newStage.id)
+
+    const res = await advanceProjectStageAction(projectId, newStage.id)
     setIsPending(false)
 
-    if (res.success) {
-      setSelectedStage(null)
-    } else {
+    if (!res.success) {
+      // Revert if error
+      setOptimisticStageId(prevStageId)
+      if (prevStageId) onStageChange?.(prevStageId)
       setErrorMsg(res.error || 'ไม่สามารถเปลี่ยนขั้นตอนได้')
     }
   }

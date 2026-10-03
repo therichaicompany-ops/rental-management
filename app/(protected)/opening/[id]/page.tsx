@@ -21,11 +21,9 @@ export default async function OpeningDetailPage({ params }: OpeningDetailPagePro
   const user = await requireRole('opening')
   const supabase = await createClient()
 
-  // Ensure standard stages exist
-  const stages = await ensureWorkflowStagesAction()
-
-  // Fetch Project with all relations
-  const [projectRes, profilesRes] = await Promise.all([
+  // Fetch stages, project with all relations, and active staff profiles in parallel
+  const [stages, projectRes, profilesRes] = await Promise.all([
+    ensureWorkflowStagesAction(),
     supabase
       .from('opening_projects')
       .select(

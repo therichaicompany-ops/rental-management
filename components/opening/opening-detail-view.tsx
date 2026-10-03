@@ -34,12 +34,14 @@ import type {
   OpeningProjectStatus,
   TaskStatus,
   WorkflowStageModel,
+  OpeningTaskModel,
 } from '@/lib/types/opening'
 import {
   PROJECT_STATUS_LABELS,
   PROJECT_STATUS_BADGE_VARIANTS,
   TASK_STATUS_LABELS,
   TASK_STATUS_BADGE_VARIANTS,
+  STAGE_DEFINITIONS,
 } from '@/lib/types/opening'
 import type { UserRole, UserProfile } from '@/lib/types/auth'
 import { canWrite } from '@/lib/auth/permissions'
@@ -97,6 +99,7 @@ export function OpeningDetailView({
   const [newTaskDesc, setNewTaskDesc] = React.useState('')
   const [newTaskAssignedTo, setNewTaskAssignedTo] = React.useState('')
   const [newTaskDueDate, setNewTaskDueDate] = React.useState('')
+  const [autoAddChecklists, setAutoAddChecklists] = React.useState(true)
 
   const badgeVariant =
     PROJECT_STATUS_BADGE_VARIANTS[project.status as OpeningProjectStatus] || {
@@ -106,9 +109,24 @@ export function OpeningDetailView({
     }
 
   const contract = project.rental_contracts
-  const tasks = React.useMemo(() => project.opening_tasks || [], [project.opening_tasks])
 
-  // Overall statistics
+  // Local state for instant optimistic updates
+  const [tasks, setTasks] = React.useState<OpeningTaskModel[]>(() => project.opening_tasks || [])
+  const [currentStageId, setCurrentStageId] = React.useState<string | null>(
+    project.current_stage_id || null
+  )
+
+  React.useEffect(() => {
+    if (project.opening_tasks) {
+      setTasks(project.opening_tasks)
+    }
+  }, [project.opening_tasks])
+
+  React.useEffect(() => {
+    setCurrentStageId(project.current_stage_id || null)
+  }, [project.current_stage_id])
+
+  // Overall statistics (derived from state for real-time reactivity)
   const totalTasks = tasks.length
   const doneTasks = tasks.filter((t) => t.status === 'done').length
   const percentComplete = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
@@ -152,6 +170,25 @@ export function OpeningDetailView({
     }
   }
 
+  const handleStageChangeForNewTask = (stageId: string) => {
+    setNewTaskStageId(stageId)
+    const st = stages.find((s) => s.id === stageId)
+    if (st) {
+      const def = STAGE_DEFINITIONS.find((d) => d.code === st.stage_code)
+      if (def && def.defaultTasks?.[0]) {
+        const isCurrentNameADefault = STAGE_DEFINITIONS.some((d) =>
+          d.defaultTasks?.some((t) => t.name === newTaskName.trim())
+        )
+        if (!newTaskName.trim() || isCurrentNameADefault) {
+          setNewTaskName(def.defaultTasks[0].name)
+          if (def.defaultTasks[0].description) {
+            setNewTaskDesc(def.defaultTasks[0].description)
+          }
+        }
+      }
+    }
+  }
+
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTaskName.trim()) return
@@ -167,6 +204,7 @@ export function OpeningDetailView({
       assigned_to: newTaskAssignedTo || null,
       due_date: newTaskDueDate || null,
       status: 'todo',
+      auto_create_checklists: autoAddChecklists,
     })
     setIsPending(false)
 
@@ -183,49 +221,152 @@ export function OpeningDetailView({
 
   const handleUpdateTaskStatus = async (taskId: string, newStatus: TaskStatus) => {
     setActionError(null)
-    const res = await updateTaskAction(taskId, project.id, { status: newStatus })
 
-    if (res.success) {
-      router.refresh()
-    } else {
+    const targetTask = tasks.find((t) => t.id === taskId)
+    if (!targetTask) return
+    const prevStatus = targetTask.status
+
+    // Quick client-side validation
+    if (newStatus === 'done') {
+      const incompleteRequired = (targetTask.task_checklists || []).filter(
+        (c) => c.is_required && !c.is_checked
+      )
+      if (incompleteRequired.length > 0) {
+        setActionError(
+          `ไม่สามารถบันทึกเป็น "เสร็จสิ้น" ได้ เนื่องจากยังมีรายการเช็คลิสต์ที่จำเป็น ${incompleteRequired.length} รายการที่ยังไม่ได้ดำเนินการ (${incompleteRequired.map((c) => c.item_name).join(', ')})`
+        )
+        return
+      }
+    }
+
+    // 1. Optimistic update (0ms instant UI feedback)
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              status: newStatus,
+              completed_at: newStatus === 'done' ? new Date().toISOString() : null,
+            }
+          : t
+      )
+    )
+
+    // 2. Background sync
+    const res = await updateTaskAction(taskId, project.id, { status: newStatus })
+    if (!res.success) {
+      // Revert if error
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? { ...t, status: prevStatus, completed_at: targetTask.completed_at }
+            : t
+        )
+      )
       setActionError(res.error || 'ไม่สามารถอัปเดตสถานะงานได้')
     }
   }
 
   const handleUpdateTaskAssigned = async (taskId: string, assignedTo: string) => {
     setActionError(null)
-    await updateTaskAction(taskId, project.id, { assigned_to: assignedTo || null })
-    router.refresh()
+    const targetTask = tasks.find((t) => t.id === taskId)
+    const prevAssigned = targetTask?.assigned_to
+    const prevProfiles = targetTask?.profiles
+    const staff = staffProfiles.find((p) => p.id === assignedTo)
+
+    // 1. Optimistic update
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              assigned_to: assignedTo || null,
+              profiles: staff
+                ? { id: staff.id, full_name: staff.full_name, email: staff.email }
+                : null,
+            }
+          : t
+      )
+    )
+
+    // 2. Background sync
+    const res = await updateTaskAction(taskId, project.id, { assigned_to: assignedTo || null })
+    if (!res.success) {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? { ...t, assigned_to: prevAssigned ?? null, profiles: prevProfiles ?? null }
+            : t
+        )
+      )
+      setActionError(res.error || 'ไม่สามารถอัปเดตผู้รับผิดชอบได้')
+    }
   }
 
   const handleUpdateTaskDueDate = async (taskId: string, dueDate: string) => {
     setActionError(null)
-    await updateTaskAction(taskId, project.id, { due_date: dueDate || null })
-    router.refresh()
+    const targetTask = tasks.find((t) => t.id === taskId)
+    const prevDueDate = targetTask?.due_date
+
+    // 1. Optimistic update
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, due_date: dueDate || null } : t))
+    )
+
+    // 2. Background sync
+    const res = await updateTaskAction(taskId, project.id, { due_date: dueDate || null })
+    if (!res.success) {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, due_date: prevDueDate ?? null } : t))
+      )
+      setActionError(res.error || 'ไม่สามารถอัปเดตกำหนดเสร็จได้')
+    }
   }
 
   const handleDeleteTask = async () => {
     if (!deletingTaskId) return
-    setIsPending(true)
+    const idToDelete = deletingTaskId
+    setDeletingTaskId(null)
     setActionError(null)
 
-    const res = await deleteTaskAction(deletingTaskId, project.id)
-    setIsPending(false)
+    // 1. Optimistic removal (immediate closure and card removal)
+    const prevTasks = tasks
+    setTasks((prev) => prev.filter((t) => t.id !== idToDelete))
 
-    if (res.success) {
-      setDeletingTaskId(null)
-      router.refresh()
-    } else {
+    // 2. Background sync
+    const res = await deleteTaskAction(idToDelete, project.id)
+    if (!res.success) {
+      setTasks(prevTasks)
       setActionError(res.error || 'ไม่สามารถลบงานได้')
     }
   }
 
   const handleToggleChecklist = async (checklistId: string, currentChecked: boolean) => {
     setActionError(null)
-    const res = await toggleChecklistAction(checklistId, !currentChecked, project.id)
-    if (res.success) {
-      router.refresh()
-    } else {
+    const nextChecked = !currentChecked
+
+    // 1. Optimistic toggle (0ms instant UI feedback)
+    setTasks((prevTasks) =>
+      prevTasks.map((t) => ({
+        ...t,
+        task_checklists: (t.task_checklists || []).map((c) =>
+          c.id === checklistId ? { ...c, is_checked: nextChecked } : c
+        ),
+      }))
+    )
+
+    // 2. Background sync
+    const res = await toggleChecklistAction(checklistId, nextChecked, project.id)
+    if (!res.success) {
+      // Revert if error
+      setTasks((prevTasks) =>
+        prevTasks.map((t) => ({
+          ...t,
+          task_checklists: (t.task_checklists || []).map((c) =>
+            c.id === checklistId ? { ...c, is_checked: currentChecked } : c
+          ),
+        }))
+      )
       setActionError(res.error || 'ไม่สามารถเปลี่ยนสถานะเช็คลิสต์ได้')
     }
   }
@@ -235,8 +376,37 @@ export function OpeningDetailView({
     if (!text) return
 
     const isReq = newChecklistRequired[taskId] ?? true
+    const tempId = `temp-${Date.now()}`
     setActionError(null)
 
+    // Reset input immediately
+    setNewChecklistText((prev) => ({ ...prev, [taskId]: '' }))
+
+    // 1. Optimistic append
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              task_checklists: [
+                ...(t.task_checklists || []),
+                {
+                  id: tempId,
+                  task_id: taskId,
+                  item_name: text,
+                  is_required: isReq,
+                  is_checked: false,
+                  checked_by: null,
+                  checked_at: null,
+                  created_at: new Date().toISOString(),
+                },
+              ],
+            }
+          : t
+      )
+    )
+
+    // 2. Background sync
     const res = await addChecklistAction(
       {
         task_id: taskId,
@@ -246,20 +416,56 @@ export function OpeningDetailView({
       project.id
     )
 
-    if (res.success) {
-      setNewChecklistText((prev) => ({ ...prev, [taskId]: '' }))
-      router.refresh()
+    if (res.success && res.data) {
+      const realItem = res.data as { id: string }
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                task_checklists: (t.task_checklists || []).map((c) =>
+                  c.id === tempId ? { ...c, id: realItem.id } : c
+                ),
+              }
+            : t
+        )
+      )
     } else {
+      // Revert if error
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                task_checklists: (t.task_checklists || []).filter((c) => c.id !== tempId),
+              }
+            : t
+        )
+      )
       setActionError(res.error || 'ไม่สามารถเพิ่มเช็คลิสต์ได้')
     }
   }
 
-  const handleDeleteChecklist = async (checklistId: string) => {
+  const handleDeleteChecklist = async (taskId: string, checklistId: string) => {
     setActionError(null)
+
+    // 1. Optimistic delete (0ms instant UI feedback)
+    const prevTasks = tasks
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              task_checklists: (t.task_checklists || []).filter((c) => c.id !== checklistId),
+            }
+          : t
+      )
+    )
+
+    // 2. Background sync
     const res = await deleteChecklistAction(checklistId, project.id)
-    if (res.success) {
-      router.refresh()
-    } else {
+    if (!res.success) {
+      setTasks(prevTasks)
       setActionError(res.error || 'ไม่สามารถลบเช็คลิสต์ได้')
     }
   }
@@ -359,9 +565,10 @@ export function OpeningDetailView({
 
         <StageStepper
           stages={stages}
-          currentStageId={project.current_stage_id}
+          currentStageId={currentStageId}
           projectId={project.id}
           allowEdit={allowWrite}
+          onStageChange={setCurrentStageId}
         />
       </div>
 
@@ -659,7 +866,7 @@ export function OpeningDetailView({
                       {allowWrite && (
                         <button
                           type="button"
-                          onClick={() => handleDeleteChecklist(c.id)}
+                          onClick={() => handleDeleteChecklist(task.id, c.id)}
                           className="text-slate-300 hover:text-rose-500 px-1 text-xs"
                           title="ลบเช็คลิสต์"
                         >
@@ -832,7 +1039,7 @@ export function OpeningDetailView({
               </label>
               <Select
                 value={newTaskStageId}
-                onChange={(e) => setNewTaskStageId(e.target.value)}
+                onChange={(e) => handleStageChangeForNewTask(e.target.value)}
               >
                 <option value="">-- ไม่ระบุขั้นตอน --</option>
                 {stages.map((s) => (
@@ -882,6 +1089,59 @@ export function OpeningDetailView({
                 />
               </div>
             </div>
+
+            {/* Default Checklists Preview & Auto-generation Toggle */}
+            {(() => {
+              const targetStage = stages.find((s) => s.id === newTaskStageId)
+              const targetStageDef = targetStage
+                ? STAGE_DEFINITIONS.find((d) => d.code === targetStage.stage_code)
+                : STAGE_DEFINITIONS.find((d) =>
+                    (d.defaultTasks || []).some((t) => t.name === newTaskName.trim())
+                  )
+              const matchedTask =
+                targetStageDef?.defaultTasks?.find((t) => t.name === newTaskName.trim()) ||
+                targetStageDef?.defaultTasks?.[0]
+              const previewChecklists = matchedTask?.checklists || []
+
+              if (previewChecklists.length === 0) return null
+
+              return (
+                <div className="rounded-lg border border-primary-200/80 bg-primary-50/40 p-3 text-xs space-y-2">
+                  <label className="flex items-center gap-2 font-medium text-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoAddChecklists}
+                      onChange={(e) => setAutoAddChecklists(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span>
+                      เพิ่มเช็คลิสต์เริ่มต้นให้อัตโนมัติ ({previewChecklists.length} รายการ)
+                    </span>
+                  </label>
+                  {autoAddChecklists && (
+                    <div className="max-h-36 overflow-y-auto space-y-1 pl-6 pt-1 text-slate-600">
+                      {previewChecklists.map((c, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between py-0.5 border-b border-slate-100 last:border-b-0"
+                        >
+                          <span className="truncate pr-2">• {c.name}</span>
+                          {c.is_required ? (
+                            <span className="shrink-0 text-[10px] bg-rose-50 text-rose-600 border border-rose-200/60 px-1.5 py-0.5 rounded font-medium">
+                              จำเป็น
+                            </span>
+                          ) : (
+                            <span className="shrink-0 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
+                              ไม่บังคับ
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
             <DialogFooter className="pt-2">
               <Button

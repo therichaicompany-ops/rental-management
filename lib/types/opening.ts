@@ -40,7 +40,7 @@ export interface StageDefinition {
 export const STAGE_DEFINITIONS: StageDefinition[] = [
   {
     code: 'NEGOTIATION',
-    name: 'เจรจาเงื่อนไข',
+    name: 'โทรเจรจาการเช่า',
     sequence: 1,
     description: 'พูดคุยเงื่อนไขค่าเช่าและข้อกำหนดเบื้องต้น',
     defaultTasks: [
@@ -56,19 +56,22 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
   },
   {
     code: 'AGREED',
-    name: 'ตกลงเงื่อนไข',
+    name: 'ตกลงเช่า',
     sequence: 2,
     description: 'คู่สัญญาตกลงรับเงื่อนไขเรียบร้อยแล้ว',
     defaultTasks: [
       {
         name: 'จัดทำเอกสารยืนยันข้อตกลง',
-        checklists: [{ name: 'ยืนยันใบเสนอราคา/บันทึกข้อตกลง', is_required: true }],
+        checklists: [
+          { name: 'ใบเสร็จจองสถานที่ / ชำระเงินมัดจำ', is_required: true },
+          { name: 'จัดเตรียมเอกสารการเช่า', is_required: true },
+        ],
       },
     ],
   },
   {
     code: 'DEPOSIT',
-    name: 'วางมัดจำ',
+    name: 'รับมัดจำ / ค่าเช่าล่วงหน้า',
     sequence: 3,
     description: 'ชำระเงินมัดจำและเงินประกันตามสัญญา',
     defaultTasks: [
@@ -76,14 +79,13 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
         name: 'ตรวจสอบการชำระเงินมัดจำ',
         checklists: [
           { name: 'แนบหลักฐานสลิปการโอนเงินมัดจำ', is_required: true },
-          { name: 'ออกใบเสร็จ/ใบรับเงินมัดจำ', is_required: false },
         ],
       },
     ],
   },
   {
     code: 'CONTRACT',
-    name: 'เซ็นสัญญา',
+    name: 'นัดทำสัญญาเช่า',
     sequence: 4,
     description: 'ลงนามในสัญญาเช่าอย่างเป็นทางการ',
     defaultTasks: [
@@ -91,8 +93,10 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
         name: 'ลงนามสัญญาเช่าฉบับสมบูรณ์',
         checklists: [
           { name: 'คู่สัญญาเซ็นครบทุกหน้า', is_required: true },
-          { name: 'ติดอากรแสตมป์ถูกต้องตามกฎหมาย', is_required: true },
           { name: 'สแกนไฟล์สัญญาเข้าระบบ', is_required: true },
+          { name: 'ผู้เช่าลงนามในสัญญาแล้ว', is_required: true },
+          { name: 'ติดอากรแสตมป์ถูกต้องตามกฎหมาย', is_required: false },
+          { name: 'ผู้ให้เช่าลงนามในสัญญาแล้ว', is_required: true },
         ],
       },
     ],
@@ -106,17 +110,19 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
       {
         name: 'ตรวจสอบเอกสารประกอบสัญญาและสิทธิ์สถานที่',
         checklists: [
+          { name: 'สำเนาทะเบียนบ้านของสถานที่เช่า', is_required: true },
+          { name: 'หนังสือยินยอมให้ใช้สถานที่จัดตั้งสาขา', is_required: true },
           { name: 'สำเนาโฉนดที่ดิน/สัญญาเช่าหลัก', is_required: true },
           { name: 'สำเนาบัตรประชาชน/หนังสือรับรองบริษัทผู้ให้เช่า', is_required: true },
-          { name: 'หนังสือยินยอมให้ใช้สถานที่จัดตั้งสาขา', is_required: true },
-          { name: 'สำเนาทะเบียนบ้านของสถานที่เช่า', is_required: true },
+          { name: 'สำเนาทะเบียนบ้านผู้ให้เช่า', is_required: true },
+          { name: 'เอกสารกรรมสิทธิ์ความยินยอมเจ้าของ', is_required: true },
         ],
       },
     ],
   },
   {
     code: 'SEND_ACCOUNTING',
-    name: 'ส่งเรื่องบัญชี',
+    name: 'ส่งเรื่องให้บัญชี',
     sequence: 6,
     description: 'ส่งเรื่องและเอกสารให้ฝ่ายบัญชีเพื่อตั้งงวดชำระ',
     defaultTasks: [
@@ -125,14 +131,15 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
         checklists: [
           { name: 'ส่งสัญญาเช่าให้แผนกบัญชี', is_required: true },
           { name: 'ตั้งตารางงวดค่าเช่าในระบบ', is_required: true },
-          { name: 'ยืนยันอัตราภาษีหัก ณ ที่จ่าย', is_required: true },
+          { name: 'ภาพวาดแผนที่ของสาขา', is_required: true },
+          { name: 'รูปถ่ายสถานที่และมีป้ายชื่อบริษัทเรียบร้อยแล้ว', is_required: true },
         ],
       },
     ],
   },
   {
     code: 'BRANCH_REGISTRATION',
-    name: 'จดทะเบียนสาขา',
+    name: 'จดสาขา',
     sequence: 7,
     description: 'ดำเนินการจดทะเบียนจัดตั้งสาขาต่อกรมพัฒนาธุรกิจการค้า',
     requiresCondition: 'need_branch_registration',
@@ -140,36 +147,20 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
       {
         name: 'จดทะเบียนจัดตั้งสาขา (DBD)',
         checklists: [
+          { name: 'แบบ ภ.พ.09 คำขอแจ้งการเปลี่ยนแปลงทะเบียนภาษีมูลค่าเพิ่ม', is_required: true },
           { name: 'จัดทำแบบคำขอจดทะเบียนสาขา', is_required: true },
           { name: 'กรรมการลงนามแบบคำขอ', is_required: true },
-          { name: 'ยื่นจดทะเบียนต่อ DBD เรียบร้อย', is_required: true },
           { name: 'ได้รับหนังสือรับรองสาขาฉบับใหม่', is_required: true },
-        ],
-      },
-    ],
-  },
-  {
-    code: 'VAT_REGISTRATION',
-    name: 'ยื่นจด VAT สาขา',
-    sequence: 8,
-    description: 'ยื่นจดทะเบียนภาษีมูลค่าเพิ่ม (VAT) สำหรับสาขาต่อกรมสรรพากร',
-    requiresCondition: 'need_vat_registration',
-    defaultTasks: [
-      {
-        name: 'ยื่นจด VAT สาขา (สรรพากร)',
-        description: 'ยื่นแบบคำขอจดทะเบียนภาษีมูลค่าเพิ่มสำหรับสาขาต่อกรมสรรพากร',
-        checklists: [
-          { name: 'ส่งเอกสารให้บัญชีเพื่อเตรียมยื่นจด VAT', is_required: true },
-          { name: 'บัญชียื่นจด VAT สาขาต่อกรมสรรพากรเรียบร้อย', is_required: true },
-          { name: 'ได้รับใบทะเบียนภาษีมูลค่าเพิ่มฉบับสาขา', is_required: true },
+          { name: 'ยื่นจดทะเบียนต่อ DBD เรียบร้อย', is_required: true },
+          { name: 'แบบ ภ.พ.20 (ใบทะเบียนภาษีมูลค่าเพิ่ม)', is_required: true },
         ],
       },
     ],
   },
   {
     code: 'SIGNBOARD',
-    name: 'ขออนุญาตป้าย',
-    sequence: 9,
+    name: 'ทำป้ายบริษัท',
+    sequence: 8,
     description: 'ยื่นแบบและขออนุญาตติดตั้งป้ายสาขาต่อหน่วยงานท้องถิ่น',
     requiresCondition: 'need_signboard',
     defaultTasks: [
@@ -177,115 +168,102 @@ export const STAGE_DEFINITIONS: StageDefinition[] = [
         name: 'ยื่นขออนุญาตติดตั้งป้ายและชำระภาษีป้าย',
         checklists: [
           { name: 'วัดขนาดและถ่ายรูปจุดติดตั้งป้าย', is_required: true },
-          { name: 'ยื่นแบบขออนุญาตต่อเทศบาล/เขต', is_required: true },
-          { name: 'ได้รับใบอนุญาต/ชำระภาษีป้าย', is_required: true },
+          { name: 'นัดวันติดตั้งป้ายบริษัท', is_required: true },
         ],
       },
     ],
   },
   {
     code: 'EMPLOYMENT_CHANGE',
-    name: 'แจ้งย้าย/ขึ้นทะเบียนนายจ้าง',
-    sequence: 10,
-    description: 'ดำเนินการแจ้งย้ายหรือขึ้นทะเบียนสาขากับประกันสังคม',
+    name: 'เปลี่ยนนายจ้าง / รออนุมัติจัดหางาน',
+    sequence: 9,
+    description: 'ยื่นเรื่องเปลี่ยนนายจ้าง/ประเภทงาน และรออนุมัติจากกรมการจัดหางาน',
     requiresCondition: 'need_employer_change',
     defaultTasks: [
       {
-        name: 'ดำเนินการประกันสังคมสาขา',
+        name: 'ยื่นเปลี่ยนนายจ้างและรออนุมัติจัดหางาน',
+        description: 'ดำเนินการแจ้งเปลี่ยนนายจ้างผ่านระบบ e-Workpermit และรออนุมัติ',
         checklists: [
-          { name: 'ยื่นแบบแจ้งจัดตั้งสาขากับ สปส.', is_required: true },
-          { name: 'ผูกระบบพนักงานประจำสาขา', is_required: true },
-        ],
-      },
-    ],
-  },
-  {
-    code: 'TM30_NOTIFY',
-    name: 'แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)',
-    sequence: 11,
-    description: 'แจ้ง ตม.30 ต่อสำนักงานตรวจคนเข้าเมืองภายใน 24 ชั่วโมงหลังคนต่างด้าวเข้าพักอาศัย',
-    requiresCondition: 'hasForeignResident',
-    defaultTasks: [
-      {
-        name: 'แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)',
-        description: 'ยื่นแบบ ตม.30 ต่อสำนักงาน ตม. ภายใน 24 ชั่วโมง นับจากวันที่คนต่างด้าวเข้าพักอาศัย',
-        checklists: [
-          { name: 'เตรียมสำเนาหนังสือเดินทางคนต่างด้าว (ทุกหน้าที่มีข้อมูล)', is_required: true },
-          { name: 'กรอกแบบฟอร์ม ตม.30 ครบถ้วนและถูกต้อง', is_required: true },
-          { name: 'ยื่นแจ้งต่อ สำนักงาน ตม. ภายใน 24 ชม. หลังเข้าพัก', is_required: true },
-          { name: 'เก็บสำเนาใบเสร็จ/หลักฐานการแจ้ง ตม.30 เข้าระบบ', is_required: true },
-        ],
-      },
-    ],
-  },
-  {
-    code: 'EXCISE_PERMIT',
-    name: 'ยื่นขออนุญาตกรมสรรพสามิต',
-    sequence: 12,
-    description: 'ยื่นขออนุญาตจำหน่ายสุรา/บุหรี่/ยาสูบ ต่อกรมสรรพสามิต (กรณีร้านจำหน่าย)',
-    requiresCondition: 'need_excise_permit',
-    defaultTasks: [
-      {
-        name: 'ยื่นขออนุญาตกรมสรรพสามิต (สุรา/บุหรี่)',
-        description: 'ยื่นคำขอใบอนุญาตจำหน่ายสุราและยาสูบต่อกรมสรรพสามิตหรือสรรพสามิตพื้นที่',
-        checklists: [
-          { name: 'เตรียมเอกสารประกอบการขอใบอนุญาตครบถ้วน', is_required: true },
-          { name: 'ยื่นคำขอใบอนุญาตต่อกรมสรรพสามิต/สรรพสามิตพื้นที่', is_required: true },
-          { name: 'ได้รับใบอนุญาตจำหน่ายสุรา/บุหรี่เรียบร้อย', is_required: true },
+          { name: 'ยื่นเรื่องเปลี่ยนนายจ้าง/แจ้งเข้าทำงานผ่านระบบ e-Workpermit', is_required: true },
+          { name: 'จัดเตรียมและลงนามเอกสาร บต. และสัญญาจ้าง', is_required: true },
+          { name: 'รอการพิจารณาและอนุมัติจากระบบกรมการจัดหางาน', is_required: true },
+          { name: 'ได้รับใบอนุญาตทำงาน (Work Permit) ฉบับอนุมัติเรียบร้อย', is_required: true },
+          { name: 'เปลี่ยนประเภทงานเป็นพนักงานขายของหน้าร้าน', is_required: false },
         ],
       },
     ],
   },
   {
     code: 'JOB_APPROVAL',
-    name: 'อนุมัติงาน/เปิดระบบ',
-    sequence: 13,
-    description: 'อนุมัติระบบ IT, POS, และเครื่องมือการทำงาน',
+    name: 'ทำประกันสังคมต่างด้าว',
+    sequence: 10,
+    description: 'ดำเนินการขึ้นทะเบียนผู้ประกันตนประกันสังคมสำหรับแรงงานต่างด้าว',
     defaultTasks: [
       {
-        name: 'ติดตั้งและทดสอบระบบในสาขา',
+        name: 'ขึ้นทะเบียนประกันสังคมแรงงานต่างด้าว',
+        description: 'ยื่นแบบ สปส. 1-03 และเอกสารประกอบเพื่อทำประกันสังคมให้แรงงานต่างด้าว',
         checklists: [
-          { name: 'ติดตั้งระบบอินเทอร์เน็ตและเครือข่าย', is_required: true },
-          { name: 'ติดตั้งระบบขาย/POS/กล้องวงจรปิด', is_required: true },
-          { name: 'ทดสอบการส่งข้อมูลเข้าระบบส่วนกลาง', is_required: true },
+          { name: 'จัดเตรียมสำเนาพาสปอร์ต วีซ่า และใบอนุญาตทำงาน', is_required: true },
+          { name: 'ยื่นแบบขึ้นทะเบียนผู้ประกันตนแรงงานต่างด้าว (สปส. 1-03)', is_required: true },
+          { name: 'เลือกสถานพยาบาล/โรงพยาบาลตามสิทธิประกันสังคม', is_required: true },
+          { name: 'ตรวจสอบสถานะการขึ้นทะเบียนผู้ประกันตนในระบบ สปส.', is_required: true },
         ],
       },
     ],
   },
   {
     code: 'PRE_OPEN_SIGN',
-    name: 'ลงนามก่อนเปิดสาขา',
-    sequence: 14,
+    name: 'เซ็นเอกสารก่อนเปิดร้าน',
+    sequence: 11,
     description: 'ฝ่ายบริหารและผู้เกี่ยวข้องตรวจสอบและลงนามอนุมัติเปิด',
     defaultTasks: [
       {
         name: 'ตรวจสอบความพร้อมรอบสุดท้ายและลงนามอนุมัติ',
         checklists: [
-          { name: 'ตรวจรับการตกแต่งสถานที่และการส่งมอบ', is_required: true },
-          { name: 'ผู้จัดการเขต/ฝ่ายปฏิบัติการลงนามอนุมัติ', is_required: true },
+          { name: 'บันทึกข้อตกลงความร่วมในการดำเนินการร้านค้า/สาขา', is_required: true },
+          { name: 'หนังสือจ้างงานพนักงานขายของหน้าร้าน', is_required: true },
+          { name: 'หนังสือจ้างงานพนักงานจัดของ', is_required: true },
+          { name: 'หนังสือจ้างงานพนักงานรายวันคนไทย', is_required: true },
+          { name: 'กฏเงื่อนไขข้อบังคับของบริษัท', is_required: true },
+          { name: 'คำมั่นสัญญาในการสืบสิทธิ์และเข้ารับช่วงดำเนินการกรณีเหตุสุดวิสัย', is_required: true },
+          { name: 'เอกสารแจ้งเรื่องสินค้าที่บริษัทอนุญาตให้ขาย', is_required: true },
+          { name: 'ใบสั่งซื้อสินค้า', is_required: true },
+          { name: 'สำเนาหน้าพาสปอร์ตของพนักงานขายของหน้าร้าน', is_required: true },
+          { name: 'สำเนาหน้าวีซ่าของพนักงานขายของหน้าร้าน', is_required: true },
+          { name: 'สำเนาใบอนุญาตทำงานของพนักงานขายของหน้าร้าน', is_required: true },
+          { name: 'สำเนาหน้าพาสปอร์ตของพนักงานจัดของ', is_required: true },
+          { name: 'สำเนาหน้าวีซ่าของพนักงานจัดของ', is_required: true },
+          { name: 'สำเนาใบอนุญาตทำงานของพนักงานจัดของ', is_required: true },
+          { name: 'สำเนาบัตรประชาชนพนักงานรายวันคนไทย', is_required: true },
+          { name: 'สำเนาทะเบียนบ้านของพนักงานรายวันคนไทย', is_required: true },
+          { name: 'สำเนาหน้าวีซ่าของผู้รับช่วงดำเนินการ', is_required: true },
+          { name: 'สำเนาหน้าพาสปอร์ตของผู้รับช่วงดำเนินการ', is_required: true },
         ],
       },
     ],
   },
   {
     code: 'READY_TO_OPEN',
-    name: 'พร้อมเปิดสาขา',
-    sequence: 15,
+    name: 'พร้อมเปิดร้าน',
+    sequence: 12,
     description: 'เตรียมการขาย สินค้า และพนักงานพร้อมเริ่มดำเนินงาน',
     defaultTasks: [
       {
         name: 'ส่งมอบพื้นที่และเตรียมเปิดบริการ',
         checklists: [
           { name: 'สต็อกสินค้าพร้อมจำหน่าย', is_required: true },
-          { name: 'พนักงานประจำสาขาพร้อมปฏิบัติงาน', is_required: true },
+          { name: 'จ้างพนักงานคนไทยอยู่หน้าร้าน', is_required: false },
+          { name: 'พนักงานประจำสาขา', is_required: true },
+          { name: 'เตรียมคิวอาร์โค้ดรับชำระเงินของสาขา', is_required: true },
+          { name: 'ยื่นขอใบอนุญาตขายสุรา / บุหรี่ กับสรรพสามิต', is_required: false },
         ],
       },
     ],
   },
   {
     code: 'OPENED',
-    name: 'เปิดสาขาเรียบร้อย',
-    sequence: 16,
+    name: 'เปิดร้านแล้ว',
+    sequence: 13,
     description: 'เปิดให้บริการอย่างเป็นทางการเรียบร้อย',
     defaultTasks: [
       {
