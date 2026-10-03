@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyLineSignature, replyLineMessage } from '@/lib/services/line-messaging-service'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+export async function GET() {
+  return NextResponse.json(
+    { status: 'ok', message: 'LINE Webhook endpoint is active' },
+    { status: 200 }
+  )
+}
+
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text()

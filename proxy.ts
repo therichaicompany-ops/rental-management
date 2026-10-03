@@ -19,6 +19,13 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Completely bypass API routes
+  if (pathname.startsWith('/api')) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -50,8 +57,6 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
-
   if (!user && isProtectedPath(pathname)) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
@@ -75,6 +80,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
