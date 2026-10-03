@@ -27,68 +27,74 @@ export async function POST(req: NextRequest) {
 
     for (const event of events) {
       const source = event.source || {}
-      const groupId = source.groupId
+      const targetGroupId = source.groupId || source.roomId
 
-      // Handle Bot Joining a Group
-      if (event.type === 'join' && source.type === 'group' && groupId) {
-        // Upsert into line_destinations
-        const { data: existing } = await supabase
-          .from('line_destinations')
-          .select('id, name')
-          .eq('line_group_id', groupId)
-          .maybeSingle()
-
-        if (!existing) {
-          await supabase.from('line_destinations').insert({
-            name: `กลุ่ม LINE ใหม่ (${new Date().toLocaleDateString('th-TH')})`,
-            destination_type: 'group',
-            line_group_id: groupId,
-            is_active: true,
-          })
-        } else {
-          await supabase
+      // 1. Auto-register or reactivate group destination whenever an event is received from a group/room
+      if (targetGroupId) {
+        try {
+          const { data: existing } = await supabase
             .from('line_destinations')
-            .update({ is_active: true })
-            .eq('id', existing.id)
-        }
+            .select('id, name')
+            .eq('line_group_id', targetGroupId)
+            .maybeSingle()
 
-        // Send a greeting reply with Group ID
-        if (event.replyToken) {
-          await replyLineMessage(event.replyToken, [
-            {
-              type: 'text',
-              text: `✅ เชื่อมต่อระบบแจ้งเตือนสัญญาเช่าเรียบร้อยแล้ว!\n\n🆔 Group ID:\n${groupId}\n\nคุณสามารถนำ Group ID นี้ไปตั้งค่าในหน้า /settings/line ของระบบได้ทันทีครับ`,
-            },
-          ])
+          if (!existing) {
+            await supabase.from('line_destinations').insert({
+              name: `กลุ่ม LINE (${new Date().toLocaleDateString('th-TH')})`,
+              destination_type: 'group',
+              line_group_id: targetGroupId,
+              is_active: true,
+            })
+          } else {
+            await supabase
+              .from('line_destinations')
+              .update({ is_active: true })
+              .eq('id', existing.id)
+          }
+        } catch (e) {
+          console.error('Error auto-registering line destination:', e)
         }
       }
 
-      // Handle Bot Leaving a Group
-      if (event.type === 'leave' && source.type === 'group' && groupId) {
+      // 2. Handle Bot Joining a Group / Room
+      if (event.type === 'join' && targetGroupId && event.replyToken) {
+        await replyLineMessage(event.replyToken, [
+          {
+            type: 'text',
+            text: `✅ เชื่อมต่อระบบแจ้งเตือนสัญญาเช่าเรียบร้อยแล้ว!\n\n🆔 Group ID:\n${targetGroupId}\n\nคุณสามารถนำ Group ID นี้ไปตั้งค่าในหน้า /settings/line ของระบบได้ทันทีครับ`,
+          },
+        ])
+      }
+
+      // 3. Handle Bot Leaving a Group / Room
+      if (event.type === 'leave' && targetGroupId) {
         await supabase
           .from('line_destinations')
           .update({ is_active: false })
-          .eq('line_group_id', groupId)
+          .eq('line_group_id', targetGroupId)
       }
 
-      // Handle User Text Message in Group (e.g. requesting Group ID)
+      // 4. Handle User Text Message (asking for ID or triggering response)
       if (
         event.type === 'message' &&
         event.message?.type === 'text' &&
         event.replyToken
       ) {
         const text = (event.message.text || '').trim().toLowerCase()
-        if (
-          text === '#id' ||
-          text === '#groupid' ||
-          text === 'group id' ||
-          text === 'groupid'
-        ) {
-          const currentId = groupId || source.userId || 'ไม่พบ ID'
+        const isAskingId =
+          text.includes('#id') ||
+          text.includes('groupid') ||
+          text.includes('group id') ||
+          text === 'id' ||
+          text === '#ไอดี' ||
+          text === 'ไอดี'
+
+        if (isAskingId) {
+          const currentId = targetGroupId || source.userId || 'ไม่พบ ID'
           await replyLineMessage(event.replyToken, [
             {
               type: 'text',
-              text: `🆔 LINE ${groupId ? 'Group ID' : 'ID'}:\n${currentId}\n\nคัดลอกค่านี้ไปใส่ในหน้าตั้งค่ากลุ่มแจ้งเตือนได้เลยครับ`,
+              text: `🆔 LINE ${targetGroupId ? 'Group ID' : 'User ID'}:\n${currentId}\n\nคัดลอกค่านี้ไปใส่ในหน้าตั้งค่ากลุ่มแจ้งเตือน (Settings > LINE) ได้ทันทีครับ`,
             },
           ])
         }
