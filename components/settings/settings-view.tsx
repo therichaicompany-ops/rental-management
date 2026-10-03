@@ -27,7 +27,7 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({ user, profile }: SettingsViewProps) {
-  const { t, locale } = useI18n()
+  const { t, locale, tx } = useI18n()
 
   const MODULES = [
     {
@@ -228,16 +228,30 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
               </div>
               <div>
                 <h2 className="text-base font-semibold">LINE Messaging API</h2>
-                <p className="text-xs text-muted-foreground">กลุ่มและข้อความแจ้งเตือน</p>
+                <p className="text-xs text-muted-foreground">
+                  {tx({
+                    th: 'กลุ่มและข้อความแจ้งเตือน',
+                    en: 'Notification groups & messages',
+                    my: 'သတိပေးချက် အဖွဲ့များနှင့် မက်ဆေ့ခ်ျများ',
+                  })}
+                </p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              จัดการกลุ่ม LINE แจ้งเตือน PAYABLE (บริษัทจ่าย) และ RECEIVABLE (ลูกค้าจ่าย) พร้อมทดสอบส่งข้อความ Flex Message
+              {tx({
+                th: 'จัดการกลุ่ม LINE แจ้งเตือน PAYABLE (บริษัทจ่าย) และ RECEIVABLE (ลูกค้าจ่าย) พร้อมทดสอบส่งข้อความ Flex Message',
+                en: 'Manage LINE notification groups for PAYABLE and RECEIVABLE with interactive Flex Message testing.',
+                my: 'PAYABLE နှင့် RECEIVABLE အတွက် LINE အဖွဲ့များ စီမံခန့်ခွဲပြီး Flex Message စမ်းသပ်ပေးပို့ပါ',
+              })}
             </p>
             <Link href="/settings/line" className="block">
               <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9">
                 <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
-                จัดการกลุ่ม LINE แจ้งเตือน
+                {tx({
+                  th: 'จัดการกลุ่ม LINE แจ้งเตือน',
+                  en: 'Manage LINE Groups',
+                  my: 'LINE သတိပေးချက်အဖွဲ့များ စီမံမည်',
+                })}
                 <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </Link>
@@ -250,25 +264,49 @@ export function SettingsView({ user, profile }: SettingsViewProps) {
                 <Bell className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-base font-semibold">การแจ้งเตือนอัตโนมัติ</h2>
-                <p className="text-xs text-muted-foreground">ตั้งเวลารอบวันเตือนค่าเช่า</p>
+                <h2 className="text-base font-semibold">
+                  {tx({
+                    th: 'การแจ้งเตือนอัตโนมัติ',
+                    en: 'Automated Reminders',
+                    my: 'အလိုအလျောက် သတိပေးချက်များ',
+                  })}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {tx({
+                    th: 'ตั้งเวลารอบวันเตือนค่าเช่า',
+                    en: 'Configure rent notification schedules',
+                    my: 'အငှားခ သတိပေးချက် အချိန်ဇယားများ',
+                  })}
+                </p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              กำหนดรอบวันแจ้งเตือนล่วงหน้า (7 วัน, 3 วัน, 1 วัน, วันครบกำหนด, Overdue) และดูประวัติการแจ้งเตือน
+              {tx({
+                th: 'กำหนดรอบวันแจ้งเตือนล่วงหน้า (7 วัน, 3 วัน, 1 วัน, วันครบกำหนด, Overdue) และดูประวัติการแจ้งเตือน',
+                en: 'Configure advance notification schedules (7d, 3d, 1d, due date, overdue) and review logs.',
+                my: 'ကြိုတင်သတိပေးရက်များ (၇ ရက်၊ ၃ ရက်၊ ၁ ရက်၊ သတ်မှတ်ရက်၊ ရက်လွန်) သတ်မှတ်ပြီး မှတ်တမ်းများကြည့်ပါ',
+              })}
             </p>
             <div className="space-y-2">
               <Link href="/settings/notifications" className="block">
                 <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white text-xs h-9">
                   <Bell className="mr-1.5 h-3.5 w-3.5" />
-                  ตั้งค่ารอบแจ้งเตือนอัตโนมัติ
+                  {tx({
+                    th: 'ตั้งค่ารอบแจ้งเตือนอัตโนมัติ',
+                    en: 'Reminder Schedules',
+                    my: 'အလိုအလျောက် သတိပေးချက် ဆက်တင်များ',
+                  })}
                   <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
                 </Button>
               </Link>
               <Link href="/notifications" className="block">
                 <Button variant="outline" className="w-full text-xs h-9">
                   <Clock className="mr-1.5 h-3.5 w-3.5" />
-                  ดูประวัติการแจ้งเตือน (Logs)
+                  {tx({
+                    th: 'ดูประวัติการแจ้งเตือน (Logs)',
+                    en: 'View Notification Logs',
+                    my: 'သတိပေးချက်မှတ်တမ်းများ ကြည့်ရန်',
+                  })}
                 </Button>
               </Link>
             </div>

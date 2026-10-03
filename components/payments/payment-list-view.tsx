@@ -36,6 +36,7 @@ import {
 import type { UserRole } from '@/lib/types/auth'
 import { isHouseRecord } from '@/lib/utils/lead-metadata'
 import { useI18n } from '@/lib/i18n/context'
+import { labelOf, PAYMENT_STATUS_TRI, PAYMENT_TYPE_TRI, W } from '@/lib/i18n/labels'
 
 interface PaymentListViewProps {
   payments: RentPaymentWithRelations[]
@@ -75,7 +76,7 @@ function calculateDaysOverdue(dueDateStr: string): number {
 }
 
 export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
-  const { t, locale } = useI18n()
+  const { t, locale, tx } = useI18n()
   const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
 
   // Safety filter for operation role
@@ -117,13 +118,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
   }
 
   const getPaymentStatusLabel = (status: string): string => {
-    const map: Record<string, string> = {
-      pending: t.payments.statuses.pending,
-      partial: t.payments.statuses.partial,
-      overdue: t.payments.statuses.overdue,
-      paid: t.payments.statuses.paid,
-    }
-    return map[status] ?? (PAYMENT_STATUS_LABELS[status as RentPaymentStatus] || status)
+    return labelOf(PAYMENT_STATUS_TRI, status, locale)
   }
 
   // 1. Group overdue payments by Contract (House or Branch)
@@ -196,7 +191,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
 
       summaries.push({
         contractId,
-        contractNo: contract?.contract_no || 'ไม่ระบุเลขที่สัญญา',
+        contractNo: contract?.contract_no || tx({ th: 'ไม่ระบุเลขที่สัญญา', en: 'No contract number', my: 'စာချုပ်အမှတ် မရှိပါ' }),
         isHouse,
         propertyName: locationName,
         province,
@@ -382,7 +377,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
               {t.payments.title}
             </h1>
             <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-rose-200 text-xs px-2 py-0.5">
-              ค้างชำระ / ชำระล่าช้า
+              {tx({ th: 'ค้างชำระ / ชำระล่าช้า', en: 'Overdue / Delayed', my: 'ပေးချေရန်ကျန် / နောက်ကျ' })}
             </Badge>
           </div>
           <p className="text-sm text-slate-500 mt-1">
@@ -402,7 +397,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
             }`}
           >
             <Building2 className="h-3.5 w-3.5" />
-            ตามบ้าน / สาขาที่ค้าง
+            {tx({ th: 'ตามบ้าน / สาขาที่ค้าง', en: 'By Overdue Property', my: 'ပေးချေရန်ကျန် အိမ်/ဆိုင်ခွဲအလိုက်' })}
             {kpis.overduePropertiesCount > 0 && (
               <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
                 {kpis.overduePropertiesCount}
@@ -420,7 +415,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
             }`}
           >
             <Clock className="h-3.5 w-3.5" />
-            ตามงวดที่ค้าง
+            {tx({ th: 'ตามงวดที่ค้าง', en: 'By Overdue Installment', my: 'ပေးချေရန်ကျန် အရစ်အလိုက်' })}
             {kpis.overdueCount > 0 && (
               <span className="ml-1 px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
                 {kpis.overdueCount}
@@ -438,7 +433,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
             }`}
           >
             <Layers className="h-3.5 w-3.5" />
-            แสดงงวดทั้งหมด ({safePayments.length})
+            {tx({ th: 'แสดงงวดทั้งหมด', en: 'All Periods', my: 'အရစ်အားလုံး' })} ({safePayments.length})
           </button>
         </div>
       </div>
@@ -448,12 +443,12 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
         <div className="flex items-start sm:items-center gap-2">
           <span className="p-1 rounded bg-amber-200 text-amber-800 font-bold shrink-0">💡</span>
           <div>
-            <span className="font-semibold">ระบบคัดกรองเฉพาะบ้านหรือสาขาที่มีการค้างชำระ / ชำระล่าช้า</span>
+            <span className="font-semibold">{tx({ th: 'ระบบคัดกรองเฉพาะบ้านหรือสาขาที่มีการค้างชำระ / ชำระล่าช้า', en: 'Filtered to overdue/delayed properties only', my: 'ပေးချေရန်ကျန်/နောက်ကျသော အိမ်/ဆိုင်ခွဲများကိုသာ ရွေးထုတ်ထားပါသည်' })}</span>
             <span className="text-amber-700 ml-1">
-              เพื่อให้เจ้าหน้าที่ติดตามทวงถามและบันทึกรับ-จ่ายเงินได้รวดเร็ว (สำหรับตาราง 36 งวดปกติทั้งหมด สามารถดูได้ในเมนู
-            </span>{' '}
+              {tx({ th: 'เพื่อให้เจ้าหน้าที่ติดตามทวงถามและบันทึกรับ-จ่ายเงินได้รวดเร็ว (สำหรับตารางงวดปกติทั้งหมด สามารถดูได้ในเมนู', en: 'for quick follow-up and payment recording (for full installment schedules, visit', my: 'တာဝန်ရှိသူများ လျင်မြန်စွာလိုက်လံကောက်ခံနိုင်ရန် (ပုံမှန်အရစ်ဇယားအပြည့်အစုံကို' })}{' '}
+            </span>
             <Link href="/contracts" className="font-semibold underline hover:text-amber-950">
-              สัญญาเช่า
+              {t.contracts.title}
             </Link>
             )
           </div>
@@ -466,7 +461,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
         >
           <Link href="/contracts">
             <FileText className="h-3.5 w-3.5 mr-1" />
-            ไปที่สัญญาเช่า
+            {tx({ th: 'ไปที่สัญญาเช่า', en: 'Go to Contracts', my: 'စာချုပ်များသို့' })}
           </Link>
         </Button>
       </div>
@@ -476,7 +471,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
         {/* Overdue Total Debt */}
         <div className="bg-rose-50/80 border border-rose-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-700">ยอดค้างชำระรวม</span>
+            <span className="text-xs font-semibold text-rose-700">{tx({ th: 'ยอดค้างชำระรวม', en: 'Total Overdue Debt', my: 'စုစုပေါင်း ပေးချေရန်ကျန်ငွေ' })}</span>
             <AlertTriangle className="h-4 w-4 text-rose-500" />
           </div>
           <p className="text-2xl font-bold text-rose-700 mt-2">
@@ -484,26 +479,26 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
           </p>
           <div className="text-[11px] text-rose-600 mt-1 flex items-center gap-1.5">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-500" />
-            {kpis.overdueCount} งวดที่เลยกำหนดชำระ
+            {kpis.overdueCount} {tx({ th: 'งวดที่เลยกำหนดชำระ', en: 'overdue installment(s)', my: 'ရက်လွန်အရစ်' })}
           </div>
         </div>
 
         {/* Overdue Properties Count */}
         <div className="bg-orange-50/80 border border-orange-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-orange-700">บ้าน / สาขาที่ค้างชำระ</span>
+            <span className="text-xs font-semibold text-orange-700">{tx({ th: 'บ้าน / สาขาที่ค้างชำระ', en: 'Overdue Properties', my: 'ပေးရန်ကျန် အိမ် / ဆိုင်ခွဲ' })}</span>
             <Building2 className="h-4 w-4 text-orange-500" />
           </div>
           <p className="text-2xl font-bold text-orange-800 mt-2">
             {kpis.overduePropertiesCount}{' '}
-            <span className="text-sm font-normal text-orange-600">แห่ง/หลัง</span>
+            <span className="text-sm font-normal text-orange-600">{tx({ th: 'แห่ง/หลัง', en: 'properties', my: 'နေရာ' })}</span>
           </p>
           <div className="text-[11px] text-orange-700 mt-1 flex items-center gap-1">
-            <span>สาขา: {kpis.branchOverdueCount}</span>
+            <span>{tx(W.branch)}: {kpis.branchOverdueCount}</span>
             {userRole !== 'operation' && (
               <>
                 <span>•</span>
-                <span>บ้าน: {kpis.houseOverdueCount}</span>
+                <span>{tx(W.houseResidential)}: {kpis.houseOverdueCount}</span>
               </>
             )}
           </div>
@@ -512,25 +507,25 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
         {/* Overdue Receivable (from Customer) */}
         <div className="bg-teal-50/70 border border-teal-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-teal-800">ค้างรับจากลูกค้า</span>
+            <span className="text-xs font-semibold text-teal-800">{tx({ th: 'ค้างรับจากลูกค้า', en: 'Overdue Receivable', my: 'ဖောက်သည်ထံမှ ရရန်ကျန်' })}</span>
             <ArrowDownLeft className="h-4 w-4 text-teal-600" />
           </div>
           <p className="text-xl font-bold text-teal-800 mt-2">
             ฿{kpis.overdueReceivableTotal.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
           </p>
-          <span className="text-[11px] text-teal-600">ลูกค้าค้างชำระค่าเช่าบริษัท</span>
+          <span className="text-[11px] text-teal-600">{tx({ th: 'ลูกค้าค้างชำระค่าเช่าบริษัท', en: 'Customer overdue payments to company', my: 'ဖောက်သည်မှ ကုမ္ပဏီသို့ ပေးချေရန်ကျန်ငွေ' })}</span>
         </div>
 
         {/* Overdue Payable (to Landlord) */}
         <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-indigo-800">ค้างจ่ายผู้ให้เช่า</span>
+            <span className="text-xs font-semibold text-indigo-800">{tx({ th: 'ค้างจ่ายผู้ให้เช่า', en: 'Overdue Payable', my: 'အိမ်ရှင်သို့ ပေးရန်ကျန်' })}</span>
             <ArrowUpRight className="h-4 w-4 text-indigo-600" />
           </div>
           <p className="text-xl font-bold text-indigo-800 mt-2">
             ฿{kpis.overduePayableTotal.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
           </p>
-          <span className="text-[11px] text-indigo-600">บริษัทต้องชำระให้เจ้าของ</span>
+          <span className="text-[11px] text-indigo-600">{tx({ th: 'บริษัทต้องชำระให้เจ้าของ', en: 'Company overdue payments to landlord', my: 'ကုမ္ပဏီမှ အိမ်ရှင်သို့ ပေးရန်ကျန်ငွေ' })}</span>
         </div>
       </div>
 
@@ -549,7 +544,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                ทั้งหมดที่ค้าง ({overdueProperties.length} แห่ง)
+                {tx({ th: 'ทั้งหมดที่ค้าง', en: 'All Overdue', my: 'ပေးရန်ကျန် အားလုံး' })} ({overdueProperties.length})
               </button>
 
               <button
@@ -561,7 +556,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                🏢 เฉพาะสาขา ({kpis.branchOverdueCount})
+                🏢 {tx(W.branch)} ({kpis.branchOverdueCount})
               </button>
 
               {userRole !== 'operation' && (
@@ -574,7 +569,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  🏠 เฉพาะบ้าน ({kpis.houseOverdueCount})
+                  🏠 {tx(W.houseResidential)} ({kpis.houseOverdueCount})
                 </button>
               )}
 
@@ -587,7 +582,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                📥 ค้างรับจากลูกค้า
+                📥 {tx({ th: 'ค้างรับจากลูกค้า', en: 'Receivable', my: 'ရရန်ကျန်' })}
               </button>
 
               <button
@@ -599,7 +594,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                📤 ค้างจ่ายผู้ให้เช่า
+                📤 {tx({ th: 'ค้างจ่ายผู้ให้เช่า', en: 'Payable', my: 'ပေးရန်ကျန်' })}
               </button>
             </div>
 
@@ -610,7 +605,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                   onClick={() => expandAll(overdueProperties.map((p) => p.contractId))}
                   className="hover:text-primary-600 hover:underline px-2 py-1"
                 >
-                  คลี่ดูทั้งหมด
+                  {tx({ th: 'คลี่ดูทั้งหมด', en: 'Expand All', my: 'အားလုံးဖွင့်ရန်' })}
                 </button>
                 <span>|</span>
                 <button
@@ -618,7 +613,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                   onClick={collapseAll}
                   className="hover:text-primary-600 hover:underline px-2 py-1"
                 >
-                  พับเก็บทั้งหมด
+                  {tx({ th: 'พับเก็บทั้งหมด', en: 'Collapse All', my: 'အားလုံးခေါက်ရန်' })}
                 </button>
               </div>
             )}
@@ -626,7 +621,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
         ) : (
           <div className="flex border-b border-slate-200 overflow-x-auto pb-px">
             <span className="px-3.5 py-2 text-xs font-semibold text-slate-800 border-b-2 border-primary-600">
-              ตารางงวดชำระทั้งหมด ({safePayments.length} งวด)
+              {tx({ th: 'ตารางงวดชำระทั้งหมด', en: 'All Installments', my: 'အရစ်အားလုံး ဇယား' })} ({safePayments.length})
             </span>
           </div>
         )}
@@ -636,7 +631,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="ค้นหา (เลขที่สัญญา, ชื่อสาขา/บ้าน, ผู้เช่า, ผู้ให้เช่า, เบอร์โทร, จังหวัด)..."
+              placeholder={tx({ th: 'ค้นหา (เลขที่สัญญา, ชื่อสาขา/บ้าน, ผู้เช่า, ผู้ให้เช่า, เบอร์โทร, จังหวัด)...', en: 'Search (contract no, property name, tenant, landlord, phone, province)...', my: 'ရှာဖွေရန် (စာချုပ်နံပါတ်၊ ဆိုင်ခွဲ/အိမ်အမည်၊ ဖောက်သည်၊ အိမ်ရှင်၊ ဖုန်း)...' })}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 bg-white text-xs h-9"
@@ -650,10 +645,10 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
               onChange={(e) => setPeriodFilter(e.target.value)}
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 h-9"
             >
-              <option value="all">ทุกงวดเดือน</option>
+              <option value="all">{tx({ th: 'ทุกงวดเดือน', en: 'All Periods', my: 'လစဉ်အရစ် အားလုံး' })}</option>
               {billingPeriods.map((bp) => (
                 <option key={bp} value={bp}>
-                  งวด {bp}
+                  {tx({ th: 'งวด', en: 'Period', my: 'အရစ်' })} {bp}
                 </option>
               ))}
             </select>
@@ -666,7 +661,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500 h-9"
             >
-              <option value="all">ทุกสถานะงวด</option>
+              <option value="all">{tx({ th: 'ทุกสถานะงวด', en: 'All Statuses', my: 'အခြေအနေ အားလုံး' })}</option>
               {Object.entries(PAYMENT_STATUS_LABELS).map(([val]) => (
                 <option key={val} value={val}>
                   {getPaymentStatusLabel(val)}
@@ -689,13 +684,13 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
               </div>
               <h3 className="text-base font-bold text-slate-900">
                 {searchTerm || overdueFilter !== 'all'
-                  ? 'ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา'
-                  : 'ยอดเยี่ยม! ไม่มีบ้านหรือสาขาที่ค้างชำระ'}
+                  ? tx({ th: 'ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา', en: 'No matching records found', my: 'ရှာဖွေမှုနှင့် ကိုက်ညီသော အချက်အလက် မရှိပါ' })
+                  : tx({ th: 'ยอดเยี่ยม! ไม่มีบ้านหรือสาขาที่ค้างชำระ', en: 'Great! No overdue properties', my: 'ကောင်းမွန်သည်! ပေးချေရန်ကျန်သော အိမ်/ဆိုင်ခွဲ မရှိပါ' })}
               </h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
                 {searchTerm || overdueFilter !== 'all'
-                  ? 'กรุณาลองล้างคำค้นหาหรือเปลี่ยนตัวกรองเพื่อดูรายการค้างชำระอื่นๆ'
-                  : 'ทุกบ้านและทุกสาขาชำระเงินตามกำหนดเวลาเรียบร้อยแล้ว ไม่มียอดหนี้ค้างชำระในระบบ'}
+                  ? tx({ th: 'กรุณาลองล้างคำค้นหาหรือเปลี่ยนตัวกรองเพื่อดูรายการค้างชำระอื่นๆ', en: 'Please clear search or adjust filter to see other overdue items.', my: 'အခြား ပေးရန်ကျန်များကို ကြည့်ရန် စစ်ထုတ်မှုကို ပြောင်းလဲပါ' })
+                  : tx({ th: 'ทุกบ้านและทุกสาขาชำระเงินตามกำหนดเวลาเรียบร้อยแล้ว ไม่มียอดหนี้ค้างชำระในระบบ', en: 'All properties are paid up to date. No overdue debts in the system.', my: 'အိမ်နှင့် ဆိုင်ခွဲအားလုံး သတ်မှတ်ရက်အတိုင်း ပေးချေပြီးဖြစ်ပါသည်။' })}
               </p>
               <div className="mt-4 flex items-center justify-center gap-2">
                 <Button
@@ -704,7 +699,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                   size="sm"
                   className="text-xs"
                 >
-                  <Link href="/contracts">ดูสัญญาเช่าทั้งหมด</Link>
+                  <Link href="/contracts">{tx({ th: 'ดูสัญญาเช่าทั้งหมด', en: 'View All Contracts', my: 'စာချုပ်အားလုံး ကြည့်ရန်' })}</Link>
                 </Button>
                 <Button
                   type="button"
@@ -713,7 +708,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                   onClick={() => setViewMode('all_periods')}
                   className="text-xs"
                 >
-                  แสดงงวดทั้งหมด
+                  {tx({ th: 'แสดงงวดทั้งหมด', en: 'Show All Installments', my: 'အရစ်အားလုံး ပြရန်' })}
                 </Button>
               </div>
             </div>
@@ -737,12 +732,12 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                             {prop.isHouse ? (
                               <Badge className="bg-amber-50 text-amber-800 border-amber-200 text-xs px-2.5 py-0.5 flex items-center gap-1 font-semibold">
                                 <Home className="h-3 w-3 text-amber-600" />
-                                บ้าน / ที่พักอาศัย
+                                {tx(W.houseResidential)}
                               </Badge>
                             ) : (
                               <Badge className="bg-sky-50 text-sky-800 border-sky-200 text-xs px-2.5 py-0.5 flex items-center gap-1 font-semibold">
                                 <Building2 className="h-3 w-3 text-sky-600" />
-                                สาขา / สถานประกอบการ
+                                {tx(W.branch)}
                               </Badge>
                             )}
 
@@ -755,8 +750,8 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                               }`}
                             >
                               {prop.paymentType === 'payable'
-                                ? '📤 จ่ายเจ้าของ (Payable)'
-                                : '📥 รับจากลูกค้า (Receivable)'}
+                                ? tx({ th: '📤 จ่ายเจ้าของ (Payable)', en: '📤 Payable to Landlord', my: '📤 အိမ်ရှင်သို့ ပေးရန်' })
+                                : tx({ th: '📥 รับจากลูกค้า (Receivable)', en: '📥 Receivable from Customer', my: '📥 ဖောက်သည်ထံမှ ရရန်' })}
                             </Badge>
 
                             {/* Contract No Link */}
@@ -785,7 +780,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 pt-0.5">
                             <div className="flex items-center gap-1">
                               <span className="text-slate-400">
-                                {prop.paymentType === 'payable' ? 'ผู้ให้เช่า:' : 'ผู้เช่า/ลูกค้า:'}
+                                {prop.paymentType === 'payable' ? tx({ th: 'ผู้ให้เช่า:', en: 'Landlord:', my: 'အိမ်ရှင်:' }) : tx({ th: 'ผู้เช่า/ลูกค้า:', en: 'Tenant/Customer:', my: 'အိမ်ငှား/ဖောက်သည်:' })}
                               </span>
                               <span className="font-semibold text-slate-800">
                                 {prop.counterpartyName}
@@ -807,7 +802,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                             {prop.bankAccountNumber && (
                               <div className="flex items-center gap-1 text-slate-500">
                                 <Landmark className="h-3 w-3 text-slate-400" />
-                                <span>{prop.bankName || 'ธนาคาร'}:</span>
+                                <span>{prop.bankName || tx({ th: 'ธนาคาร', en: 'Bank', my: 'ဘဏ်' })}:</span>
                                 <span className="font-mono font-medium text-slate-700">
                                   {prop.bankAccountNumber}
                                 </span>
@@ -822,18 +817,18 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                           <div className="text-left lg:text-right">
                             <div className="text-[11px] text-rose-600 font-semibold flex items-center lg:justify-end gap-1">
                               <AlertTriangle className="h-3 w-3 text-rose-500" />
-                              ค้างชำระ {prop.overdueCount} งวด
+                              {tx({ th: 'ค้างชำระ', en: 'Overdue', my: 'ပေးချေရန်ကျန်' })} {prop.overdueCount} {tx({ th: 'งวด', en: 'installments', my: 'အရစ်' })}
                               <span className="text-slate-400 font-normal">
-                                (จากทั้งหมด {prop.totalContractInstallments} งวด)
+                                ({tx({ th: 'จากทั้งหมด', en: 'out of', my: 'စုစုပေါင်း' })} {prop.totalContractInstallments} {tx({ th: 'งวด', en: 'installments', my: 'အရစ်' })})
                               </span>
                             </div>
                             <div className="text-2xl font-black text-rose-600 tracking-tight">
-                              ฿{prop.totalOverdueBalance.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                              ฿{prop.totalOverdueBalance.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                             </div>
                             <div className="text-[11px] text-slate-500">
-                              เลยกำหนดสูงสุด{' '}
+                              {tx({ th: 'เลยกำหนดสูงสุด', en: 'Max Overdue', my: 'အများဆုံး ရက်လွန်' })}{' '}
                               <span className="font-bold text-rose-700">
-                                {prop.maxDaysOverdue} วัน
+                                {prop.maxDaysOverdue} {tx({ th: 'วัน', en: 'days', my: 'ရက်' })}
                               </span>
                             </div>
                           </div>
@@ -854,12 +849,12 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                               {isExpanded ? (
                                 <>
                                   <ChevronUp className="h-3.5 w-3.5 mr-1" />
-                                  ซ่อนงวดที่ค้าง
+                                  {tx({ th: 'ซ่อนงวดที่ค้าง', en: 'Hide Overdue', my: 'ဝှက်ရန်' })}
                                 </>
                               ) : (
                                 <>
                                   <ChevronDown className="h-3.5 w-3.5 mr-1" />
-                                  คลี่ดูงวดที่ค้าง ({prop.overdueCount})
+                                  {tx({ th: 'คลี่ดูงวดที่ค้าง', en: 'View Overdue', my: 'အရစ်များ ကြည့်ရန်' })} ({prop.overdueCount})
                                 </>
                               )}
                             </Button>
@@ -871,7 +866,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                               className="h-9 px-3 text-xs bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                             >
                               <Link href={`/contracts/${prop.contractId}`}>
-                                ดูสัญญาเช่า
+                                {tx({ th: 'ดูสัญญาเช่า', en: 'View Contract', my: 'စာချုပ်ကြည့်ရန်' })}
                                 <ExternalLink className="h-3 w-3 ml-1" />
                               </Link>
                             </Button>
@@ -886,10 +881,10 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                         <div className="mb-2 flex items-center justify-between text-xs text-slate-600">
                           <span className="font-semibold text-slate-700 flex items-center gap-1.5">
                             <Clock className="h-3.5 w-3.5 text-rose-500" />
-                            รายการงวดที่ค้างชำระ ({prop.overduePayments.length} งวด):
+                            {tx({ th: 'รายการงวดที่ค้างชำระ', en: 'Overdue Installment Items', my: 'ပေးရန်ကျန် အရစ်စာရင်း' })} ({prop.overduePayments.length}):
                           </span>
                           <span className="text-[11px] text-slate-400">
-                            คลิก &quot;บันทึกการชำระ / สลิป&quot; เพื่ออัปเดตยอดหรือแนบหลักฐานการโอน
+                            {tx({ th: 'คลิก "บันทึกการชำระ / สลิป" เพื่ออัปเดตยอดหรือแนบหลักฐานการโอน', en: 'Click "Record Payment / Slip" to update or upload slip', my: 'ငွေပေးချေမှုမှတ်တမ်းတင်ရန် သို့မဟုတ် စလစ်တင်ရန် နှိပ်ပါ' })}
                           </span>
                         </div>
 
@@ -898,14 +893,14 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                             <table className="w-full text-left text-xs">
                               <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600">
                                 <tr>
-                                  <th className="px-3 py-2.5">งวดเดือน</th>
-                                  <th className="px-3 py-2.5">วันครบกำหนด</th>
-                                  <th className="px-3 py-2.5">ล่าช้า</th>
-                                  <th className="px-3 py-2.5 text-right">ยอดที่ต้องชำระ</th>
-                                  <th className="px-3 py-2.5 text-right">ชำระแล้ว</th>
-                                  <th className="px-3 py-2.5 text-right">ยอดค้างชำระ</th>
-                                  <th className="px-3 py-2.5 text-center">สถานะ</th>
-                                  <th className="px-3 py-2.5 text-right">จัดการ</th>
+                                  <th className="px-3 py-2.5">{t.payments.paymentMonth}</th>
+                                  <th className="px-3 py-2.5">{t.payments.dueDate}</th>
+                                  <th className="px-3 py-2.5">{tx({ th: 'ล่าช้า', en: 'Delay', my: 'ရက်လွန်' })}</th>
+                                  <th className="px-3 py-2.5 text-right">{t.payments.amount}</th>
+                                  <th className="px-3 py-2.5 text-right">{t.payments.paidAmount}</th>
+                                  <th className="px-3 py-2.5 text-right">{t.payments.remainingAmount}</th>
+                                  <th className="px-3 py-2.5 text-center">{t.common.status}</th>
+                                  <th className="px-3 py-2.5 text-right">{t.common.actions}</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -931,30 +926,30 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
 
                                       {/* Due Date */}
                                       <td className="px-3 py-2.5 whitespace-nowrap text-slate-600">
-                                        {new Date(p.due_date).toLocaleDateString('th-TH')}
+                                        {new Date(p.due_date).toLocaleDateString(intlLocale)}
                                       </td>
 
                                       {/* Days Overdue */}
                                       <td className="px-3 py-2.5 whitespace-nowrap">
                                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded px-1.5 py-0.5">
                                           <Clock className="h-2.5 w-2.5" />
-                                          เลยกำหนด {days} วัน
+                                          {tx({ th: 'เลยกำหนด', en: 'Overdue', my: 'ရက်လွန်' })} {days} {tx({ th: 'วัน', en: 'days', my: 'ရက်' })}
                                         </span>
                                       </td>
 
                                       {/* Net Amount */}
                                       <td className="px-3 py-2.5 text-right font-medium text-slate-800 whitespace-nowrap">
-                                        ฿{Number(p.net_amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                        ฿{Number(p.net_amount).toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                                       </td>
 
                                       {/* Paid Amount */}
                                       <td className="px-3 py-2.5 text-right text-emerald-600 whitespace-nowrap">
-                                        ฿{Number(p.amount_paid).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                        ฿{Number(p.amount_paid).toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                                       </td>
 
                                       {/* Balance */}
                                       <td className="px-3 py-2.5 text-right font-bold text-rose-600 whitespace-nowrap">
-                                        ฿{balance.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                        ฿{balance.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                                       </td>
 
                                       {/* Status */}
@@ -976,7 +971,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                                           className="h-7 px-2.5 text-xs text-rose-700 bg-rose-50/60 border-rose-200 hover:bg-rose-100"
                                         >
                                           <Link href={`/rent-payments/${p.id}`}>
-                                            บันทึกการชำระ / สลิป
+                                            {tx({ th: 'บันทึกการชำระ / สลิป', en: 'Record / Slip', my: 'ငွေပေးချေမှု / စလစ်' })}
                                             <ExternalLink className="ml-1 h-3 w-3" />
                                           </Link>
                                         </Button>
@@ -1009,10 +1004,10 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <h3 className="text-base font-bold text-slate-900">
-                ไม่พบงวดค้างชำระตามเงื่อนไข
+                {tx({ th: 'ไม่พบงวดค้างชำระตามเงื่อนไข', en: 'No overdue installments found', my: 'သတ်မှတ်ချက်နှင့်ကိုက်ညီသော ပေးရန်ကျန်အရစ် မရှိပါ' })}
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                ไม่พบรายการงวดที่ค้างชำระที่ตรงกับตัวกรองที่เลือก
+                {tx({ th: 'ไม่พบรายการงวดที่ค้างชำระที่ตรงกับตัวกรองที่เลือก', en: 'No overdue installments match the selected filters.', my: 'ရွေးချယ်ထားသော စစ်ထုတ်မှုနှင့် ကိုက်ညီသော အရစ် မရှိပါ' })}
               </p>
             </div>
           ) : (
@@ -1021,16 +1016,16 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                 <table className="w-full text-left text-xs">
                   <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600">
                     <tr>
-                      <th className="px-4 py-3">งวดเดือน</th>
-                      <th className="px-4 py-3">บ้าน / สาขา & สัญญา</th>
-                      <th className="px-4 py-3">ประเภท</th>
-                      <th className="px-4 py-3">คู่สัญญา</th>
-                      <th className="px-4 py-3">วันครบกำหนด & ล่าช้า</th>
-                      <th className="px-4 py-3 text-right">ยอดที่ต้องชำระ</th>
-                      <th className="px-4 py-3 text-right">ชำระแล้ว</th>
-                      <th className="px-4 py-3 text-right">ยอดคงค้าง</th>
-                      <th className="px-4 py-3 text-center">สถานะ</th>
-                      <th className="px-4 py-3 text-right">จัดการ</th>
+                      <th className="px-4 py-3">{t.payments.paymentMonth}</th>
+                      <th className="px-4 py-3">{tx({ th: 'บ้าน / สาขา & สัญญา', en: 'Property & Contract', my: 'အိမ် / ဆိုင်ခွဲ နှင့် စာချုပ်' })}</th>
+                      <th className="px-4 py-3">{tx({ th: 'ประเภท', en: 'Type', my: 'အမျိုးအစား' })}</th>
+                      <th className="px-4 py-3">{tx({ th: 'คู่สัญญา', en: 'Counterparty', my: 'စာချုပ်ပါပုဂ္ဂိုလ်' })}</th>
+                      <th className="px-4 py-3">{t.payments.dueDate} & {tx({ th: 'ล่าช้า', en: 'Delay', my: 'ရက်လွန်' })}</th>
+                      <th className="px-4 py-3 text-right">{t.payments.amount}</th>
+                      <th className="px-4 py-3 text-right">{t.payments.paidAmount}</th>
+                      <th className="px-4 py-3 text-right">{t.payments.remainingAmount}</th>
+                      <th className="px-4 py-3 text-center">{t.common.status}</th>
+                      <th className="px-4 py-3 text-right">{t.common.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -1055,11 +1050,11 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                             <div className="flex items-center gap-1.5">
                               {isHouse ? (
                                 <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">
-                                  🏠 บ้าน
+                                  🏠 {tx(W.houseResidential)}
                                 </Badge>
                               ) : (
                                 <Badge className="bg-sky-50 text-sky-700 border-sky-200 text-[10px] px-1.5 py-0">
-                                  🏢 สาขา
+                                  🏢 {tx(W.branch)}
                                 </Badge>
                               )}
                               <span className="font-semibold text-slate-800">
@@ -1089,7 +1084,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                                   : 'bg-teal-50 text-teal-700'
                               }`}
                             >
-                              {p.payment_type === 'payable' ? 'จ่ายเจ้าของ' : 'รับจากลูกค้า'}
+                              {labelOf(PAYMENT_TYPE_TRI, p.payment_type, locale)}
                             </span>
                           </td>
 
@@ -1123,23 +1118,23 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
 
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="text-slate-700 font-medium">
-                              {new Date(p.due_date).toLocaleDateString('th-TH')}
+                              {new Date(p.due_date).toLocaleDateString(intlLocale)}
                             </div>
                             <span className="text-[10px] text-rose-600 font-semibold">
-                              เลยกำหนด {days} วัน
+                              {tx({ th: 'เลยกำหนด', en: 'Overdue', my: 'ရက်လွန်' })} {days} {tx({ th: 'วัน', en: 'days', my: 'ရက်' })}
                             </span>
                           </td>
 
                           <td className="px-4 py-3 text-right font-bold text-slate-900 whitespace-nowrap">
-                            ฿{Number(p.net_amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                            ฿{Number(p.net_amount).toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                           </td>
 
                           <td className="px-4 py-3 text-right text-emerald-600 font-medium whitespace-nowrap">
-                            ฿{Number(p.amount_paid).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                            ฿{Number(p.amount_paid).toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                           </td>
 
                           <td className="px-4 py-3 text-right font-bold text-rose-600 whitespace-nowrap">
-                            ฿{balance.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                            ฿{balance.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                           </td>
 
                           <td className="px-4 py-3 text-center whitespace-nowrap">
@@ -1159,7 +1154,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                               className="h-7 px-2.5 text-xs text-rose-700 bg-rose-50/50 border-rose-200 hover:bg-rose-100"
                             >
                               <Link href={`/rent-payments/${p.id}`}>
-                                บันทึกการจ่าย
+                                {t.payments.recordPayment}
                                 <ExternalLink className="ml-1 h-3 w-3" />
                               </Link>
                             </Button>
@@ -1182,7 +1177,11 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
         <div className="space-y-4">
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center justify-between">
             <span>
-              ℹ️ หน้านี้แสดงงวดชำระทั้งหมดในระบบ ({filteredAllInstallments.length} รายการ) ทั้งงวดที่ชำระแล้ว งวดรอชำระในอนาคต และงวดค้างชำระ
+              ℹ️ {tx({
+                th: `หน้านี้แสดงงวดชำระทั้งหมดในระบบ (${filteredAllInstallments.length} รายการ) ทั้งงวดที่ชำระแล้ว งวดรอชำระในอนาคต และงวดค้างชำระ`,
+                en: `Showing all ${filteredAllInstallments.length} installments in the system (paid, upcoming, and overdue)`,
+                my: `စနစ်အတွင်းရှိ အရစ်အားလုံး (${filteredAllInstallments.length} ခု) ကို ပြသထားပါသည်`
+              })}
             </span>
             <Button
               type="button"
@@ -1191,7 +1190,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
               onClick={() => setViewMode('by_property')}
               className="text-xs h-7 bg-white text-primary-700 border-primary-200 hover:bg-primary-50"
             >
-              กลับไปดูเฉพาะที่ค้างชำระ
+              {tx({ th: 'กลับไปดูเฉพาะที่ค้างชำระ', en: 'Back to Overdue Only', my: 'ပေးရန်ကျန်များသာ ကြည့်ရန်' })}
             </Button>
           </div>
 
@@ -1268,7 +1267,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                                   : 'bg-teal-50 text-teal-700'
                               }`}
                             >
-                              {p.payment_type === 'payable' ? 'จ่ายเจ้าของ' : 'รับจากลูกค้า'}
+                              {labelOf(PAYMENT_TYPE_TRI, p.payment_type, locale)}
                             </span>
                           </td>
 
@@ -1280,7 +1279,7 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                                 </span>
                                 {contract.landlords.bank_account_number && (
                                   <span className="text-[10px] text-slate-400 font-mono">
-                                    {contract.landlords.bank_name || 'ธ.'}{' '}
+                                    {contract.landlords.bank_name || tx({ th: 'ธ.', en: 'Bank', my: 'ဘဏ်' })}{' '}
                                     {contract.landlords.bank_account_number}
                                   </span>
                                 )}
@@ -1297,20 +1296,20 @@ export function PaymentListView({ payments, userRole }: PaymentListViewProps) {
                           </td>
 
                           <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                            {new Date(p.due_date).toLocaleDateString('th-TH')}
+                            {new Date(p.due_date).toLocaleDateString(intlLocale)}
                           </td>
 
                           <td className="px-4 py-3 text-right font-bold text-slate-900 whitespace-nowrap">
-                            ฿{Number(p.net_amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                            ฿{Number(p.net_amount).toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                           </td>
 
                           <td className="px-4 py-3 text-right text-emerald-600 font-medium whitespace-nowrap">
-                            ฿{Number(p.amount_paid).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                            ฿{Number(p.amount_paid).toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                           </td>
 
                           <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">
                             <span className={balance > 0 ? 'text-rose-600' : 'text-slate-400'}>
-                              ฿{balance.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                              ฿{balance.toLocaleString(intlLocale, { minimumFractionDigits: 2 })}
                             </span>
                           </td>
 

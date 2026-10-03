@@ -25,10 +25,12 @@ import {
   type RentalContractFormValues,
   type ContractWithRelations,
   type ContractStatus,
-  CONTRACT_STATUS_LABELS,
 } from '@/lib/types/contracts-payments'
 import type { UserProfile, UserRole } from '@/lib/types/auth'
 import { createContractAction, updateContractAction } from '@/lib/actions/contracts'
+import { useI18n } from '@/lib/i18n/context'
+import { labelOf } from '@/lib/i18n/tx'
+import { CONTRACT_STATUS_TRI, W } from '@/lib/i18n/labels'
 import {
   parseLeadMetadata,
   buildLeadMetadataNote,
@@ -57,6 +59,9 @@ export function ContractForm({
   userRole,
 }: ContractFormProps) {
   const router = useRouter()
+  const { tx, locale, intl } = useI18n()
+  const money = (n: number, frac = 2) =>
+    n.toLocaleString(intl, { minimumFractionDigits: frac })
   const isEdit = Boolean(initialData)
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
   const isOperation = userRole === 'operation'
@@ -222,14 +227,14 @@ export function ContractForm({
       if (isEdit && initialData) {
         const res = await updateContractAction(initialData.id, payload)
         if (!res.success) {
-          setErrorMsg(res.error || 'เกิดข้อผิดพลาดในการอัปเดตสัญญา')
+          setErrorMsg(res.error || tx({ th: 'เกิดข้อผิดพลาดในการอัปเดตสัญญา', en: 'Error updating contract', my: 'စာချုပ်ပြင်ဆင်ရာတွင် အမှားဖြစ်ပွား' }))
           return
         }
         router.push(`/contracts/${initialData.id}`)
       } else {
         const res = await createContractAction(payload)
         if (!res.success) {
-          setErrorMsg(res.error || 'เกิดข้อผิดพลาดในการสร้างสัญญา')
+          setErrorMsg(res.error || tx({ th: 'เกิดข้อผิดพลาดในการสร้างสัญญา', en: 'Error creating contract', my: 'စာချုပ်ဖန်တီးရာတွင် အမှားဖြစ်ပွား' }))
           return
         }
         const createdId = (res.data as { id?: string })?.id
@@ -237,7 +242,7 @@ export function ContractForm({
       }
       router.refresh()
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่คาดคิด'
+      const msg = err instanceof Error ? err.message : tx(W.saveError)
       setErrorMsg(msg)
     }
   }
@@ -254,10 +259,16 @@ export function ContractForm({
           </Button>
           <div>
             <h1 className="text-xl font-bold text-slate-900">
-              {isEdit ? `แก้ไขสัญญา: ${initialData?.contract_no}` : 'สร้างสัญญาเช่าใหม่'}
+              {isEdit
+                ? `${tx({ th: 'แก้ไขสัญญา', en: 'Edit Contract', my: 'စာချုပ်ပြင်ဆင်' })}: ${initialData?.contract_no}`
+                : tx({ th: 'สร้างสัญญาเช่าใหม่', en: 'New Rental Contract', my: 'ငှားရမ်းစာချုပ်အသစ် ဖန်တီး' })}
             </h1>
             <p className="text-xs text-slate-500">
-              กรอกข้อมูลสัญญาเช่า เงื่อนไขทางการเงิน และการหักภาษี ณ ที่จ่าย
+              {tx({
+                th: 'กรอกข้อมูลสัญญาเช่า เงื่อนไขทางการเงิน และการหักภาษี ณ ที่จ่าย',
+                en: 'Enter contract details, financial terms, and withholding tax settings',
+                my: 'စာချုပ်အချက်အလက်၊ ငွေကြေးသတ်မှတ်ချက်နှင့် အခွန်ဖြတ်တောက်မှု ထည့်သွင်းပါ',
+              })}
             </p>
           </div>
         </div>
@@ -265,7 +276,7 @@ export function ContractForm({
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" type="button">
             <Link href={isEdit && initialData ? `/contracts/${initialData.id}` : '/contracts'}>
-              ยกเลิก
+              {tx({ th: 'ยกเลิก', en: 'Cancel', my: 'မလုပ်တော့' })}
             </Link>
           </Button>
           <Button
@@ -274,7 +285,9 @@ export function ContractForm({
             className="bg-primary-600 hover:bg-primary-700 text-white min-w-[120px]"
           >
             <Save className="mr-2 h-4 w-4" />
-            {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกสัญญา'}
+            {isSubmitting
+              ? tx({ th: 'กำลังบันทึก...', en: 'Saving...', my: 'သိမ်းဆည်းနေသည်...' })
+              : tx({ th: 'บันทึกสัญญา', en: 'Save Contract', my: 'စာချုပ်သိမ်းမည်' })}
           </Button>
         </div>
       </div>
@@ -292,13 +305,13 @@ export function ContractForm({
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary-600" />
-              ข้อมูลทั่วไปของสัญญา
+              {tx({ th: 'ข้อมูลทั่วไปของสัญญา', en: 'General Information', my: 'စာချုပ် အထွေထွေ အချက်အလက်' })}
             </h2>
 
             {/* Property Type Selector: House vs Branch */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
               <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
-                รูปแบบสัญญา / ประเภทสถานที่ <span className="text-rose-500">*</span>
+                {tx({ th: 'รูปแบบสัญญา / ประเภทสถานที่', en: 'Contract Model / Property Type', my: 'စာချုပ်ပုံစံ / နေရာအမျိုးအစား' })} <span className="text-rose-500">*</span>
               </label>
               <div className={`grid ${isOperation ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'} gap-3`}>
                 {!isOperation && (
@@ -317,9 +330,9 @@ export function ContractForm({
                   >
                     <Home className={`h-5 w-5 shrink-0 ${propertyType === 'house' ? 'text-white' : 'text-amber-500'}`} />
                     <div>
-                      <div className="text-xs font-bold">บ้าน / ที่พักอาศัย</div>
+                      <div className="text-xs font-bold">{tx(W.houseResidential)}</div>
                       <div className={`text-[11px] ${propertyType === 'house' ? 'text-amber-100' : 'text-slate-400'}`}>
-                        เช่าซื้อ, ซื้อบ้าน, แจ้ง ตม.30
+                        {tx({ th: 'เช่าซื้อ, ซื้อบ้าน, แจ้ง ตม.30', en: 'Hire-purchase, House, TM.30', my: 'အရစ်ကျဝယ်၊ အိမ်၊ TM.30 အကြောင်းကြား' })}
                       </div>
                     </div>
                   </button>
@@ -338,9 +351,9 @@ export function ContractForm({
                 >
                   <Building className={`h-5 w-5 shrink-0 ${propertyType === 'branch' ? 'text-white' : 'text-primary-500'}`} />
                   <div>
-                    <div className="text-xs font-bold">สาขา / สถานประกอบการ</div>
+                    <div className="text-xs font-bold">{tx(W.branch)}</div>
                     <div className={`text-[11px] ${propertyType === 'branch' ? 'text-primary-100' : 'text-slate-400'}`}>
-                      เช่าเพื่อธุรกิจ, เปิดสาขาบริษัท
+                      {tx({ th: 'เช่าเพื่อธุรกิจ, เปิดสาขาบริษัท', en: 'Commercial lease, company branch', my: 'စီးပွားရေးငှားရမ်းမှု၊ ဆိုင်ခွဲဖွင့်' })}
                     </div>
                   </div>
                 </button>
@@ -350,7 +363,7 @@ export function ContractForm({
             {/* Contract Direction / Party Role Selector */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
               <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
-                รูปแบบคู่สัญญาและทิศทางการชำระ (Payment Direction) <span className="text-rose-500">*</span>
+                {tx({ th: 'รูปแบบคู่สัญญาและทิศทางการชำระ (Payment Direction)', en: 'Contract Parties & Payment Direction', my: 'စာချုပ်ဝင်များနှင့် ပေးချေမှု ဦးတည်ချက်' })} <span className="text-rose-500">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
@@ -364,9 +377,9 @@ export function ContractForm({
                 >
                   <Building className={`h-5 w-5 shrink-0 mt-0.5 ${contractPartyRole === 'payable' ? 'text-white' : 'text-indigo-500'}`} />
                   <div>
-                    <div className="text-xs font-bold">บริษัทเช่ากับเจ้าของ (รายจ่าย)</div>
+                    <div className="text-xs font-bold">{tx({ th: 'บริษัทเช่ากับเจ้าของ (รายจ่าย)', en: 'Company rents from Owner (Payable)', my: 'ကုမ္ပဏီက ပိုင်ရှင်ထံမှ ငှား (အသုံးစရိတ်)' })}</div>
                     <div className={`text-[11px] mt-0.5 leading-relaxed ${contractPartyRole === 'payable' ? 'text-indigo-100' : 'text-slate-500'}`}>
-                      บริษัทจ่ายค่าเช่าให้เจ้าของ (ตารางค่างวด: มีเฉพาะ <strong>&quot;จ่ายเจ้าของ&quot;</strong>)
+                      {tx({ th: 'บริษัทจ่ายค่าเช่าให้เจ้าของ (ตารางค่างวด: มีเฉพาะ "จ่ายเจ้าของ")', en: 'Company pays rent to owner (Schedule: Pay Owner only)', my: 'ကုမ္ပဏီက ပိုင်ရှင်ထံ ငှားခပေး (ဇယား: ပိုင်ရှင်ထံပေး သာ)' })}
                     </div>
                   </div>
                 </button>
@@ -382,9 +395,9 @@ export function ContractForm({
                 >
                   <User className={`h-5 w-5 shrink-0 mt-0.5 ${contractPartyRole === 'receivable' ? 'text-white' : 'text-teal-500'}`} />
                   <div>
-                    <div className="text-xs font-bold">ลูกค้าเช่ากับบริษัท (รายรับ)</div>
+                    <div className="text-xs font-bold">{tx({ th: 'ลูกค้าเช่ากับบริษัท (รายรับ)', en: 'Customer rents from Company (Receivable)', my: 'ဖောက်သည်က ကုမ္ပဏီထံမှ ငှား (ဝင်ငွေ)' })}</div>
                     <div className={`text-[11px] mt-0.5 leading-relaxed ${contractPartyRole === 'receivable' ? 'text-teal-100' : 'text-slate-500'}`}>
-                      ลูกค้านำส่งค่าเช่าให้บริษัท (ตารางค่างวด: มีเฉพาะ <strong>&quot;รับจากลูกค้า&quot;</strong>)
+                      {tx({ th: 'ลูกค้านำส่งค่าเช่าให้บริษัท (ตารางค่างวด: มีเฉพาะ "รับจากลูกค้า")', en: 'Customer pays rent to company (Schedule: From Customer only)', my: 'ဖောက်သည်က ကုမ္ပဏီထံ ငှားခပေး (ဇယား: ဖောက်သည်ထံမှလက်ခံ သာ)' })}
                     </div>
                   </div>
                 </button>
@@ -394,10 +407,10 @@ export function ContractForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  เลขที่สัญญา (Contract No.)
+                  {tx({ th: 'เลขที่สัญญา (Contract No.)', en: 'Contract No.', my: 'စာချုပ်နံပါတ်' })}
                 </label>
                 <Input
-                  placeholder="ระบบจะสร้างให้อัตโนมัติหากเว้นว่าง"
+                  placeholder={tx({ th: 'ระบบจะสร้างให้อัตโนมัติหากเว้นว่าง', en: 'Auto-generated if left blank', my: 'လွတ်ထားပါက အလိုအလျောက် သတ်မှတ်မည်' })}
                   {...register('contract_no')}
                 />
                 {errors.contract_no && (
@@ -407,17 +420,17 @@ export function ContractForm({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  วันที่ทำสัญญา
+                  {tx({ th: 'วันที่ทำสัญญา', en: 'Contract Date', my: 'စာချုပ်ရက်စွဲ' })}
                 </label>
                 <Input type="date" {...register('contract_date')} />
               </div>
 
               <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  สถานที่ / สาขา <span className="text-rose-500">*</span>
+                  {tx(W.location)} <span className="text-rose-500">*</span>
                 </label>
                 <Select {...register('location_id')}>
-                  <option value="">-- เลือกสถานที่ / สาขา --</option>
+                  <option value="">-- {tx({ th: 'เลือกสถานที่ / สาขา', en: 'Select Location / Branch', my: 'နေရာ / ဆိုင်ခွဲ ရွေးပါ' })} --</option>
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
                       {loc.location_name} ({loc.province}) [{loc.location_code}]
@@ -431,10 +444,10 @@ export function ContractForm({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  ผู้ให้เช่า (Landlord)
+                  {tx({ th: 'ผู้ให้เช่า (Landlord)', en: 'Landlord', my: 'အိမ်ရှင် (Landlord)' })}
                 </label>
                 <Select {...register('landlord_id')}>
-                  <option value="">-- ไม่ระบุ --</option>
+                  <option value="">-- {tx({ th: 'ไม่ระบุ', en: 'Not specified', my: 'မဖော်ပြထား' })} --</option>
                   {landlords.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name || l.company_name} [{l.landlord_code}]
@@ -445,10 +458,10 @@ export function ContractForm({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  ลูกค้า / ผู้เช่า (Customer)
+                  {tx({ th: 'ลูกค้า / ผู้เช่า (Customer)', en: 'Customer / Tenant', my: 'ဖောက်သည် / အိမ်ငှား' })}
                 </label>
                 <Select {...register('customer_id')}>
-                  <option value="">-- ไม่ระบุ --</option>
+                  <option value="">-- {tx({ th: 'ไม่ระบุ', en: 'Not specified', my: 'မဖော်ပြထား' })} --</option>
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name || c.company_name} [{c.customer_code}]
@@ -460,10 +473,10 @@ export function ContractForm({
               {leads.length > 0 && (
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-slate-700 mb-1">
-                    เชื่อมโยงกับ Lead การเจรจา (ถ้ามี)
+                    {tx({ th: 'เชื่อมโยงกับ Lead การเจรจา (ถ้ามี)', en: 'Link with Rental Lead (optional)', my: 'ညှိနှိုင်း Lead နှင့် ချိတ်ဆက်မည် (ရှိပါက)' })}
                   </label>
                   <Select {...register('lead_id')}>
-                    <option value="">-- ไม่เชื่อมโยง --</option>
+                    <option value="">-- {tx({ th: 'ไม่เชื่อมโยง', en: 'No link', my: 'မချိတ်ဆက်ပါ' })} --</option>
                     {leads.map((l) => (
                       <option key={l.id} value={l.id}>
                         [{l.lead_no}] {l.lead_name}
@@ -479,13 +492,13 @@ export function ContractForm({
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary-600" />
-              ระยะเวลาสัญญาและงวดชำระ
+              {tx({ th: 'ระยะเวลาสัญญาและงวดชำระ', en: 'Contract Duration & Due Date', my: 'စာချုပ်ကာလနှင့် ပေးချေရက်' })}
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  วันเริ่มต้นสัญญา <span className="text-rose-500">*</span>
+                  {tx({ th: 'วันเริ่มต้นสัญญา', en: 'Start Date', my: 'စတင်ရက်' })} <span className="text-rose-500">*</span>
                 </label>
                 <Input type="date" {...register('start_date')} />
                 {errors.start_date && (
@@ -495,7 +508,7 @@ export function ContractForm({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  วันสิ้นสุดสัญญา <span className="text-rose-500">*</span>
+                  {tx({ th: 'วันสิ้นสุดสัญญา', en: 'End Date', my: 'ပြီးဆုံးရက်' })} <span className="text-rose-500">*</span>
                 </label>
                 <Input type="date" {...register('end_date')} />
                 {errors.end_date && (
@@ -505,13 +518,13 @@ export function ContractForm({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  วันครบกำหนดชำระทุกเดือน (วันที่)
+                  {tx({ th: 'วันครบกำหนดชำระทุกเดือน (วันที่)', en: 'Monthly Due Day (Day of Month)', my: 'လစဉ် ပေးချေရမည့်ရက်' })}
                 </label>
                 <Input
                   type="number"
                   min="1"
                   max="31"
-                  placeholder="เช่น 5 หรือ 25"
+                  placeholder={tx({ th: 'เช่น 5 หรือ 25', en: 'e.g. 5 or 25', my: 'ဥပမာ ၅ သို့မဟုတ် ၂၅' })}
                   {...register('payment_due_day')}
                 />
                 {errors.payment_due_day && (
@@ -527,7 +540,7 @@ export function ContractForm({
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-primary-600" />
-              เงื่อนไขทางการเงินและภาษีหัก ณ ที่จ่าย
+              {tx({ th: 'เงื่อนไขทางการเงินและภาษีหัก ณ ที่จ่าย', en: 'Financial Terms & WHT', my: 'ငွေကြေးသတ်မှတ်ချက်နှင့် အခွန်ဖြတ်တောက်မှု' })}
             </h2>
 
             {/* House Terms block */}
@@ -535,33 +548,33 @@ export function ContractForm({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
                   <Home className="h-4 w-4 text-amber-600" />
-                  ข้อเสนอสำหรับบ้าน / เช่าซื้อ (ราคาบ้าน, เงินดาวน์, ดอกเบี้ย, ระยะเวลาผ่อน)
+                  {tx({ th: 'ข้อเสนอสำหรับบ้าน / เช่าซื้อ (ราคาบ้าน, เงินดาวน์, ดอกเบี้ย, ระยะเวลาผ่อน)', en: 'House / Hire-purchase Terms (Price, Down Payment, Interest, Period)', my: 'အိမ် / အရစ်ကျဝယ် သတ်မှတ်ချက် (ဈေး၊ ကြိုတင်ငွေ၊ အတိုး၊ ကာလ)' })}
                 </span>
                 {estimatedMonthlyInstallment > 0 && (
                   <span className="text-xs font-medium text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                    ยอดผ่อนคำนวณได้: <strong className="font-bold">฿{estimatedMonthlyInstallment.toLocaleString('th-TH')}</strong> /เดือน
+                    {tx({ th: 'ยอดผ่อนคำนวณได้:', en: 'Est. installment:', my: 'တွက်ချက်ထားသော အရစ်:' })} <strong className="font-bold">฿{money(estimatedMonthlyInstallment, 0)}</strong> {tx(W.perMonth)}
                   </span>
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">ราคาบ้าน (บาท)</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">{tx({ th: 'ราคาบ้าน (บาท)', en: 'House Price (THB)', my: 'အိမ်ဈေး (ဘတ်)' })}</label>
                   <Input
                     type="number"
                     step="0.01"
-                    placeholder="เช่น 3500000"
+                    placeholder="3500000"
                     value={propertyPrice !== null && propertyPrice !== undefined ? propertyPrice : ''}
                     onChange={(e) => setPropertyPrice(e.target.value ? Number(e.target.value) : null)}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">เงินดาวน์ (บาท)</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">{tx({ th: 'เงินดาวน์ (บาท)', en: 'Down Payment (THB)', my: 'ကြိုတင်ငွေ (ဘတ်)' })}</label>
                   <Input
                     type="number"
                     step="0.01"
-                    placeholder="เช่น 500000"
+                    placeholder="500000"
                     value={downPayment !== null && downPayment !== undefined ? downPayment : ''}
                     onChange={(e) => {
                       const val = e.target.value ? Number(e.target.value) : null
@@ -572,21 +585,21 @@ export function ContractForm({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">อัตราดอกเบี้ย (% ต่อปี)</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">{tx({ th: 'อัตราดอกเบี้ย (% ต่อปี)', en: 'Interest Rate (% p.a.)', my: 'အတိုးနှုန်း (တစ်နှစ်လျှင် %)' })}</label>
                   <Input
                     type="number"
                     step="0.01"
-                    placeholder="เช่น 5.0"
+                    placeholder="5.0"
                     value={interestRate !== null && interestRate !== undefined ? interestRate : ''}
                     onChange={(e) => setInterestRate(e.target.value ? Number(e.target.value) : null)}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">ระยะเวลาผ่อน (ปี)</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">{tx({ th: 'ระยะเวลาผ่อน (ปี)', en: 'Installment Period (Years)', my: 'အရစ်ကျကာလ (နှစ်)' })}</label>
                   <Input
                     type="number"
-                    placeholder="เช่น 30"
+                    placeholder="30"
                     value={installmentYears !== null && installmentYears !== undefined ? installmentYears : ''}
                     onChange={(e) => setInstallmentYears(e.target.value ? Number(e.target.value) : null)}
                   />
@@ -595,13 +608,13 @@ export function ContractForm({
 
               {estimatedMonthlyInstallment > 0 && (
                 <div className="flex items-center justify-between text-xs pt-1 border-t border-amber-200/50">
-                  <span className="text-slate-500">สามารถนำค่างวดประมาณการไปใส่เป็นค่าเช่าต่อเดือนได้</span>
+                  <span className="text-slate-500">{tx({ th: 'สามารถนำค่างวดประมาณการไปใส่เป็นค่าเช่าต่อเดือนได้', en: 'Apply estimated installment as monthly rent', my: 'ခန့်မှန်းအရစ်ကို လစဉ်ငှားခအဖြစ် အသုံးပြုနိုင်ပါသည်' })}</span>
                   <button
                     type="button"
                     onClick={() => setValue('monthly_rent', estimatedMonthlyInstallment)}
                     className="text-primary-600 hover:text-primary-700 font-semibold underline cursor-pointer"
                   >
-                    ใช้ค่างวดนี้เป็นค่าเช่าต่อเดือน (฿{estimatedMonthlyInstallment.toLocaleString('th-TH')})
+                    {tx({ th: 'ใช้ค่างวดนี้เป็นค่าเช่าต่อเดือน', en: 'Use this as monthly rent', my: 'ဤအရစ်ကို လစဉ်ငှားခအဖြစ် သုံးမည်' })} (฿{money(estimatedMonthlyInstallment, 0)})
                   </button>
                 </div>
               )}
@@ -610,7 +623,9 @@ export function ContractForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  {propertyType === 'house' ? 'ค่างวดผ่อน / ค่าเช่าต่อเดือน (บาท)' : 'ค่าเช่าต่อเดือน (บาท)'}{' '}
+                  {propertyType === 'house'
+                    ? tx({ th: 'ค่างวดผ่อน / ค่าเช่าต่อเดือน (บาท)', en: 'Installment / Monthly Rent (THB)', my: 'အရစ်ကြေး / လစဉ်ငှားခ (ဘတ်)' })
+                    : tx({ th: 'ค่าเช่าต่อเดือน (บาท)', en: 'Monthly Rent (THB)', my: 'လစဉ်ငှားခ (ဘတ်)' })}{' '}
                   <span className="text-rose-500">*</span>
                 </label>
                 <Input type="number" step="0.01" min="0" {...register('monthly_rent')} />
@@ -621,7 +636,7 @@ export function ContractForm({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  ค่าบริการอื่นๆ ต่อเดือน (บาท)
+                  {tx({ th: 'ค่าบริการอื่นๆ ต่อเดือน (บาท)', en: 'Other Monthly Service (THB)', my: 'အခြားလစဉ် ဝန်ဆောင်ခ (ဘတ်)' })}
                 </label>
                 <Input
                   type="number"
@@ -633,14 +648,16 @@ export function ContractForm({
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  {propertyType === 'house' ? 'เงินดาวน์ / มัดจำ (บาท)' : 'เงินมัดจำ/ประกัน (บาท)'}
+                  {propertyType === 'house'
+                    ? tx({ th: 'เงินดาวน์ / มัดจำ (บาท)', en: 'Down Payment / Deposit (THB)', my: 'ကြိုတင်ငွေ / စရံ (ဘတ်)' })
+                    : tx({ th: 'เงินมัดจำ/ประกัน (บาท)', en: 'Security Deposit (THB)', my: 'စရံငွေ / အာမခံငွေ (ဘတ်)' })}
                 </label>
                 <Input type="number" step="0.01" min="0" {...register('deposit_amount')} />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  ค่าเช่าล่วงหน้า (บาท)
+                  {tx({ th: 'ค่าเช่าล่วงหน้า (บาท)', en: 'Advance Rent (THB)', my: 'ကြိုတင်ငှားခ (ဘတ်)' })}
                 </label>
                 <Input
                   type="number"
@@ -660,7 +677,7 @@ export function ContractForm({
                     className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                   />
                   <label htmlFor="wht_enabled" className="text-sm font-medium text-slate-800">
-                    หักภาษี ณ ที่จ่าย (Withholding Tax - WHT)
+                    {tx({ th: 'หักภาษี ณ ที่จ่าย (Withholding Tax - WHT)', en: 'Withholding Tax (WHT)', my: 'ဖြတ်တောက်ခွန် (Withholding Tax - WHT)' })}
                   </label>
                 </div>
 
@@ -668,7 +685,7 @@ export function ContractForm({
                   <div className="pl-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-slate-700 mb-1">
-                        อัตราภาษีหัก ณ ที่จ่าย (%)
+                        {tx({ th: 'อัตราภาษีหัก ณ ที่จ่าย (%)', en: 'WHT Rate (%)', my: 'ဖြတ်တောက်ခွန်နှုန်း (%)' })}
                       </label>
                       <div className="flex items-center gap-2">
                         <Input
@@ -682,7 +699,7 @@ export function ContractForm({
                         <span className="text-sm text-slate-500">%</span>
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1">
-                        (อัตราปกติ: ค่าเช่าอสังหาริมทรัพย์ 5%, ค่าบริการ 3%)
+                        ({tx({ th: 'อัตราปกติ: ค่าเช่าอสังหาริมทรัพย์ 5%, ค่าบริการ 3%', en: 'Standard rates: Property rent 5%, Service 3%', my: 'ပုံမှန်နှုန်း: အိမ်ခြံမြေငှား 5%, ဝန်ဆောင်ခ 3%' })})
                       </p>
                     </div>
                   </div>
@@ -695,7 +712,7 @@ export function ContractForm({
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
               <FileText className="h-4 w-4 text-indigo-500" />
-              การดำเนินการทางทะเบียน & เอกสาร
+              {tx({ th: 'การดำเนินการทางทะเบียน & เอกสาร', en: 'Registrations & Documentation', my: 'မှတ်ပုံတင်ခြင်းနှင့် စာရွက်စာတမ်းများ' })}
             </h2>
 
             {/* สำหรับสาขา */}
@@ -703,7 +720,7 @@ export function ContractForm({
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
                   <Building className="h-3.5 w-3.5 text-slate-500" />
-                  <span>สำหรับสาขา / สถานประกอบการ</span>
+                  <span>{tx({ th: 'สำหรับสาขา / สถานประกอบการ', en: 'For Branch / Business', my: 'ဆိုင်ခွဲ / လုပ်ငန်းဌာန အတွက်' })}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -712,7 +729,7 @@ export function ContractForm({
                       {...register('need_branch_registration')}
                       className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span>ต้องจดทะเบียนเปิดสาขา</span>
+                    <span>{tx({ th: 'ต้องจดทะเบียนเปิดสาขา', en: 'Requires Branch Registration', my: 'ဆိုင်ခွဲမှတ်ပုံတင်ရန် လိုအပ်' })}</span>
                   </label>
 
                   <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -721,7 +738,7 @@ export function ContractForm({
                       {...register('need_vat_registration')}
                       className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span>ต้องจดทะเบียนภาษีมูลค่าเพิ่ม (VAT)</span>
+                    <span>{tx({ th: 'ต้องจดทะเบียนภาษีมูลค่าเพิ่ม (VAT)', en: 'Requires VAT Registration', my: 'VAT မှတ်ပုံတင်ရန် လိုအပ်' })}</span>
                   </label>
 
                   <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -730,7 +747,7 @@ export function ContractForm({
                       {...register('need_employer_change')}
                       className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span>ต้องขึ้นทะเบียน/เปลี่ยนนายจ้าง</span>
+                    <span>{tx({ th: 'ต้องขึ้นทะเบียน/เปลี่ยนนายจ้าง', en: 'Requires Employer Change', my: 'အလုပ်ရှင်ပြောင်းလဲရန် လိုအပ်' })}</span>
                   </label>
 
                   <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -739,7 +756,7 @@ export function ContractForm({
                       {...register('need_signboard')}
                       className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span>ต้องขออนุญาตป้ายโฆษณา/ป้ายสาขา</span>
+                    <span>{tx({ th: 'ต้องขออนุญาตป้ายโฆษณา/ป้ายสาขา', en: 'Requires Signboard Permit', my: 'ဆိုင်းဘုတ်လိုင်စင် လျှောက်ရန် လိုအပ်' })}</span>
                   </label>
 
                   <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -748,7 +765,7 @@ export function ContractForm({
                       {...register('need_excise_permit')}
                       className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     />
-                    <span>ต้องยื่นขออนุญาตกรมสรรพสามิต (เหล้า/ยาสูบ)</span>
+                    <span>{tx({ th: 'ต้องยื่นขออนุญาตกรมสรรพสามิต (เหล้า/ยาสูบ)', en: 'Requires Excise Permit (Liquor/Tobacco)', my: 'ယစ်မျိုးခွန်လိုင်စင် (အရက်/ဆေးလိပ်) လိုအပ်' })}</span>
                   </label>
 
                   <label className="flex items-center gap-2 text-sm text-slate-700 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -759,8 +776,8 @@ export function ContractForm({
                       className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                     />
                     <div>
-                      <span className="font-medium text-slate-800">แจ้งที่พักอาศัยคนต่างด้าว</span>
-                      <span className="block text-[11px] text-slate-500">แจ้ง ตม.30 ภายใน 24 ชม.</span>
+                      <span className="font-medium text-slate-800">{tx({ th: 'แจ้งที่พักอาศัยคนต่างด้าว', en: 'Foreign Resident Notification', my: 'နိုင်ငံခြားသား နေထိုင်ရာ အကြောင်းကြားစာ' })}</span>
+                      <span className="block text-[11px] text-slate-500">{tx({ th: 'แจ้ง ตม.30 ภายใน 24 ชม.', en: 'TM.30 within 24h', my: '၂၄ နာရီအတွင်း TM.30 တင်ပြ' })}</span>
                     </div>
                   </label>
                 </div>
@@ -772,7 +789,7 @@ export function ContractForm({
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
                   <Home className="h-3.5 w-3.5 text-amber-600" />
-                  <span>สำหรับบ้าน / ที่พักอาศัย</span>
+                  <span>{tx(W.houseResidential)}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label className="flex items-center gap-2.5 text-sm text-slate-700 p-2.5 rounded-lg border border-amber-200 bg-amber-50/40 cursor-pointer hover:bg-amber-50 transition-colors">
@@ -783,8 +800,8 @@ export function ContractForm({
                       className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
                     />
                     <div>
-                      <span className="font-medium text-slate-800">แจ้งที่พักอาศัยคนต่างด้าว</span>
-                      <span className="block text-[11px] text-amber-800">แจ้ง ตม.30 ภายใน 24 ชม.</span>
+                      <span className="font-medium text-slate-800">{tx({ th: 'แจ้งที่พักอาศัยคนต่างด้าว', en: 'Foreign Resident Notification', my: 'နိုင်ငံခြားသား နေထိုင်ရာ အကြောင်းကြားစာ' })}</span>
+                      <span className="block text-[11px] text-amber-800">{tx({ th: 'แจ้ง ตม.30 ภายใน 24 ชม.', en: 'TM.30 within 24h', my: '၂၄ နာရီအတွင်း TM.30 တင်ပြ' })}</span>
                     </div>
                   </label>
                 </div>
@@ -793,11 +810,11 @@ export function ContractForm({
 
             <div className="pt-2">
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                หมายเหตุเพิ่มเติม
+                {tx({ th: 'หมายเหตุเพิ่มเติม', en: 'Additional Notes', my: 'နောက်ထပ် မှတ်ချက်များ' })}
               </label>
               <Textarea
                 rows={3}
-                placeholder="ระบุข้อตกลงพิเศษ หรือรายละเอียดการส่งมอบพื้นที่..."
+                placeholder={tx({ th: 'ระบุข้อตกลงพิเศษ หรือรายละเอียดการส่งมอบพื้นที่...', en: 'Special terms or handover details...', my: 'အထူးသဘောတူညီချက်များ သို့မဟုတ် နေရာလွှဲပြောင်းမှု အသေးစိတ်...' })}
                 {...register('note')}
               />
             </div>
@@ -809,17 +826,17 @@ export function ContractForm({
           {/* Status & Assignment */}
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">
-              สถานะและผู้รับผิดชอบ
+              {tx({ th: 'สถานะและผู้รับผิดชอบ', en: 'Status & Assignment', my: 'အခြေအနေနှင့် တာဝန်ခံ' })}
             </h2>
 
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
-                สถานะสัญญา
+                {tx({ th: 'สถานะสัญญา', en: 'Contract Status', my: 'စာချုပ်အခြေအနေ' })}
               </label>
               <Select {...register('status')}>
-                {Object.entries(CONTRACT_STATUS_LABELS).map(([val, label]) => (
+                {Object.entries(CONTRACT_STATUS_TRI).map(([val, tri]) => (
                   <option key={val} value={val}>
-                    {label}
+                    {labelOf(CONTRACT_STATUS_TRI, val, locale)}
                   </option>
                 ))}
               </Select>
@@ -828,10 +845,10 @@ export function ContractForm({
             {staffProfiles.length > 0 && (
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">
-                  ผู้รับผิดชอบสัญญา
+                  {tx({ th: 'ผู้รับผิดชอบสัญญา', en: 'Assigned To', my: 'တာဝန်ခံ' })}
                 </label>
                 <Select {...register('assigned_to')}>
-                  <option value="">-- ไม่ระบุผู้รับผิดชอบ --</option>
+                  <option value="">-- {tx({ th: 'ไม่ระบุผู้รับผิดชอบ', en: 'Unassigned', my: 'တာဝန်ခံ မသတ်မှတ်' })} --</option>
                   {staffProfiles.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.full_name || p.email || p.id}
@@ -847,53 +864,57 @@ export function ContractForm({
             <div className="flex items-center gap-2 border-b border-slate-700 pb-3">
               <Calculator className="h-4 w-4 text-emerald-400" />
               <h3 className="text-sm font-semibold tracking-wide">
-                สรุปประมาณการค่างวดรายเดือน
+                {tx({ th: 'สรุปประมาณการค่างวดรายเดือน', en: 'Estimated Monthly Breakdown', my: 'လစဉ်ခန့်မှန်းခြေ အကျဉ်းချုပ်' })}
               </h3>
             </div>
 
             <div className="space-y-2.5 text-xs text-slate-300">
               <div className="flex justify-between">
-                <span>ค่าเช่ารายเดือน:</span>
+                <span>{tx({ th: 'ค่าเช่ารายเดือน:', en: 'Monthly Rent:', my: 'လစဉ်ငှားခ:' })}</span>
                 <span className="font-semibold text-white">
-                  ฿{Number(watchedRent).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  ฿{money(Number(watchedRent))}
                 </span>
               </div>
 
               {Number(watchedService) > 0 && (
                 <div className="flex justify-between">
-                  <span>ค่าบริการอื่นๆ:</span>
+                  <span>{tx({ th: 'ค่าบริการอื่นๆ:', en: 'Other Service:', my: 'အခြားဝန်ဆောင်ခ:' })}</span>
                   <span className="font-semibold text-white">
-                    ฿{Number(watchedService).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    ฿{money(Number(watchedService))}
                   </span>
                 </div>
               )}
 
               <div className="flex justify-between border-t border-slate-700/60 pt-2 text-slate-200">
-                <span>ยอดรวมก่อนหัก (Gross):</span>
+                <span>{tx({ th: 'ยอดรวมก่อนหัก (Gross):', en: 'Gross Total:', my: 'စုစုပေါင်း (Gross):' })}</span>
                 <span className="font-bold text-white">
-                  ฿{calcGross.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  ฿{money(calcGross)}
                 </span>
               </div>
 
               <div className="flex justify-between text-rose-300">
                 <span className="flex items-center gap-1">
-                  <span>หัก ณ ที่จ่าย (WHT {watchedWhtEnabled ? `${watchedWhtRate}%` : '0%'}):</span>
+                  <span>{tx({ th: 'หัก ณ ที่จ่าย', en: 'WHT', my: 'ဖြတ်တောက်ခွန်' })} ({watchedWhtEnabled ? `${watchedWhtRate}%` : '0%'}):</span>
                 </span>
                 <span className="font-semibold">
-                  - ฿{calcWht.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  - ฿{money(calcWht)}
                 </span>
               </div>
 
               <div className="flex justify-between border-t border-slate-700 pt-3 text-emerald-400 font-bold text-sm">
-                <span>ยอดสุทธิต่อเดือน (Net):</span>
+                <span>{tx({ th: 'ยอดสุทธิต่อเดือน (Net):', en: 'Net per Month:', my: 'လစဉ် အသားတင် (Net):' })}</span>
                 <span>
-                  ฿{calcNet.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  ฿{money(calcNet)}
                 </span>
               </div>
             </div>
 
             <div className="text-[11px] text-slate-400 border-t border-slate-700/60 pt-3 leading-relaxed">
-              * การคำนวณข้างต้นจะถูกนำไปใช้เป็นค่าเริ่มต้นสำหรับตารางงวดชำระค่าเช่า (Payment Schedule) อัตโนมัติ
+              * {tx({
+                th: 'การคำนวณข้างต้นจะถูกนำไปใช้เป็นค่าเริ่มต้นสำหรับตารางงวดชำระค่าเช่า (Payment Schedule) อัตโนมัติ',
+                en: 'This calculation will be used as the default for the automated Payment Schedule.',
+                my: 'အထက်ပါတွက်ချက်မှုကို ငွေပေးချေမှုဇယား (Payment Schedule) အတွက် မူလအဖြစ် အသုံးပြုပါမည်။',
+              })}
             </div>
           </div>
         </div>

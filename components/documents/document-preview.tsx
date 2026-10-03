@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { getSignedUrlAction } from '@/lib/actions/documents'
+import { useI18n } from '@/lib/i18n/context'
 
 interface DocumentPreviewProps {
   open: boolean
@@ -26,6 +27,7 @@ export function DocumentPreview({
   storagePath,
   mimeType,
 }: DocumentPreviewProps) {
+  const { tx } = useI18n()
   const [url, setUrl] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -46,7 +48,7 @@ export function DocumentPreview({
       if (res.success && res.data) {
         setUrl(res.data.url)
       } else {
-        setError(res.error ?? 'โหลดไม่สำเร็จ')
+        setError(res.error ?? tx({ th: 'โหลดไม่สำเร็จ', en: 'Failed to load preview', my: 'နမူနာကြည့်ရှုရန် ဖွင့်၍မရပါ' }))
       }
       setLoading(false)
     })
@@ -54,7 +56,7 @@ export function DocumentPreview({
     return () => {
       cancelled = true
     }
-  }, [open, storagePath])
+  }, [open, storagePath, tx])
 
   const isImage = mimeType?.startsWith('image/') ?? false
   const isPdf = mimeType === 'application/pdf'
@@ -84,7 +86,7 @@ export function DocumentPreview({
               className="shrink-0 gap-1.5"
             >
               <Download className="h-4 w-4" />
-              ดาวน์โหลด
+              {tx({ th: 'ดาวน์โหลด', en: 'Download', my: 'ဒေါင်းလုဒ်လုပ်ရန်' })}
             </Button>
           )}
         </DialogHeader>
@@ -124,10 +126,12 @@ export function DocumentPreview({
           {!loading && !error && url && !isPdf && !isImage && (
             <div className="flex h-64 flex-col items-center justify-center gap-4 text-slate-400">
               <X className="h-10 w-10 opacity-40" />
-              <p className="text-sm">ไม่สามารถแสดงตัวอย่างได้</p>
+              <p className="text-sm">
+                {tx({ th: 'ไม่สามารถแสดงตัวอย่างได้', en: 'Preview not available for this file type', my: 'ဤဖိုင်အမျိုးအစားအတွက် နမူနာမပြနိုင်ပါ' })}
+              </p>
               <Button size="sm" variant="secondary" onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-1.5" />
-                ดาวน์โหลดแทน
+                {tx({ th: 'ดาวน์โหลดแทน', en: 'Download instead', my: 'ဒေါင်းလုဒ်လုပ်၍ ကြည့်ရှုပါ' })}
               </Button>
             </div>
           )}

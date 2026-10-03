@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME } from './config'
 import { th } from './dictionaries/th'
 import { en } from './dictionaries/en'
 import { my } from './dictionaries/my'
+import { pickTri, type Tri } from './tx'
 
 const DICTIONARIES: Record<Locale, TranslationDictionary> = {
   th,
@@ -27,10 +28,12 @@ export async function getServerLocale(): Promise<Locale> {
 export async function getServerTranslation(): Promise<{
   locale: Locale
   t: TranslationDictionary
+  tx: (m: Tri) => string
 }> {
   const locale = await getServerLocale()
   return {
     locale,
     t: DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE],
+    tx: (m: Tri) => pickTri(m, locale),
   }
 }

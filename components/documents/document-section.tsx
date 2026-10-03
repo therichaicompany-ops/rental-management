@@ -7,6 +7,7 @@ import { DocumentList } from './document-list'
 import type { DocumentEntityType, DocumentType } from '@/lib/types/documents'
 import type { UserRole } from '@/lib/types/auth'
 import { canWrite } from '@/lib/auth/permissions'
+import { useI18n } from '@/lib/i18n/context'
 
 interface DocumentSectionProps {
   entityType: DocumentEntityType
@@ -23,12 +24,15 @@ export function DocumentSection({
   entityId,
   userRole,
   defaultDocumentType,
-  title = 'เอกสารแนบ',
+  title,
   defaultOpen = true,
 }: DocumentSectionProps) {
+  const { tx } = useI18n()
   const [open, setOpen] = React.useState(defaultOpen)
   const [refreshKey, setRefreshKey] = React.useState(0)
   const allowUpload = canWrite(userRole)
+
+  const sectionTitle = title ?? tx({ th: 'เอกสารแนบ', en: 'Attached Documents', my: 'ပူးတွဲပါ စာရွက်စာတမ်းများ' })
 
   function handleUploadComplete() {
     // Force DocumentList to re-fetch by changing key
@@ -45,7 +49,7 @@ export function DocumentSection({
       >
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-sm">{title}</span>
+          <span className="font-medium text-sm">{sectionTitle}</span>
         </div>
         {open ? (
           <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -59,7 +63,7 @@ export function DocumentSection({
           {allowUpload && (
             <div className="pt-4">
               <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-                อัปโหลดเอกสารใหม่
+                {tx({ th: 'อัปโหลดเอกสารใหม่', en: 'Upload New Document', my: 'စာရွက်စာတမ်း အသစ်တင်မည်' })}
               </p>
               <DocumentUploader
                 entityType={entityType}
@@ -73,7 +77,7 @@ export function DocumentSection({
           <div className={allowUpload ? 'pt-2 border-t' : 'pt-4'}>
             {allowUpload && (
               <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-                รายการเอกสาร
+                {tx({ th: 'รายการเอกสาร', en: 'Document List', my: 'စာရွက်စာတမ်းများ စာရင်း' })}
               </p>
             )}
             <DocumentList

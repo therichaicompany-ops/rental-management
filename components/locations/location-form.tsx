@@ -3,6 +3,8 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
+import { useI18n } from '@/lib/i18n/context'
+import { W } from '@/lib/i18n/labels'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, Save, Trash2, Loader2, MapPin, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
@@ -33,6 +35,7 @@ interface LocationFormProps {
 }
 
 export function LocationForm({ initialData, landlords, userRole }: LocationFormProps) {
+  const { t, locale, tx } = useI18n()
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
@@ -127,12 +130,12 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
           </Link>
           <div>
             <h1 className="text-xl font-bold text-slate-900">
-              {isEdit ? 'แก้ไขข้อมูลสถานที่' : 'เพิ่มสถานที่ใหม่'}
+              {isEdit ? tx({ th: 'แก้ไขข้อมูลสถานที่', en: 'Edit Location', my: 'နေရာ အချက်အလက် ပြင်ဆင်ရန်' }) : tx({ th: 'เพิ่มสถานที่ใหม่', en: 'New Location', my: 'နေရာ အသစ်ထည့်ရန်' })}
             </h1>
             <p className="text-xs text-slate-500">
               {isEdit
-                ? `รหัส: ${initialData?.location_code || initialData?.id}`
-                : 'กรอกข้อมูลรายละเอียดสถานที่และเลือกผู้ให้เช่าเพื่อบันทึกเข้าระบบ'}
+                ? `${tx({ th: 'รหัส', en: 'Code', my: 'ကုဒ်' })}: ${initialData?.location_code || initialData?.id}`
+                : tx({ th: 'กรอกข้อมูลรายละเอียดสถานที่และเลือกผู้ให้เช่าเพื่อบันทึกเข้าระบบ', en: 'Enter location details and select landlord to save to system', my: 'နေရာအချက်အလက်များနှင့် အိမ်ရှင်ကို ရွေးချယ်ဖြည့်စွက်ပါ' })}
             </p>
           </div>
         </div>
@@ -145,7 +148,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
             className="text-red-600 hover:bg-red-50 hover:text-red-700 gap-1.5"
           >
             <Trash2 className="h-4 w-4" />
-            ลบสถานที่
+            {tx({ th: 'ลบสถานที่', en: 'Delete Location', my: 'နေရာ ဖျက်ပစ်ပါ' })}
           </Button>
         )}
       </div>
@@ -162,14 +165,14 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
           {/* Section: Basic Info */}
           <div>
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
-              ข้อมูลสถานที่และผู้ให้เช่า
+              {tx({ th: 'ข้อมูลสถานที่และผู้ให้เช่า', en: 'Location & Landlord Info', my: 'နေရာနှင့် အိမ်ရှင် အချက်အလက်' })}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="location_name">ชื่อสถานที่ / สาขา *</Label>
+                <Label htmlFor="location_name">{tx({ th: 'ชื่อสถานที่ / สาขา', en: 'Location / Branch Name', my: 'နေရာ / ဆိုင်ခွဲ အမည်' })} *</Label>
                 <Input
                   id="location_name"
-                  placeholder="เช่น สาขาสยามสแควร์, สาขาเซ็นทรัลลาดพร้าว"
+                  placeholder={tx({ th: 'เช่น สาขาสยามสแควร์, สาขาเซ็นทรัลลาดพร้าว', en: 'e.g. Siam Square Branch, Central Ladprao Branch', my: 'ဥပမာ ဆိုင်ခွဲအမည်' })}
                   disabled={!allowEdit}
                   {...register('location_name')}
                 />
@@ -179,10 +182,10 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="location_code">รหัสสถานที่</Label>
+                <Label htmlFor="location_code">{tx({ th: 'รหัสสถานที่', en: 'Location Code', my: 'နေရာကုဒ်' })}</Label>
                 <Input
                   id="location_code"
-                  placeholder="เช่น LOC-001 (ปล่อยว่างให้ระบบสร้างอัตโนมัติ)"
+                  placeholder={tx({ th: 'เช่น LOC-001 (ปล่อยว่างให้ระบบสร้างอัตโนมัติ)', en: 'e.g. LOC-001 (Auto-generated if blank)', my: 'ဥပမာ LOC-001 (လွတ်ထားပါက အလိုအလျောက် သတ်မှတ်မည်)' })}
                   disabled={!allowEdit}
                   {...register('location_code')}
                 />
@@ -193,13 +196,13 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
 
               {/* Landlord selection dropdown */}
               <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="landlord_id">ผู้ให้เช่า (Landlord)</Label>
+                <Label htmlFor="landlord_id">{t.landlords.title} ({tx(W.landlord)})</Label>
                 <Select
                   id="landlord_id"
                   disabled={!allowEdit}
                   {...register('landlord_id')}
                 >
-                  <option value="">-- ไม่ระบุผู้ให้เช่า / เลือกล่วงหน้า --</option>
+                  <option value="">-- {tx({ th: 'ไม่ระบุผู้ให้เช่า / เลือกล่วงหน้า', en: 'Unassigned / Select Landlord', my: 'အိမ်ရှင် မသတ်မှတ်ရသေး' })} --</option>
                   {landlords.map((ll) => (
                     <option key={ll.id} value={ll.id}>
                       {ll.name || ll.company_name}
@@ -217,11 +220,11 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
           {/* Section: Address Details */}
           <div>
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
-              ที่ตั้งและที่อยู่
+              {tx({ th: 'ที่ตั้งและที่อยู่', en: 'Address & Position', my: 'တည်နေရာနှင့် လိပ်စာ' })}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="house_no">เลขที่</Label>
+                <Label htmlFor="house_no">{tx({ th: 'เลขที่', en: 'House/Building No.', my: 'အမှတ်' })}</Label>
                 <Input
                   id="house_no"
                   placeholder="เช่น 123/45"
@@ -234,7 +237,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="room_no">ห้อง / ยูนิตเลขที่</Label>
+                <Label htmlFor="room_no">{tx({ th: 'ห้อง / ยูนิตเลขที่', en: 'Room / Unit No.', my: 'အခန်း / ယူနစ်အမှတ်' })}</Label>
                 <Input
                   id="room_no"
                   placeholder="เช่น ชั้น 2 ห้อง 201"
@@ -247,7 +250,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="village_name">ชื่ออาคาร / หมู่บ้าน / ศูนย์การค้า</Label>
+                <Label htmlFor="village_name">{tx({ th: 'ชื่ออาคาร / หมู่บ้าน / ศูนย์การค้า', en: 'Building / Village / Mall', my: 'အဆောက်အအုံ / ရွာ / ကုန်တိုက်' })}</Label>
                 <Input
                   id="village_name"
                   placeholder="เช่น อาคารพร้อมสุข, เดอะมอลล์"
@@ -260,7 +263,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               </div>
 
               <div className="space-y-1.5 md:col-span-3">
-                <Label htmlFor="address">ที่อยู่ (ถนน / ซอย)</Label>
+                <Label htmlFor="address">{tx({ th: 'ที่อยู่ (ถนน / ซอย)', en: 'Address (Road / Soi)', my: 'လိပ်စာ (လမ်း / လမ်းသွယ်)' })}</Label>
                 <Input
                   id="address"
                   placeholder="เช่น ถนนพระราม 4 แขวงลุมพินี"
@@ -273,7 +276,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="subdistrict">ตำบล / แขวง</Label>
+                <Label htmlFor="subdistrict">{tx({ th: 'ตำบล / แขวง', en: 'Sub-district', my: 'ရပ်ကွက်' })}</Label>
                 <Input
                   id="subdistrict"
                   placeholder="เช่น ปทุมวัน"
@@ -286,7 +289,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="district">อำเภอ / เขต</Label>
+                <Label htmlFor="district">{tx({ th: 'อำเภอ / เขต', en: 'District', my: 'မြို့နယ်' })}</Label>
                 <Input
                   id="district"
                   placeholder="เช่น ปทุมวัน"
@@ -299,7 +302,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="province">จังหวัด</Label>
+                <Label htmlFor="province">{tx({ th: 'จังหวัด', en: 'Province', my: 'တိုင်းဒေသကြီး/ပြည်နယ်' })}</Label>
                 <Input
                   id="province"
                   placeholder="เช่น กรุงเทพมหานคร"
@@ -312,7 +315,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="postal_code">รหัสไปรษณีย์</Label>
+                <Label htmlFor="postal_code">{tx({ th: 'รหัสไปรษณีย์', en: 'Postal Code', my: 'စာတိုက်သင်္ကေတ' })}</Label>
                 <Input
                   id="postal_code"
                   placeholder="เช่น 10330"
@@ -330,7 +333,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
           {/* Section: Map & Coordinates */}
           <div>
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
-              พิกัดและแผนที่ Google Maps
+              {tx({ th: 'พิกัดและแผนที่ Google Maps', en: 'Google Maps & GPS Coordinates', my: 'Google Maps နှင့် သြဒီနိတ်များ' })}
             </h2>
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -344,7 +347,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
                       className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 hover:underline"
                     >
                       <MapPin className="h-3.5 w-3.5" />
-                      เปิดดูพิกัดบน Google Maps
+                      {tx({ th: 'เปิดดูพิกัดบน Google Maps', en: 'Open in Google Maps', my: 'Google Maps တွင် ဖွင့်ရန်' })}
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
@@ -362,12 +365,12 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="latitude">Latitude (ละติจูด)</Label>
+                  <Label htmlFor="latitude">{tx({ th: 'Latitude (ละติจูด)', en: 'Latitude', my: 'လတ္တီတွဒ် (Latitude)' })}</Label>
                   <Input
                     id="latitude"
                     type="number"
                     step="any"
-                    placeholder="เช่น 13.7462"
+                    placeholder={tx({ th: 'เช่น 13.7462', en: 'e.g. 13.7462', my: 'ဥပမာ 13.7462' })}
                     disabled={!allowEdit}
                     {...register('latitude')}
                   />
@@ -377,12 +380,12 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="longitude">Longitude (ลองจิจูด)</Label>
+                  <Label htmlFor="longitude">{tx({ th: 'Longitude (ลองจิจูด)', en: 'Longitude', my: 'လောင်ဂျီတွဒ် (Longitude)' })}</Label>
                   <Input
                     id="longitude"
                     type="number"
                     step="any"
-                    placeholder="เช่น 100.5348"
+                    placeholder={tx({ th: 'เช่น 100.5348', en: 'e.g. 100.5348', my: 'ဥပမာ 100.5348' })}
                     disabled={!allowEdit}
                     {...register('longitude')}
                   />
@@ -397,7 +400,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
           {/* Section: Notes */}
           <div>
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
-              หมายเหตุ
+              {tx({ th: 'หมายเหตุ', en: 'Notes', my: 'မှတ်ချက်' })}
             </h2>
             <div className="space-y-1.5">
               <Textarea
@@ -418,7 +421,7 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
         <div className="flex items-center justify-end gap-3">
           <Link href="/locations">
             <Button type="button" variant="outline">
-              ยกเลิก
+              {t.common.cancel}
             </Button>
           </Link>
           {allowEdit && (
@@ -426,12 +429,12 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  กำลังบันทึก...
+                  {tx({ th: 'กำลังบันทึก...', en: 'Saving...', my: 'သိမ်းဆည်းနေသည်...' })}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  {isEdit ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
+                  {isEdit ? tx({ th: 'บันทึกการแก้ไข', en: 'Save Changes', my: 'ပြင်ဆင်မှု သိမ်းဆည်းရန်' }) : tx({ th: 'บันทึกข้อมูล', en: 'Save Location', my: 'တည်နေရာ သိမ်းဆည်းရန်' })}
                 </>
               )}
             </Button>
@@ -443,9 +446,9 @@ export function LocationForm({ initialData, landlords, userRole }: LocationFormP
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="ยืนยันการลบข้อมูลสถานที่"
+        title={tx({ th: 'ยืนยันการลบข้อมูลสถานที่', en: 'Confirm Deleting Location', my: 'ဖျက်ပစ်ရန် အတည်ပြုပါ' })}
         description={`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลสถานที่ "${initialData?.location_name}"? การดำเนินการนี้ไม่สามารถย้อนกลับได้`}
-        confirmText="ลบข้อมูล"
+        confirmText={tx({ th: 'ลบข้อมูล', en: 'Delete', my: 'ဖျက်ပစ်ပါ' })}
         loading={isDeleting}
         onConfirm={handleDelete}
       />

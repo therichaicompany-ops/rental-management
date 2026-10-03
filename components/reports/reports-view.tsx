@@ -28,6 +28,7 @@ import {
 } from '@/lib/actions/reports'
 
 import { useI18n } from '@/lib/i18n/context'
+import { labelOf, PAYMENT_TYPE_TRI, PROJECT_STATUS_TRI, TASK_STATUS_TRI } from '@/lib/i18n/labels'
 import type { Locale } from '@/lib/i18n/types'
 
 // ----------------------------------------------------------------
@@ -460,7 +461,7 @@ const DEFAULT_FILTERS: ReportFilters = {
 }
 
 export function ReportsView({ provinces }: ReportsViewProps) {
-  const { t, locale } = useI18n()
+  const { t, locale, tx } = useI18n()
   const months = MONTHS_SHORT[locale] || MONTHS_SHORT.th
   const tabTranslations = TAB_TRANSLATIONS[locale] || TAB_TRANSLATIONS.th
   const paymentLabels: Record<string, string> = PAYMENT_STATUS_TRANSLATIONS[locale] || PAYMENT_STATUS_LABELS
@@ -513,7 +514,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
         paymentLabels={paymentLabels}
         onExport={() =>
           exportCsv(
-            ['สัญญา', 'สถานที่', 'จังหวัด', 'งวด', 'ครบกำหนด', 'ยอดสุทธิ', 'ชำระแล้ว', 'คงเหลือ', 'สถานะ'],
+            [tx({ th: 'สัญญา', en: 'Contract', my: 'စာချုပ်' }), tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' }), tx({ th: 'จังหวัด', en: 'Province', my: 'တိုင်းဒေသကြီး/ပြည်နယ်' }), tx({ th: 'งวด', en: 'Period', my: 'ကာလ' }), tx({ th: 'ครบกำหนด', en: 'Due Date', my: 'သတ်မှတ်ရက်' }), tx({ th: 'ยอดสุทธิ', en: 'Net Amount', my: 'စုစုပေါင်း' }), tx({ th: 'ชำระแล้ว', en: 'Paid', my: 'ပေးချေပြီး' }), tx({ th: 'คงเหลือ', en: 'Balance', my: 'ကျန်ငွေ' }), tx({ th: 'สถานะ', en: 'Status', my: 'အခြေအနေ' })],
             payableRows.map((r) => [
               r.contract_no, r.location_name, r.province,
               r.billing_period.slice(0, 7), r.due_date,
@@ -533,7 +534,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
         paymentLabels={paymentLabels}
         onExport={() =>
           exportCsv(
-            ['สัญญา', 'สถานที่', 'จังหวัด', 'งวด', 'ครบกำหนด', 'ยอดสุทธิ', 'ชำระแล้ว', 'คงเหลือ', 'สถานะ'],
+            [tx({ th: 'สัญญา', en: 'Contract', my: 'စာချုပ်' }), tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' }), tx({ th: 'จังหวัด', en: 'Province', my: 'တိုင်းဒေသကြီး/ပြည်နယ်' }), tx({ th: 'งวด', en: 'Period', my: 'ကာလ' }), tx({ th: 'ครบกำหนด', en: 'Due Date', my: 'သတ်မှတ်ရက်' }), tx({ th: 'ยอดสุทธิ', en: 'Net Amount', my: 'စုစုပေါင်း' }), tx({ th: 'ชำระแล้ว', en: 'Paid', my: 'ပေးချေပြီး' }), tx({ th: 'คงเหลือ', en: 'Balance', my: 'ကျန်ငွေ' }), tx({ th: 'สถานะ', en: 'Status', my: 'အခြေအနေ' })],
             receivableRows.map((r) => [
               r.contract_no, r.location_name, r.province,
               r.billing_period.slice(0, 7), r.due_date,
@@ -550,7 +551,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
     return (
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-muted-foreground">{overdueRows.length} รายการ · ค้างรวม {baht(total)} บาท</span>
+          <span className="text-sm text-muted-foreground">{overdueRows.length} {tx({ th: 'รายการ', en: 'items', my: 'ခု' })} · {tx({ th: 'ค้างรวม', en: 'Total Overdue', my: 'စုစုပေါင်း ပေးရန်ကျန်' })} {baht(total, locale)} {tx({ th: 'บาท', en: 'THB', my: 'ဘတ်' })}</span>
           <Button
             id="export-overdue"
             variant="outline"
@@ -558,7 +559,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
             className="gap-2"
             onClick={() =>
               exportCsv(
-                ['สัญญา', 'สถานที่', 'จังหวัด', 'ประเภท', 'งวด', 'ครบกำหนด', 'เกินกำหนด (วัน)', 'คงเหลือ'],
+                [tx({ th: 'สัญญา', en: 'Contract', my: 'စာချုပ်' }), tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' }), tx({ th: 'จังหวัด', en: 'Province', my: 'တိုင်းဒေသကြီး/ပြည်နယ်' }), tx({ th: 'ประเภท', en: 'Type', my: 'အမျိုးအစား' }), tx({ th: 'งวด', en: 'Period', my: 'ကာလ' }), tx({ th: 'ครบกำหนด', en: 'Due Date', my: 'သတ်မှတ်ရက်' }), tx({ th: 'เกินกำหนด (วัน)', en: 'Overdue (Days)', my: 'ရက်လွန် (ရက်)' }), tx({ th: 'คงเหลือ', en: 'Balance', my: 'ကျန်ငွေ' })],
                 overdueRows.map((r) => [
                   r.contract_no, r.location_name, r.province,
                   r.payment_type, r.billing_period.slice(0, 7), r.due_date,
@@ -574,26 +575,26 @@ export function ReportsView({ provinces }: ReportsViewProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">สัญญา</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">สถานที่</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden sm:table-cell">ประเภท</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">ครบกำหนด</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">เกินกำหนด</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">คงเหลือ (฿)</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{tx({ th: 'สัญญา', en: 'Contract', my: 'စာချုပ်' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">{tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden sm:table-cell">{tx({ th: 'ประเภท', en: 'Type', my: 'အမျိုးအစား' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">{tx({ th: 'ครบกำหนด', en: 'Due Date', my: 'သတ်မှတ်ရက်' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{tx({ th: 'เกินกำหนด', en: 'Overdue', my: 'ရက်လွန်' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{tx({ th: 'คงเหลือ (฿)', en: 'Balance (฿)', my: 'ကျန်ငွေ (฿)' })}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {overdueRows.length === 0 ? (
-                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">ไม่พบรายการค้างชำระ 🎉</td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">{tx({ th: 'ไม่พบรายการค้างชำระ 🎉', en: 'No overdue items found 🎉', my: 'ပေးရန်ကျန် မရှိပါ 🎉' })}</td></tr>
               ) : overdueRows.map((r) => (
                 <tr key={r.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-2 font-medium">{r.contract_no}</td>
                   <td className="px-3 py-2 hidden md:table-cell text-muted-foreground max-w-[140px] truncate">{r.location_name}</td>
-                  <td className="px-3 py-2 hidden sm:table-cell text-muted-foreground text-xs">{r.payment_type === 'payable' ? 'จ่าย' : 'รับ'}</td>
+                  <td className="px-3 py-2 hidden sm:table-cell text-muted-foreground text-xs">{labelOf(PAYMENT_TYPE_TRI, r.payment_type, locale)}</td>
                   <td className="px-3 py-2 hidden lg:table-cell text-muted-foreground text-xs">{fmtDate(r.due_date)}</td>
                   <td className="px-3 py-2 text-right">
                     <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">
-                      {r.days_overdue} วัน
+                      {r.days_overdue} {tx({ th: 'วัน', en: 'days', my: 'ရက်' })}
                     </Badge>
                   </td>
                   <td className="px-3 py-2 text-right font-semibold tabular-nums text-red-600">{baht(r.balance_amount)}</td>
@@ -603,7 +604,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
             {overdueRows.length > 0 && (
               <tfoot>
                 <tr className="border-t bg-muted/40 font-semibold">
-                  <td className="px-3 py-2.5" colSpan={5}>รวม ({overdueRows.length})</td>
+                  <td className="px-3 py-2.5" colSpan={5}>{tx({ th: 'รวม', en: 'Total', my: 'စုစုပေါင်း' })} ({overdueRows.length})</td>
                   <td className="px-3 py-2.5 text-right tabular-nums text-red-600">{baht(total)}</td>
                 </tr>
               </tfoot>
@@ -618,7 +619,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
     return (
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-muted-foreground">{openingRows.length} โครงการ</span>
+          <span className="text-sm text-muted-foreground">{openingRows.length} {tx({ th: 'โครงการ', en: 'projects', my: 'စီမံကိန်း' })}</span>
           <Button
             id="export-opening"
             variant="outline"
@@ -626,7 +627,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
             className="gap-2"
             onClick={() =>
               exportCsv(
-                ['โครงการ', 'สัญญา', 'สถานที่', 'Stage', 'วันเปิดร้าน', 'สถานะ', 'งานทั้งหมด', 'เสร็จแล้ว', 'คงเหลือ'],
+                [tx({ th: 'โครงการ', en: 'Project', my: 'စီမံကိန်း' }), tx({ th: 'สัญญา', en: 'Contract', my: 'စာချုပ်' }), tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' }), 'Stage', tx({ th: 'วันเปิดร้าน', en: 'Target Open Date', my: 'ဖွင့်လှစ်မည့်ရက်' }), tx({ th: 'สถานะ', en: 'Status', my: 'အခြေအနေ' }), tx({ th: 'งานทั้งหมด', en: 'Total Tasks', my: 'စုစုပေါင်း လုပ်ငန်း' }), tx({ th: 'เสร็จแล้ว', en: 'Completed', my: 'ပြီးစီး' }), tx({ th: 'คงเหลือ', en: 'Remaining', my: 'ကျန်ရှိ' })],
                 openingRows.map((r) => [
                   r.project_no, r.contract_no, r.location_name,
                   r.current_stage_name ?? '-', r.target_open_date ?? '-', r.status,
@@ -642,17 +643,17 @@ export function ReportsView({ provinces }: ReportsViewProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">โครงการ</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">สถานที่</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{tx({ th: 'โครงการ', en: 'Project', my: 'စီမံကိန်း' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">{tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' })}</th>
                 <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">Stage</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">วันเปิดร้าน</th>
-                <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">ความคืบหน้า</th>
-                <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">สถานะ</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">{tx({ th: 'วันเปิดร้าน', en: 'Target Open Date', my: 'ဖွင့်လှစ်မည့်ရက်' })}</th>
+                <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">{tx({ th: 'ความคืบหน้า', en: 'Progress', my: 'တိုးတက်မှု' })}</th>
+                <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">{tx({ th: 'สถานะ', en: 'Status', my: 'အခြေအနေ' })}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {openingRows.length === 0 ? (
-                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">ไม่พบข้อมูล</td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">{tx({ th: 'ไม่พบข้อมูล', en: 'No data found', my: 'ဒေတာ မရှိပါ' })}</td></tr>
               ) : openingRows.map((r, idx) => {
                 const pct = r.total_tasks > 0 ? Math.round((r.completed_tasks / r.total_tasks) * 100) : 0
                 return (
@@ -688,7 +689,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
     return (
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-muted-foreground">{taskRows.length} งาน</span>
+          <span className="text-sm text-muted-foreground">{taskRows.length} {tx({ th: 'งาน', en: 'tasks', my: 'လုပ်ငန်း' })}</span>
           <Button
             id="export-task"
             variant="outline"
@@ -696,7 +697,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
             className="gap-2"
             onClick={() =>
               exportCsv(
-                ['ผู้รับผิดชอบ', 'งาน', 'โครงการ', 'สถานที่', 'ครบกำหนด', 'สถานะ'],
+                [tx({ th: 'ผู้รับผิดชอบ', en: 'Assignee', my: 'တာဝန်ခံ' }), tx({ th: 'งาน', en: 'Task', my: 'လုပ်ငန်း' }), tx({ th: 'โครงการ', en: 'Project', my: 'စီမံကိန်း' }), tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' }), tx({ th: 'ครบกำหนด', en: 'Due Date', my: 'သတ်မှတ်ရက်' }), tx({ th: 'สถานะ', en: 'Status', my: 'အခြေအနေ' })],
                 taskRows.map((r) => [
                   r.assigned_name, r.task_name, r.project_no,
                   r.location_name, r.due_date ?? '-', r.status,
@@ -711,16 +712,16 @@ export function ReportsView({ provinces }: ReportsViewProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">ผู้รับผิดชอบ</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">งาน</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">สถานที่</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">ครบกำหนด</th>
-                <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">สถานะ</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{tx({ th: 'ผู้รับผิดชอบ', en: 'Assignee', my: 'တာဝန်ခံ' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{tx({ th: 'งาน', en: 'Task', my: 'လုပ်ငန်း' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">{tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden lg:table-cell">{tx({ th: 'ครบกำหนด', en: 'Due Date', my: 'သတ်မှတ်ရက်' })}</th>
+                <th className="px-3 py-2.5 text-center font-medium text-muted-foreground">{tx({ th: 'สถานะ', en: 'Status', my: 'အခြေအနေ' })}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {taskRows.length === 0 ? (
-                <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">ไม่พบข้อมูล</td></tr>
+                <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm">{tx({ th: 'ไม่พบข้อมูล', en: 'No data found', my: 'ဒေတာ မရှိပါ' })}</td></tr>
               ) : taskRows.map((r, idx) => (
                 <tr key={idx} className="hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-2 font-medium">{r.assigned_name}</td>
@@ -746,7 +747,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
     return (
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-muted-foreground">{monthlyRows.length} รายการ</span>
+          <span className="text-sm text-muted-foreground">{monthlyRows.length} {tx({ th: 'รายการ', en: 'items', my: 'ခု' })}</span>
           <Button
             id="export-monthly"
             variant="outline"
@@ -754,7 +755,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
             className="gap-2"
             onClick={() =>
               exportCsv(
-                ['ปี', 'เดือน', 'ประเภท', 'จำนวน', 'ยอดสุทธิ', 'ชำระแล้ว', 'คงเหลือ'],
+                [tx({ th: 'ปี', en: 'Year', my: 'နှစ်' }), tx({ th: 'เดือน', en: 'Month', my: 'လ' }), tx({ th: 'ประเภท', en: 'Type', my: 'အမျိုးအစား' }), tx({ th: 'จำนวน', en: 'Count', my: 'အရေအတွက်' }), tx({ th: 'ยอดสุทธิ', en: 'Net Amount', my: 'စုစုပေါင်း' }), tx({ th: 'ชำระแล้ว', en: 'Paid', my: 'ပေးချေပြီး' }), tx({ th: 'คงเหลือ', en: 'Balance', my: 'ကျန်ငွေ' })],
                 monthlyRows.map((r) => [
                   String(r.year + 543), THAI_MONTHS_SHORT[r.month],
                   r.payment_type, String(r.total_records),
@@ -770,24 +771,24 @@ export function ReportsView({ provinces }: ReportsViewProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">ปี-เดือน</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">ประเภท</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">จำนวน</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">ยอดสุทธิ</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground hidden sm:table-cell">ชำระแล้ว</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">คงเหลือ</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{tx({ th: 'ปี-เดือน', en: 'Year-Month', my: 'နှစ်-လ' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{tx({ th: 'ประเภท', en: 'Type', my: 'အမျိုးအစား' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{tx({ th: 'จำนวน', en: 'Count', my: 'အရေအတွက်' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{tx({ th: 'ยอดสุทธิ', en: 'Net Amount', my: 'စုစုပေါင်း' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground hidden sm:table-cell">{tx({ th: 'ชำระแล้ว', en: 'Paid', my: 'ပေးချေပြီး' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{tx({ th: 'คงเหลือ', en: 'Balance', my: 'ကျန်ငွေ' })}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {monthlyRows.length === 0 ? (
-                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">ไม่พบข้อมูล</td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">{tx({ th: 'ไม่พบข้อมูล', en: 'No data found', my: 'ဒေတာ မရှိပါ' })}</td></tr>
               ) : monthlyRows.map((r, idx) => (
                 <tr key={idx} className="hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-2 font-medium tabular-nums">
                     {r.year + 543}-{THAI_MONTHS_SHORT[r.month]}
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">
-                    {r.payment_type === 'payable' ? 'บริษัทจ่าย' : 'ลูกค้าจ่าย'}
+                    {labelOf(PAYMENT_TYPE_TRI, r.payment_type, locale)}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{r.total_records}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{baht(r.total_net_amount)}</td>
@@ -799,7 +800,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
             {monthlyRows.length > 0 && (
               <tfoot>
                 <tr className="border-t bg-muted/40 font-semibold">
-                  <td className="px-3 py-2.5" colSpan={3}>รวม</td>
+                  <td className="px-3 py-2.5" colSpan={3}>{tx({ th: 'รวม', en: 'Total', my: 'စုစုပေါင်း' })}</td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{baht(totalNet)}</td>
                   <td className="px-3 py-2.5 hidden sm:table-cell text-right tabular-nums text-emerald-600">
                     {baht(monthlyRows.reduce((s, r) => s + r.total_paid, 0))}
@@ -820,7 +821,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
     return (
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-muted-foreground">{locationRows.length} สถานที่</span>
+          <span className="text-sm text-muted-foreground">{locationRows.length} {tx({ th: 'สถานที่', en: 'locations', my: 'နေရာ' })}</span>
           <Button
             id="export-location"
             variant="outline"
@@ -828,7 +829,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
             className="gap-2"
             onClick={() =>
               exportCsv(
-                ['รหัส', 'สถานที่', 'หมู่บ้าน', 'จังหวัด', 'สัญญา', 'ประเภท', 'จำนวน', 'ยอดสุทธิ', 'คงเหลือ'],
+                [tx({ th: 'รหัส', en: 'Code', my: 'ကုဒ်' }), tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' }), tx({ th: 'หมู่บ้าน', en: 'Village/Area', my: 'ရပ်ကွက်/ကျေးရွာ' }), tx({ th: 'จังหวัด', en: 'Province', my: 'တိုင်းဒေသကြီး/ပြည်နယ်' }), tx({ th: 'สัญญา', en: 'Contract', my: 'စာချုပ်' }), tx({ th: 'ประเภท', en: 'Type', my: 'အမျိုးအစား' }), tx({ th: 'จำนวน', en: 'Count', my: 'အရေအတွက်' }), tx({ th: 'ยอดสุทธิ', en: 'Net Amount', my: 'စုစုပေါင်း' }), tx({ th: 'คงเหลือ', en: 'Balance', my: 'ကျန်ငွေ' })],
                 locationRows.map((r) => [
                   r.location_code, r.location_name, r.village_name, r.province,
                   r.contract_no, r.payment_type,
@@ -844,17 +845,17 @@ export function ReportsView({ provinces }: ReportsViewProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40">
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">สถานที่</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">จังหวัด</th>
-                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden sm:table-cell">ประเภท</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">จำนวน</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">ยอดสุทธิ</th>
-                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">คงเหลือ</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{tx({ th: 'สถานที่', en: 'Location', my: 'တည်နေရာ' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden md:table-cell">{tx({ th: 'จังหวัด', en: 'Province', my: 'တိုင်းဒေသကြီး/ပြည်နယ်' })}</th>
+                <th className="px-3 py-2.5 text-left font-medium text-muted-foreground hidden sm:table-cell">{tx({ th: 'ประเภท', en: 'Type', my: 'အမျိုးအစား' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{tx({ th: 'จำนวน', en: 'Count', my: 'အရေအတွက်' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{tx({ th: 'ยอดสุทธิ', en: 'Net Amount', my: 'စုစုပေါင်း' })}</th>
+                <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{tx({ th: 'คงเหลือ', en: 'Balance', my: 'ကျန်ငွေ' })}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {locationRows.length === 0 ? (
-                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">ไม่พบข้อมูล</td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">{tx({ th: 'ไม่พบข้อมูล', en: 'No data found', my: 'ဒေတာ မရှိပါ' })}</td></tr>
               ) : locationRows.map((r, idx) => (
                 <tr key={idx} className="hover:bg-muted/30 transition-colors">
                   <td className="px-3 py-2">
@@ -863,7 +864,7 @@ export function ReportsView({ provinces }: ReportsViewProps) {
                   </td>
                   <td className="px-3 py-2 hidden md:table-cell text-muted-foreground">{r.province || '-'}</td>
                   <td className="px-3 py-2 hidden sm:table-cell text-muted-foreground text-xs">
-                    {r.payment_type === 'payable' ? 'บริษัทจ่าย' : 'ลูกค้าจ่าย'}
+                    {labelOf(PAYMENT_TYPE_TRI, r.payment_type, locale)}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">{r.total_records}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{baht(r.total_net_amount)}</td>

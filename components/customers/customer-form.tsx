@@ -3,6 +3,8 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
+import { useI18n } from '@/lib/i18n/context'
+import { W } from '@/lib/i18n/labels'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
@@ -52,6 +54,7 @@ interface CustomerFormProps {
 }
 
 export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
+  const { t, locale, tx } = useI18n()
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
   const [serverError, setServerError] = React.useState<string | null>(null)
@@ -289,12 +292,12 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
           </Link>
           <div>
             <h1 className="text-xl font-bold text-slate-900">
-              {isEdit ? 'แก้ไขข้อมูลลูกค้า/ผู้เช่า' : 'เพิ่มลูกค้า/ผู้เช่าใหม่'}
+              {isEdit ? tx({ th: 'แก้ไขข้อมูลลูกค้า/ผู้เช่า', en: 'Edit Customer/Tenant', my: 'ဖောက်သည်/အိမ်ငှား အချက်အလက် ပြင်ဆင်ရန်' }) : tx({ th: 'เพิ่มลูกค้า/ผู้เช่าใหม่', en: 'New Customer/Tenant', my: 'ဖောက်သည်/အိမ်ငှား အသစ်ထည့်ရန်' })}
             </h1>
             <p className="text-xs text-slate-500">
               {isEdit
-                ? `รหัส: ${initialData?.customer_code || initialData?.id}`
-                : 'กรอกข้อมูลรายละเอียดลูกค้า/ผู้เช่า พร้อมแนบไฟล์เอกสารเพื่อบันทึกเข้าระบบ'}
+                ? `${tx({ th: 'รหัส', en: 'Code', my: 'ကုဒ်' })}: ${initialData?.customer_code || initialData?.id}`
+                : tx({ th: 'กรอกข้อมูลรายละเอียดลูกค้า/ผู้เช่า พร้อมแนบไฟล์เอกสารเพื่อบันทึกเข้าระบบ', en: 'Fill customer/tenant details and attach required documents', my: 'ဖောက်သည်/အိမ်ငှား အချက်အလက်များနှင့် လိုအပ်သော စာရွက်စာတမ်းများ ဖြည့်ပါ' })}
             </p>
           </div>
         </div>
@@ -307,7 +310,7 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
             className="text-red-600 hover:bg-red-50 hover:text-red-700 gap-1.5"
           >
             <Trash2 className="h-4 w-4" />
-            ลบลูกค้า/ผู้เช่า
+            {tx({ th: 'ลบลูกค้า/ผู้เช่า', en: 'Delete Customer', my: 'ဖျက်ပစ်ပါ' })}
           </Button>
         )}
       </div>
@@ -326,13 +329,13 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
           <div>
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
               <User className="h-4 w-4 text-primary-600" />
-              ข้อมูลทั่วไป
+              {tx({ th: 'ข้อมูลทั่วไป', en: 'General Information', my: 'အထွေထွေ အချက်အလက်' })}
             </h2>
 
             {/* Category Selector Cards */}
             <div className="mb-6 p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2.5">
               <Label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
-                รูปแบบลูกค้า/ผู้เช่า และสัญชาติ <span className="text-rose-500">*</span>
+                {tx({ th: 'รูปแบบลูกค้า/ผู้เช่า และสัญชาติ', en: 'Customer Type & Nationality', my: 'ဖောက်သည်/အိမ်ငှား အမျိုးအစားနှင့် နိုင်ငံသား' })} <span className="text-rose-500">*</span>
               </Label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* 1. นิติบุคคล */}
@@ -352,20 +355,20 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
                     }`}
                   />
                   <div>
-                    <div className="text-xs font-bold">🏢 นิติบุคคล</div>
+                    <div className="text-xs font-bold">🏢 {tx({ th: 'นิติบุคคล', en: 'Company / Corporate', my: 'ကုမ္ပဏီ / တရားဝင်အဖွဲ့အစည်း' })}</div>
                     <div
                       className={`text-[11px] mt-0.5 leading-snug ${
                         customerCategory === 'company' ? 'text-indigo-100' : 'text-slate-500'
                       }`}
                     >
-                      บริษัท / ห้างหุ้นส่วนจำกัด
+                      {tx({ th: 'บริษัท / ห้างหุ้นส่วนจำกัด', en: 'Company / Limited Partnership', my: 'ကုမ္ပဏီ / အစုစပ်လုပ်ငန်း' })}
                     </div>
                     <div
                       className={`text-[10px] mt-1.5 font-medium ${
                         customerCategory === 'company' ? 'text-indigo-200' : 'text-slate-400'
                       }`}
                     >
-                      แนบ: หนังสือรับรองบริษัท, บัตรประชาชนกรรมการ
+                      {tx({ th: 'แนบ: หนังสือรับรองบริษัท, บัตรประชาชนกรรมการ', en: 'Attach: Company certificate, Director ID', my: 'ပူးတွဲ: ကုမ္ပဏီမှတ်ပုံတင်၊ ဒါရိုက်တာ မှတ်ပုံတင်' })}
                     </div>
                   </div>
                 </button>
@@ -387,20 +390,20 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
                     }`}
                   />
                   <div>
-                    <div className="text-xs font-bold">🇹🇭 คนไทย (บุคคลธรรมดา)</div>
+                    <div className="text-xs font-bold">🇹🇭 {tx({ th: 'คนไทย (บุคคลธรรมดา)', en: 'Thai Citizen (Individual)', my: 'ထိုင်းနိုင်ငံသား (တစ်ဦးချင်း)' })}</div>
                     <div
                       className={`text-[11px] mt-0.5 leading-snug ${
                         customerCategory === 'thai_individual' ? 'text-primary-100' : 'text-slate-500'
                       }`}
                     >
-                      บุคคลธรรมดาสัญชาติไทย
+                      {tx({ th: 'บุคคลธรรมดาสัญชาติไทย', en: 'Thai National Individual', my: 'ထိုင်းနိုင်ငံသား သာမန်လူပုဂ္ဂိုလ်' })}
                     </div>
                     <div
                       className={`text-[10px] mt-1.5 font-medium ${
                         customerCategory === 'thai_individual' ? 'text-primary-200' : 'text-slate-400'
                       }`}
                     >
-                      แนบ: สำเนาบัตรประชาชน
+                      {tx({ th: 'แนบ: สำเนาบัตรประชาชน', en: 'Attach: Thai National ID Card copy', my: 'ပူးတွဲ: မှတ်ပုံတင် မိတ္တူ' })}
                     </div>
                   </div>
                 </button>
@@ -422,20 +425,20 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
                     }`}
                   />
                   <div>
-                    <div className="text-xs font-bold">🌐 ชาวต่างชาติ (บุคคลธรรมดา)</div>
+                    <div className="text-xs font-bold">🌐 {tx({ th: 'ชาวต่างชาติ (บุคคลธรรมดา)', en: 'Foreigner (Individual)', my: 'နိုင်ငံခြားသား (တစ်ဦးချင်း)' })}</div>
                     <div
                       className={`text-[11px] mt-0.5 leading-snug ${
                         customerCategory === 'foreigner_individual' ? 'text-amber-100' : 'text-slate-500'
                       }`}
                     >
-                      บุคคลต่างด้าว / ต่างชาติ
+                      {tx({ th: 'บุคคลต่างด้าว / ต่างชาติ', en: 'Foreign national / Expat', my: 'နိုင်ငံခြားသား / ပြည်ပနိုင်ငံသား' })}
                     </div>
                     <div
                       className={`text-[10px] mt-1.5 font-medium ${
                         customerCategory === 'foreigner_individual' ? 'text-amber-200' : 'text-slate-400'
                       }`}
                     >
-                      แนบ: พาสปอร์ต, วีซ่า, Work permit ฯลฯ
+                      {tx({ th: 'แนบ: พาสปอร์ต, วีซ่า, Work permit ฯลฯ', en: 'Attach: Passport, Visa, Work permit, etc.', my: 'ပူးတွဲ: နိုင်ငံကူးလက်မှတ်၊ ဗီဇာ၊ အလုပ်လုပ်ခွင့်' })}
                     </div>
                   </div>
                 </button>
@@ -444,10 +447,10 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="customer_code">รหัสลูกค้า/ผู้เช่า</Label>
+                <Label htmlFor="customer_code">{tx({ th: 'รหัสลูกค้า/ผู้เช่า', en: 'Customer / Tenant Code', my: 'ဖောက်သည်/အိမ်ငှား ကုဒ်' })}</Label>
                 <Input
                   id="customer_code"
-                  placeholder="เช่น CUST-001 (ปล่อยว่างให้ระบบสร้างอัตโนมัติ)"
+                  placeholder={tx({ th: 'เช่น CUST-001 (ปล่อยว่างให้ระบบสร้างอัตโนมัติ)', en: 'e.g. CUST-001 (Auto-generated if blank)', my: 'ဥပမာ CUST-001 (လွတ်ထားပါက အလိုအလျောက် သတ်မှတ်မည်)' })}
                   disabled={!allowEdit}
                   {...register('customer_code')}
                 />
@@ -459,17 +462,17 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               <div className="space-y-1.5">
                 <Label htmlFor="tax_id">
                   {customerCategory === 'company'
-                    ? 'เลขประจำตัวผู้เสียภาษี (13 หลัก)'
+                    ? tx({ th: 'เลขประจำตัวผู้เสียภาษี (13 หลัก)', en: 'Tax ID (13 digits)', my: 'အခွန်မှတ်ပုံတင်အမှတ် (၁၃ လုံး)' })
                     : customerCategory === 'thai_individual'
-                    ? 'เลขบัตรประจำตัวประชาชน (13 หลัก)'
-                    : 'เลขประจำตัวผู้เสียภาษี / เลขบัตรต่างด้าว (ถ้ามี)'}
+                    ? tx({ th: 'เลขบัตรประจำตัวประชาชน (13 หลัก)', en: 'Thai National ID (13 digits)', my: 'နိုင်ငံသားမှတ်ပုံတင်အမှတ် (၁၃ လုံး)' })
+                    : tx({ th: 'เลขประจำตัวผู้เสียภาษี / เลขบัตรต่างด้าว (ถ้ามี)', en: 'Tax ID / Alien Card No. (if any)', my: 'အခွန်နံပါတ် / နိုင်ငံခြားသားကတ် (ရှိလျှင်)' })}
                 </Label>
                 <Input
                   id="tax_id"
                   placeholder={
                     customerCategory === 'foreigner_individual'
-                      ? 'เลขประจำตัวผู้เสียภาษี หรือปล่อยว่าง'
-                      : 'เลข 13 หลัก'
+                      ? tx({ th: 'เลขประจำตัวผู้เสียภาษี หรือปล่อยว่าง', en: 'Tax ID or leave blank', my: 'အခွန်နံပါတ် သို့မဟုတ် လွတ်ထားပါ' })
+                      : tx({ th: 'เลข 13 หลัก', en: '13-digit number', my: '၁၃ လုံး' })
                   }
                   maxLength={20}
                   disabled={!allowEdit}
@@ -483,10 +486,10 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               <div className="space-y-1.5">
                 <Label htmlFor="name">
                   {customerCategory === 'company'
-                    ? 'ชื่อการค้า / ป้ายร้าน'
+                    ? tx({ th: 'ชื่อการค้า / ป้ายร้าน', en: 'Trade Name / Storefront Name', my: 'ဆိုင်အမည် / ကုန်အမှတ်တံဆိပ်' })
                     : customerCategory === 'foreigner_individual'
-                    ? 'ชื่อ - นามสกุล (ตาม Passport / Work permit) *'
-                    : 'ชื่อ - นามสกุล (ผู้เช่า) *'}
+                    ? tx({ th: 'ชื่อ - นามสกุล (ตาม Passport / Work permit) *', en: 'Full Name (as in Passport / Work permit) *', my: 'အမည်အပြည့်အစုံ (Passport/Work permit အတိုင်း) *' })
+                    : tx({ th: 'ชื่อ - นามสกุล (ผู้เช่า) *', en: 'Full Name (Tenant) *', my: 'အမည်အပြည့်အစုံ (အိမ်ငှား) *' })}
                 </Label>
                 <Input
                   id="name"
@@ -508,8 +511,8 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               <div className="space-y-1.5">
                 <Label htmlFor="company_name">
                   {customerCategory === 'company'
-                    ? 'ชื่อบริษัท / นิติบุคคล *'
-                    : 'ชื่อสถานที่ทำงาน / ธุรกิจ (ถ้ามี)'}
+                    ? tx({ th: 'ชื่อบริษัท / นิติบุคคล *', en: 'Company / Legal Entity Name *', my: 'ကုမ္ပဏီအမည် *' })
+                    : tx({ th: 'ชื่อสถานที่ทำงาน / ธุรกิจ (ถ้ามี)', en: 'Company / Workplace Name (if any)', my: 'လုပ်ငန်းခွင်အမည် (ရှိလျှင်)' })}
                 </Label>
                 <Input
                   id="company_name"
@@ -529,10 +532,10 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               <div className="space-y-1.5 md:col-span-2">
                 <Label htmlFor="contact_name">
                   {customerCategory === 'company'
-                    ? 'ชื่อผู้ประสานงาน / ฝ่ายจัดซื้อ'
+                    ? tx({ th: 'ชื่อผู้ประสานงาน / ฝ่ายจัดซื้อ', en: 'Coordinator / Procurement Contact', my: 'ဆက်သွယ်ရန်ပုဂ္ဂိုလ် / ဝယ်ယူရေး' })
                     : customerCategory === 'foreigner_individual'
-                    ? 'ชื่อผู้ประสานงาน / ล่าม / ผู้ติดต่อสำรอง (ถ้ามี)'
-                    : 'ชื่อผู้ติดต่อสำรอง (ถ้ามี)'}
+                    ? tx({ th: 'ชื่อผู้ประสานงาน / ล่าม / ผู้ติดต่อสำรอง (ถ้ามี)', en: 'Coordinator / Interpreter / Backup Contact', my: 'ဆက်သွယ်ရန်ပုဂ္ဂိုလ် / စကားပြန် (ရှိလျှင်)' })
+                    : tx({ th: 'ชื่อผู้ติดต่อสำรอง (ถ้ามี)', en: 'Alternative Contact Name (if any)', my: 'အရန်ဆက်သွယ်ရန်ပုဂ္ဂိုလ် (ရှိလျှင်)' })}
                 </Label>
                 <Input
                   id="contact_name"
@@ -551,11 +554,11 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
           <div>
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary-600" />
-              ช่องทางการติดต่อ
+              {tx({ th: 'ช่องทางการติดต่อ', en: 'Contact Information', my: 'ဆက်သွယ်ရန် အချက်အလက်' })}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
+                <Label htmlFor="phone">{tx({ th: 'เบอร์โทรศัพท์', en: 'Phone Number', my: 'ဖုန်းနံပါတ်' })}</Label>
                 <Input
                   id="phone"
                   placeholder="เช่น 081-234-5678"
@@ -568,7 +571,7 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="email">อีเมล</Label>
+                <Label htmlFor="email">{tx({ th: 'อีเมล', en: 'Email', my: 'အီးမေးလ်' })}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -615,14 +618,14 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
           {/* Section: Address & Notes */}
           <div>
             <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
-              ที่อยู่และหมายเหตุ
+              {tx({ th: 'ที่อยู่และหมายเหตุ', en: 'Address & Notes', my: 'လိပ်စာနှင့် မှတ်ချက်' })}
             </h2>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="address">ที่อยู่ / ที่อยู่สำหรับออกใบเสร็จ</Label>
+                <Label htmlFor="address">{tx({ th: 'ที่อยู่ / ที่อยู่สำหรับออกใบเสร็จ', en: 'Address / Billing Address', my: 'လိပ်စာ / ပြေစာထုတ်ပေးရန် လိပ်စာ' })}</Label>
                 <Textarea
                   id="address"
-                  placeholder="เลขที่ อาคาร ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"
+                  placeholder={tx({ th: 'เลขที่ อาคาร ถนน ตำบล อำเภอ จังหวัด รหัสไปรษณีย์', en: 'No., Building, Street, Sub-district, District, Province, Postal Code', my: 'အမှတ်၊ အဆောက်အအုံ၊ လမ်း၊ မြို့နယ်၊ ခရိုင်၊ စာတိုက်သင်္ကေတ' })}
                   rows={3}
                   disabled={!allowEdit}
                   {...register('address')}
@@ -633,10 +636,10 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="note">หมายเหตุเพิ่มเติม</Label>
+                <Label htmlFor="note">{tx({ th: 'หมายเหตุเพิ่มเติม', en: 'Additional Notes', my: 'နောက်ထပ် မှတ်ချက်များ' })}</Label>
                 <Textarea
                   id="note"
-                  placeholder="เงื่อนไขพิเศษ ข้อมูลเพิ่มเติม หรือประวัติการติดต่อ..."
+                  placeholder={tx({ th: 'เงื่อนไขพิเศษ ข้อมูลเพิ่มเติม หรือประวัติการติดต่อ...', en: 'Special terms, additional details, or contact history...', my: 'အထူးသတ်မှတ်ချက်များ သို့မဟုတ် ဆက်သွယ်မှုမှတ်တမ်း...' })}
                   rows={2}
                   disabled={!allowEdit}
                   {...register('note')}
@@ -653,7 +656,7 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
         <div className="flex items-center justify-end gap-3">
           <Link href="/customers">
             <Button type="button" variant="outline">
-              ยกเลิก
+              {t.common.cancel}
             </Button>
           </Link>
           {allowEdit && (
@@ -661,12 +664,12 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  กำลังบันทึกและอัปโหลด...
+                  {tx({ th: 'กำลังบันทึกและอัปโหลด...', en: 'Saving & Uploading...', my: 'သိမ်းဆည်းပြီး တင်နေသည်...' })}
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  {isEdit ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูลและเอกสาร'}
+                  {isEdit ? tx({ th: 'บันทึกการแก้ไข', en: 'Save Changes', my: 'ပြင်ဆင်မှု သိမ်းဆည်းရန်' }) : tx({ th: 'บันทึกข้อมูลและเอกสาร', en: 'Save Details & Files', my: 'အချက်အလက်နှင့် ဖိုင်များ သိမ်းဆည်းရန်' })}
                 </>
               )}
             </Button>
@@ -678,11 +681,11 @@ export function CustomerForm({ initialData, userRole }: CustomerFormProps) {
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="ยืนยันการลบข้อมูลลูกค้า/ผู้เช่า"
+        title={tx({ th: 'ยืนยันการลบข้อมูลลูกค้า/ผู้เช่า', en: 'Confirm Deleting Customer/Tenant', my: 'ဖျက်ပစ်ရန် အတည်ပြုပါ' })}
         description={`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลลูกค้า/ผู้เช่า "${
           initialData?.name || initialData?.company_name
         }"? การดำเนินการนี้ไม่สามารถย้อนกลับได้`}
-        confirmText="ลบข้อมูล"
+        confirmText={tx({ th: 'ลบข้อมูล', en: 'Delete', my: 'ဖျက်ပစ်ပါ' })}
         loading={isDeleting}
         onConfirm={handleDelete}
       />

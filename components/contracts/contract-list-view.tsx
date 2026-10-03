@@ -38,7 +38,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
   const router = useRouter()
   const allowWrite = canWrite(userRole)
   const allowDelete = hasFullAccess(userRole)
-  const { t, locale } = useI18n()
+  const { t, locale, tx } = useI18n()
   const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
 
   const [searchTerm, setSearchTerm] = React.useState('')
@@ -279,7 +279,8 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
                         </Link>
                         {contract.contract_date && (
                           <div className="text-xs text-slate-400">
-                            ทำสัญญา {new Date(contract.contract_date).toLocaleDateString('th-TH')}
+                            {tx({ th: 'ทำสัญญา ', en: 'Signed on ', my: 'စာချုပ်ချုပ်ဆိုသည့်နေ့ ' })}
+                            {new Date(contract.contract_date).toLocaleDateString(intlLocale)}
                           </div>
                         )}
                       </td>
@@ -302,7 +303,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
                         {contract.landlords ? (
                           <div>
                             <span className="text-xs text-indigo-600 font-semibold uppercase block">
-                              ผู้ให้เช่า
+                              {t.landlords.title}
                             </span>
                             <span className="text-slate-800">
                               {contract.landlords.name || contract.landlords.company_name}
@@ -311,7 +312,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
                         ) : contract.customers ? (
                           <div>
                             <span className="text-xs text-teal-600 font-semibold uppercase block">
-                              ผู้เช่า
+                              {t.customers.title}
                             </span>
                             <span className="text-slate-800">
                               {contract.customers.name || contract.customers.company_name}
@@ -327,10 +328,12 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
                         {contract.start_date && contract.end_date ? (
                           <>
                             <div>
-                              เริ่ม: {new Date(contract.start_date).toLocaleDateString('th-TH')}
+                              {tx({ th: 'เริ่ม: ', en: 'Start: ', my: 'စတင်: ' })}
+                              {new Date(contract.start_date).toLocaleDateString(intlLocale)}
                             </div>
                             <div>
-                              ถึง: {new Date(contract.end_date).toLocaleDateString('th-TH')}
+                              {tx({ th: 'ถึง: ', en: 'End: ', my: 'ကုန်ဆုံး: ' })}
+                              {new Date(contract.end_date).toLocaleDateString(intlLocale)}
                             </div>
                           </>
                         ) : (
@@ -340,11 +343,11 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
 
                       {/* Monthly Rent */}
                       <td className="px-4 py-3 text-right font-semibold text-slate-900 whitespace-nowrap">
-                        ฿{Number(contract.monthly_rent).toLocaleString('th-TH')}
+                        ฿{Number(contract.monthly_rent).toLocaleString(intlLocale)}
                         {Number(contract.other_service_amount) > 0 && (
                           <div className="text-xs font-normal text-slate-400">
-                            +บริการ ฿
-                            {Number(contract.other_service_amount).toLocaleString('th-TH')}
+                            {tx({ th: '+บริการ ฿', en: '+Service ฿', my: '+ဝန်ဆောင်မှုခ ฿' })}
+                            {Number(contract.other_service_amount).toLocaleString(intlLocale)}
                           </div>
                         )}
                       </td>
@@ -356,7 +359,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
                             {contract.wht_rate}%
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400">ไม่มี</span>
+                          <span className="text-xs text-slate-400">{tx({ th: 'ไม่มี', en: 'None', my: 'မရှိပါ' })}</span>
                         )}
                       </td>
 
@@ -366,7 +369,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
                           variant="outline"
                           className={`${badgeVariant.bg} ${badgeVariant.text} ${badgeVariant.border} text-xs font-medium`}
                         >
-                          {CONTRACT_STATUS_LABELS[contract.status as ContractStatus] || contract.status}
+                          {getContractStatusLabel(contract.status)}
                         </Badge>
                       </td>
 
@@ -378,7 +381,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 text-slate-500 hover:text-primary-600"
-                            title="ดูรายละเอียด"
+                            title={tx({ th: 'ดูรายละเอียด', en: 'View Details', my: 'အသေးစိတ်ကြည့်ရှုရန်' })}
                           >
                             <Link href={`/contracts/${contract.id}`}>
                               <Eye className="h-4 w-4" />
@@ -391,7 +394,7 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
                               size="sm"
                               onClick={() => setDeletingId(contract.id)}
                               className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600"
-                              title="ลบสัญญา"
+                              title={tx({ th: 'ลบสัญญา', en: 'Delete Contract', my: 'စာချုပ်ဖျက်ရန်' })}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -411,10 +414,18 @@ export function ContractListView({ contracts, userRole }: ContractListViewProps)
       <ConfirmDialog
         open={Boolean(deletingId)}
         onOpenChange={(open) => !open && setDeletingId(null)}
-        title="ยืนยันการลบสัญญาเช่า"
-        description="คุณแน่ใจหรือไม่ว่าต้องการลบสัญญานี้? ข้อมูลนี้จะไม่สามารถกู้คืนได้ และหากมีงวดชำระเงินผูกอยู่จะไม่สามารถลบได้"
-        confirmText="ยืนยันลบ"
-        cancelText="ยกเลิก"
+        title={tx({
+          th: 'ยืนยันการลบสัญญาเช่า',
+          en: 'Confirm Lease Contract Deletion',
+          my: 'အငှားစာချုပ်ဖျက်ရန် အတည်ပြုပါ',
+        })}
+        description={tx({
+          th: 'คุณแน่ใจหรือไม่ว่าต้องการลบสัญญานี้? ข้อมูลนี้จะไม่สามารถกู้คืนได้ และหากมีงวดชำระเงินผูกอยู่จะไม่สามารถลบได้',
+          en: 'Are you sure you want to delete this contract? This action cannot be undone and cannot proceed if payments are attached.',
+          my: 'ဤစာချုပ်ကို ဖျက်ရန် သေချာပါသလား။ ဤအချက်အလက်ကို ပြန်လည်ရယူနိုင်မည် မဟုတ်ပါ။ ငွေပေးချေမှုမှတ်တမ်းများ ချိတ်ဆက်ထားပါက ဖျက်၍မရပါ။',
+        })}
+        confirmText={tx({ th: 'ยืนยันลบ', en: 'Confirm Delete', my: 'ဖျက်ရန် အတည်ပြုပါ' })}
+        cancelText={tx({ th: 'ยกเลิก', en: 'Cancel', my: 'ပယ်ဖျက်မည်' })}
         variant="danger"
         loading={isDeleting}
         onConfirm={handleDelete}

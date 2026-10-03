@@ -30,6 +30,7 @@ import type { UserRole, UserProfile } from '@/lib/types/auth'
 import { canWrite } from '@/lib/auth/permissions'
 
 import { useI18n } from '@/lib/i18n/context'
+import { labelOf, PROJECT_STATUS_TRI } from '@/lib/i18n/labels'
 
 interface EligibleContract {
   id: string
@@ -57,7 +58,7 @@ export function OpeningListView({
   userRole,
 }: OpeningListViewProps) {
   const allowWrite = canWrite(userRole)
-  const { t, locale } = useI18n()
+  const { t, locale, tx } = useI18n()
   const intlLocale = locale === 'en' ? 'en-US' : locale === 'my' ? 'my-MM' : 'th-TH'
 
   const [activeTab, setActiveTab] = React.useState<TabType>('all')
@@ -338,7 +339,7 @@ export function OpeningListView({
                         {p.target_open_date ? (
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                            {new Date(p.target_open_date).toLocaleDateString('th-TH')}
+                            {new Date(p.target_open_date).toLocaleDateString(intlLocale)}
                           </div>
                         ) : (
                           '-'
@@ -349,7 +350,7 @@ export function OpeningListView({
                       <td className="px-4 py-3 min-w-[140px]">
                         <div className="flex items-center justify-between text-[11px] mb-1">
                           <span className="text-slate-500">
-                            {doneTasks}/{totalTasks} งาน
+                            {doneTasks}/{totalTasks} {tx({ th: 'งาน', en: 'tasks', my: 'လုပ်ငန်း' })}
                           </span>
                           <span className="font-semibold text-slate-700">{percent}%</span>
                         </div>
@@ -373,7 +374,7 @@ export function OpeningListView({
                           variant="outline"
                           className={`${badgeVariant.bg} ${badgeVariant.text} ${badgeVariant.border} text-[10px] font-medium`}
                         >
-                          {PROJECT_STATUS_LABELS[p.status as OpeningProjectStatus] || p.status}
+                          {labelOf(PROJECT_STATUS_TRI, p.status, locale) || PROJECT_STATUS_LABELS[p.status as OpeningProjectStatus] || p.status}
                         </Badge>
                       </td>
 
@@ -387,7 +388,7 @@ export function OpeningListView({
                         >
                           <Link href={`/opening/${p.id}`}>
                             <Eye className="mr-1 h-3.5 w-3.5" />
-                            ดูรายละเอียด
+                            {tx({ th: 'ดูรายละเอียด', en: 'View Details', my: 'အသေးစိတ်ကြည့်ရန်' })}
                           </Link>
                         </Button>
                       </td>

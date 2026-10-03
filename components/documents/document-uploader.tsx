@@ -1,37 +1,57 @@
 'use client'
 
 import * as React from 'react'
-import { Upload, X, File, Loader2, CheckCircle } from 'lucide-react'
+import { Upload, X, CheckCircle, Loader2, File } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { uploadDocumentAction } from '@/lib/actions/documents'
-import {
-  ALLOWED_EXTENSIONS,
-  MAX_FILE_SIZE_BYTES,
-  DOCUMENT_TYPE_OPTIONS,
-  type DocumentEntityType,
-  type DocumentType,
-} from '@/lib/types/documents'
+import type { DocumentEntityType, DocumentType } from '@/lib/types/documents'
+import { useI18n } from '@/lib/i18n/context'
+import { labelOf, DOCUMENT_TYPE_TRI } from '@/lib/i18n/labels'
 
-// ----------------------------------------------------------------
-// Props
-// ----------------------------------------------------------------
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
+const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp']
+
+const DOCUMENT_TYPE_OPTIONS: DocumentType[] = [
+  'RENTAL_CONTRACT',
+  'TRANSFER_SLIP',
+  'MAP',
+  'VAT_DOCUMENT',
+  'BRANCH_DOCUMENT',
+  'EMPLOYMENT_DOCUMENT',
+  'SIGNBOARD',
+  'PRE_OPEN_DOCUMENT',
+  'PASSPORT',
+  'VISA',
+  'WORK_PERMIT',
+  'SMART_CARD',
+  'PINK_CARD',
+  'OVERSTAY_90_DAYS_NOTICE',
+  'ID_CARD',
+  'COMPANY_CERTIFICATE',
+  'DIRECTOR_ID_CARD',
+  'OTHER',
+]
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
 interface DocumentUploaderProps {
   entityType: DocumentEntityType
   entityId: string
-  /** Called after a successful upload so the parent can refresh the list */
-  onUploadComplete?: () => void
   defaultDocumentType?: DocumentType
+  onUploadComplete?: () => void
 }
 
-// ----------------------------------------------------------------
-// Component
-// ----------------------------------------------------------------
 export function DocumentUploader({
   entityType,
   entityId,
-  onUploadComplete,
   defaultDocumentType = 'OTHER',
+  onUploadComplete,
 }: DocumentUploaderProps) {
+  const { tx, locale } = useI18n()
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null)
   const [documentType, setDocumentType] = React.useState<DocumentType>(defaultDocumentType)
   const [uploading, setUploading] = React.useState(false)
@@ -51,7 +71,7 @@ export function DocumentUploader({
 
     // Client-side validation
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setError('ไฟล์ต้องไม่เกิน 10 MB')
+      setError(tx({ th: 'ไฟล์ต้องไม่เกิน 10 MB', en: 'File size must not exceed 10 MB', my: 'ဖိုင်အရွယ်အစား 10 MB ထက် မကျော်ရပါ' }))
       setSelectedFile(null)
       if (inputRef.current) inputRef.current.value = ''
       return
@@ -59,7 +79,7 @@ export function DocumentUploader({
 
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      setError('รองรับเฉพาะ PDF, JPG, PNG, WEBP เท่านั้น')
+      setError(tx({ th: 'รองรับเฉพาะ PDF, JPG, PNG, WEBP เท่านั้น', en: 'Only PDF, JPG, PNG, WEBP are supported', my: 'PDF, JPG, PNG, WEBP သာ လက်ခံပါသည်' }))
       setSelectedFile(null)
       if (inputRef.current) inputRef.current.value = ''
       return
@@ -97,7 +117,7 @@ export function DocumentUploader({
       // Auto-clear success message after 3s
       setTimeout(() => setSuccess(false), 3000)
     } else {
-      setError(res.error ?? 'อัปโหลดไม่สำเร็จ')
+      setError(res.error ?? tx({ th: 'อัปโหลดไม่สำเร็จ', en: 'Upload failed', my: 'ဖိုင်တင်ခြင်း မအောင်မြင်ပါ' }))
     }
 
     setUploading(false)
@@ -108,41 +128,60 @@ export function DocumentUploader({
   // ---------------------------------------------------------------
   const [dragging, setDragging] = React.useState(false)
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    setDragging(true)
+  }
+
+  function handleDragLeave() {
+    setDragging(false)
+  }
+
+  function handleDrop(e: React.DragEvent) {
     e.preventDefault()
     setDragging(false)
     const file = e.dataTransfer.files?.[0]
     if (!file) return
-    // Trigger same validation via synthetic event
-    const dt = new DataTransfer()
-    dt.items.add(file)
-    if (inputRef.current) {
-      inputRef.current.files = dt.files
-      inputRef.current.dispatchEvent(new Event('change', { bubbles: true }))
-    }
-  }
 
-  function formatBytes(b: number) {
-    if (b < 1024) return `${b} B`
-    if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
-    return `${(b / 1024 / 1024).toFixed(1)} MB`
+    setError(null)
+    setSuccess(false)
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(tx({ th: 'ไฟล์ต้องไม่เกิน 10 MB', en: 'File size must not exceed 10 MB', my: 'ဖိုင်အရွယ်အစား 10 MB ထက် မကျော်ရပါ' }))
+      return
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      setError(tx({ th: 'รองรับเฉพาะ PDF, JPG, PNG, WEBP เท่านั้น', en: 'Only PDF, JPG, PNG, WEBP are supported', my: 'PDF, JPG, PNG, WEBP သာ လက်ခံပါသည်' }))
+      return
+    }
+
+    setSelectedFile(file)
   }
 
   return (
     <div className="space-y-3">
       {/* Drop zone */}
       <div
-        className={[
-          'relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 transition-colors cursor-pointer',
+        id="drop-zone"
+        tabIndex={0}
+        role="button"
+        aria-label="Upload file drop zone"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            inputRef.current?.click()
+          }
+        }}
+        className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors cursor-pointer ${
           dragging
             ? 'border-primary bg-primary/5'
-            : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30',
-          selectedFile ? 'border-primary/50 bg-primary/5' : '',
-        ].join(' ')}
-        onClick={() => inputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-        onDragLeave={() => setDragging(false)}
+            : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
       >
         <input
           ref={inputRef}
@@ -172,9 +211,11 @@ export function DocumentUploader({
           <>
             <Upload className="h-8 w-8 text-muted-foreground/60" />
             <div className="text-center">
-              <p className="text-sm font-medium">คลิกหรือลากไฟล์มาวาง</p>
+              <p className="text-sm font-medium">
+                {tx({ th: 'คลิกหรือลากไฟล์มาวาง', en: 'Click or drag file to upload', my: 'ဖိုင်တင်ရန် ဤနေရာတွင် နှိပ်ပါ သို့မဟုတ် ဖိုင်ဆွဲတင်ပါ' })}
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                PDF, JPG, PNG, WEBP — สูงสุด 10 MB
+                {tx({ th: 'PDF, JPG, PNG, WEBP — สูงสุด 10 MB', en: 'PDF, JPG, PNG, WEBP — Max 10 MB', my: 'PDF, JPG, PNG, WEBP — အများဆုံး 10 MB' })}
               </p>
             </div>
           </>
@@ -185,13 +226,14 @@ export function DocumentUploader({
       <div className="flex gap-2">
         <select
           id="document-type-select"
+          aria-label="Document type"
           value={documentType}
           onChange={(e) => setDocumentType(e.target.value as DocumentType)}
           className="flex-1 h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         >
-          {DOCUMENT_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          {DOCUMENT_TYPE_OPTIONS.map((val) => (
+            <option key={val} value={val}>
+              {labelOf(DOCUMENT_TYPE_TRI, val, locale) || val}
             </option>
           ))}
         </select>
@@ -205,12 +247,12 @@ export function DocumentUploader({
           {uploading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              กำลังอัปโหลด...
+              {tx({ th: 'กำลังอัปโหลด...', en: 'Uploading...', my: 'ဖိုင်တင်နေသည်...' })}
             </>
           ) : (
             <>
               <Upload className="h-4 w-4" />
-              อัปโหลด
+              {tx({ th: 'อัปโหลด', en: 'Upload', my: 'ဖိုင်တင်မည်' })}
             </>
           )}
         </Button>
@@ -226,7 +268,7 @@ export function DocumentUploader({
       {success && (
         <p className="text-sm text-emerald-500 flex items-center gap-1.5">
           <CheckCircle className="h-4 w-4" />
-          อัปโหลดเรียบร้อย
+          {tx({ th: 'อัปโหลดเรียบร้อย', en: 'Upload successful', my: 'ဖိုင်တင်ခြင်း အောင်မြင်ပါသည်' })}
         </p>
       )}
     </div>

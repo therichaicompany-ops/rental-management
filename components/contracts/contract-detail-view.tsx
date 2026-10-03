@@ -39,9 +39,7 @@ import type {
   RentPaymentStatus,
 } from '@/lib/types/contracts-payments'
 import {
-  CONTRACT_STATUS_LABELS,
   CONTRACT_STATUS_BADGE_VARIANTS,
-  PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_BADGE_VARIANTS,
   getEffectivePaymentStatus,
 } from '@/lib/types/contracts-payments'
@@ -56,10 +54,19 @@ import { DocumentSection } from '@/components/documents/document-section'
 import type { OpeningProjectWithRelations } from '@/lib/types/opening'
 import {
   STAGE_DEFINITIONS,
-  PROJECT_STATUS_LABELS,
   PROJECT_STATUS_BADGE_VARIANTS,
-  TASK_STATUS_LABELS,
 } from '@/lib/types/opening'
+import { useI18n } from '@/lib/i18n/context'
+import { labelOf } from '@/lib/i18n/tx'
+import {
+  CONTRACT_STATUS_TRI,
+  PAYMENT_STATUS_TRI,
+  PAYMENT_TYPE_TRI,
+  PROJECT_STATUS_TRI,
+  TASK_STATUS_TRI,
+  STAGE_NAME_TRI,
+  W,
+} from '@/lib/i18n/labels'
 
 interface ContractDetailViewProps {
   contract: ContractWithRelations
@@ -69,6 +76,10 @@ interface ContractDetailViewProps {
 
 export function ContractDetailView({ contract, userRole, openingProject }: ContractDetailViewProps) {
   const router = useRouter()
+  const { tx, locale, intl } = useI18n()
+  const money = (n: number, frac = 2) =>
+    n.toLocaleString(intl, { minimumFractionDigits: frac })
+  const dateStr = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString(intl) : '-')
   const allowWrite = canWrite(userRole)
   const allowDelete = hasFullAccess(userRole)
 
@@ -160,13 +171,17 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
     if (res.success) {
       setGenerateMsg({
         type: 'success',
-        text: `ลบงวดชำระที่ไม่เกี่ยวข้องเรียบร้อยแล้ว จำนวน ${res.deletedCount || 0} งวด`,
+        text: tx({
+          th: `ลบงวดชำระที่ไม่เกี่ยวข้องเรียบร้อยแล้ว จำนวน ${res.deletedCount || 0} งวด`,
+          en: `Removed ${res.deletedCount || 0} unrelated installments`,
+          my: `မသက်ဆိုင်သော အရစ် ${res.deletedCount || 0} ခု ဖျက်ပြီးပါပြီ`,
+        }),
       })
       router.refresh()
     } else {
       setGenerateMsg({
         type: 'error',
-        text: res.error || 'เกิดข้อผิดพลาดในการล้างงวดชำระ',
+        text: res.error || tx({ th: 'เกิดข้อผิดพลาดในการล้างงวดชำระ', en: 'Error cleaning up installments', my: 'အရစ်များ ရှင်းလင်းရာတွင် အမှားဖြစ်ပွား' }),
       })
     }
   }
@@ -203,7 +218,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
       router.push('/contracts')
       router.refresh()
     } else {
-      setGenerateMsg({ type: 'error', text: res.error || 'เกิดข้อผิดพลาดในการลบสัญญา' })
+      setGenerateMsg({ type: 'error', text: res.error || tx({ th: 'เกิดข้อผิดพลาดในการลบสัญญา', en: 'Error deleting contract', my: 'စာချုပ်ဖျက်ရာတွင် အမှားဖြစ်ပွား' }) })
       setShowDeleteConfirm(false)
     }
   }
@@ -218,13 +233,13 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
     if (res.success) {
       setGenerateMsg({
         type: 'success',
-        text: res.message || `สร้างและอัปเดตงวดการชำระเงินเรียบร้อยแล้ว`,
+        text: res.message || tx({ th: 'สร้างและอัปเดตงวดการชำระเงินเรียบร้อยแล้ว', en: 'Payment schedule generated successfully', my: 'ငွေပေးချေမှု အရစ်ဇယား ဖန်တီးပြီးပါပြီ' }),
       })
       router.refresh()
     } else {
       setGenerateMsg({
         type: 'error',
-        text: res.error || 'เกิดข้อผิดพลาดในการสร้างงวดค่าเช่า',
+        text: res.error || tx({ th: 'เกิดข้อผิดพลาดในการสร้างงวดค่าเช่า', en: 'Error generating rent schedule', my: 'ငှားခအရစ် ဖန်တီးရာတွင် အမှားဖြစ်ပွား' }),
       })
     }
   }
@@ -248,7 +263,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                 variant="outline"
                 className={`${badgeVariant.bg} ${badgeVariant.text} ${badgeVariant.border} text-xs font-semibold`}
               >
-                {CONTRACT_STATUS_LABELS[contract.status as ContractStatus] || contract.status}
+                {labelOf(CONTRACT_STATUS_TRI, contract.status, locale)}
               </Badge>
               {isHouse ? (
                 <Badge
@@ -256,7 +271,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                   className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-semibold flex items-center gap-1"
                 >
                   <Home className="h-3 w-3 text-amber-600" />
-                  บ้าน / เช่าซื้อ
+                  {tx(W.house)}
                 </Badge>
               ) : (
                 <Badge
@@ -264,7 +279,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                   className="bg-sky-50 text-sky-800 border-sky-300 text-xs font-semibold flex items-center gap-1"
                 >
                   <Building2 className="h-3 w-3 text-sky-600" />
-                  สาขา / สถานประกอบการ
+                  {tx(W.branch)}
                 </Badge>
               )}
               {partyRole === 'payable' ? (
@@ -273,7 +288,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                   className="bg-indigo-50 text-indigo-800 border-indigo-300 text-xs font-semibold flex items-center gap-1"
                 >
                   <Building className="h-3 w-3 text-indigo-600" />
-                  บริษัทเช่ากับเจ้าของ (จ่ายเจ้าของ)
+                  {tx({ th: 'บริษัทเช่ากับเจ้าของ (จ่ายเจ้าของ)', en: 'Company rents from owner (Pay owner)', my: 'ကုမ္ပဏီက ပိုင်ရှင်ထံမှ ငှား (ပိုင်ရှင်ထံပေး)' })}
                 </Badge>
               ) : (
                 <Badge
@@ -281,12 +296,12 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                   className="bg-teal-50 text-teal-800 border-teal-300 text-xs font-semibold flex items-center gap-1"
                 >
                   <User className="h-3 w-3 text-teal-600" />
-                  ลูกค้าเช่ากับบริษัท (รับจากลูกค้า)
+                  {tx({ th: 'ลูกค้าเช่ากับบริษัท (รับจากลูกค้า)', en: 'Customer rents from company (Receive)', my: 'ဖောက်သည်က ကုမ္ပဏီထံမှ ငှား (လက်ခံ)' })}
                 </Badge>
               )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              สถานที่: {contract.locations?.location_name || '-'} ({contract.locations?.province})
+              {tx(W.location)}: {contract.locations?.location_name || '-'} ({contract.locations?.province})
             </p>
           </div>
         </div>
@@ -296,7 +311,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
             <Button asChild size="sm" className="bg-primary-600 hover:bg-primary-700 text-white">
               <Link href="/opening">
                 <Building2 className="mr-1.5 h-3.5 w-3.5" />
-                โครงการเปิดสาขา
+                {tx({ th: 'โครงการเปิดสาขา', en: 'Branch Opening Project', my: 'ဆိုင်ခွဲဖွင့် စီမံကိန်း' })}
               </Link>
             </Button>
           )}
@@ -305,7 +320,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
             <Button asChild variant="outline" size="sm">
               <Link href={`/contracts/${contract.id}/edit`}>
                 <Edit className="mr-2 h-4 w-4 text-slate-500" />
-                แก้ไขสัญญา
+                {tx({ th: 'แก้ไขสัญญา', en: 'Edit Contract', my: 'စာချုပ်ပြင်ဆင်' })}
               </Link>
             </Button>
           )}
@@ -318,7 +333,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
               className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              ลบสัญญา
+              {tx({ th: 'ลบสัญญา', en: 'Delete Contract', my: 'စာချုပ်ဖျက်' })}
             </Button>
           )}
         </div>
@@ -350,48 +365,50 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
             <span className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
               <Home className="h-3.5 w-3.5 text-amber-600" />
-              ราคาบ้าน
+              {tx({ th: 'ราคาบ้าน', en: 'House Price', my: 'အိမ်ဈေးနှုန်း' })}
             </span>
             <p className="text-xl font-bold text-slate-900 mt-1 font-mono">
-              ฿{propertyPrice.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+              ฿{money(propertyPrice)}
             </p>
             <span className="text-xs text-slate-400">
-              {financial.interest_rate ? `ดอกเบี้ย ${financial.interest_rate}%` : ''}
-              {financial.installment_years ? ` • ผ่อน ${financial.installment_years} ปี` : ''}
-              {!financial.interest_rate && !financial.installment_years ? 'ราคาขายสัญญาเช่าซื้อ' : ''}
+              {financial.interest_rate ? `${tx({ th: 'ดอกเบี้ย', en: 'Interest', my: 'အတိုး' })} ${financial.interest_rate}%` : ''}
+              {financial.installment_years ? ` • ${tx({ th: 'ผ่อน', en: 'Installment', my: 'အရစ်ကျ' })} ${financial.installment_years} ${tx(W.years)}` : ''}
+              {!financial.interest_rate && !financial.installment_years ? tx({ th: 'ราคาขายสัญญาเช่าซื้อ', en: 'Hire-purchase price', my: 'အရစ်ကျဝယ် ဈေးနှုန်း' }) : ''}
             </span>
           </div>
 
           {/* Card 2: เงินดาวน์ (แทนเงินมัดจำ/ล่วงหน้า) */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
-            <span className="text-xs font-semibold text-slate-700">เงินดาวน์</span>
+            <span className="text-xs font-semibold text-slate-700">{tx({ th: 'เงินดาวน์', en: 'Down Payment', my: 'ကြိုတင်ငွေ' })}</span>
             <p className="text-xl font-bold text-amber-800 mt-1 font-mono">
-              ฿{downPayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+              ฿{money(downPayment)}
             </p>
             <span className="text-xs text-slate-400">
-              {downPayment > 0 ? 'ชำระเงินดาวน์เรียบร้อย' : 'ไม่มีเงินดาวน์ (฿0)'}
+              {downPayment > 0
+                ? tx({ th: 'ชำระเงินดาวน์เรียบร้อย', en: 'Down payment received', my: 'ကြိုတင်ငွေ ပေးချေပြီး' })
+                : tx({ th: 'ไม่มีเงินดาวน์ (฿0)', en: 'No down payment (฿0)', my: 'ကြိုတင်ငွေ မရှိ (฿0)' })}
             </span>
           </div>
 
           {/* Card 3: หักค่าเช่าแต่ละเดือนที่ชำระแล้ว */}
           <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-100 shadow-sm space-y-1">
-            <span className="text-xs font-semibold text-blue-800">หักค่าเช่าที่ชำระแล้ว</span>
+            <span className="text-xs font-semibold text-blue-800">{tx({ th: 'หักค่าเช่าที่ชำระแล้ว', en: 'Rent Paid (Deducted)', my: 'ပေးချေပြီး ငှားခ (နုတ်ယူ)' })}</span>
             <p className="text-xl font-bold text-blue-900 mt-1 font-mono">
-              ฿{totalRentPaid.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+              ฿{money(totalRentPaid)}
             </p>
             <span className="text-xs text-blue-700">
-              ค่างวด ฿{rentAmount.toLocaleString('th-TH')}/ด. (ชำระแล้ว {paidCount} งวด)
+              {tx({ th: 'ค่างวด', en: 'Installment', my: 'အရစ်ကြေး' })} ฿{money(rentAmount, 0)}{tx(W.perMonth)} ({tx({ th: 'ชำระแล้ว', en: 'paid', my: 'ပေးပြီး' })} {paidCount} {tx(W.installments)})
             </span>
           </div>
 
           {/* Card 4: ยอดคงเหลือปัจจุบัน */}
           <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 shadow-sm space-y-1 ring-1 ring-emerald-300/60">
-            <span className="text-xs font-bold text-emerald-800">ยอดคงเหลือปัจจุบัน</span>
+            <span className="text-xs font-bold text-emerald-800">{tx({ th: 'ยอดคงเหลือปัจจุบัน', en: 'Current Outstanding Balance', my: 'လက်ရှိ ကျန်ငွေ' })}</span>
             <p className="text-2xl font-black text-emerald-700 mt-1 font-mono">
-              ฿{currentOutstandingBalance.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+              ฿{money(currentOutstandingBalance)}
             </p>
             <span className="text-xs text-emerald-700 font-medium">
-              ราคาบ้าน หักเงินดาวน์ และค่าเช่า
+              {tx({ th: 'ราคาบ้าน หักเงินดาวน์ และค่าเช่า', en: 'House price minus down payment and rent paid', my: 'အိမ်ဈေး ထဲမှ ကြိုတင်ငွေနှင့် ငှားခ နုတ်ပြီး' })}
             </span>
           </div>
         </div>
@@ -402,14 +419,15 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
               <div className="flex items-center gap-2">
                 <Home className="h-4 w-4 text-amber-600 shrink-0" />
                 <span>
-                  <strong>สัญญานี้เป็นประเภทบ้าน / ที่พักอาศัย:</strong> ยังไม่ได้ระบุราคาบ้านและเงินดาวน์ เพื่อคำนวณยอดคงเหลือปัจจุบัน
+                  <strong>{tx({ th: 'สัญญานี้เป็นประเภทบ้าน / ที่พักอาศัย:', en: 'This is a house / residential contract:', my: 'ဤစာချုပ်သည် အိမ် / နေထိုင်ရာ အမျိုးအစား ဖြစ်သည်:' })}</strong>{' '}
+                  {tx({ th: 'ยังไม่ได้ระบุราคาบ้านและเงินดาวน์ เพื่อคำนวณยอดคงเหลือปัจจุบัน', en: 'house price and down payment are not set, so the outstanding balance cannot be calculated', my: 'ကျန်ငွေ တွက်ချက်ရန် အိမ်ဈေးနှင့် ကြိုတင်ငွေ မသတ်မှတ်ရသေးပါ' })}
                 </span>
               </div>
               {allowWrite && (
                 <Button asChild size="sm" variant="outline" className="bg-white border-amber-300 text-amber-800 hover:bg-amber-100 text-xs h-7">
                   <Link href={`/contracts/${contract.id}/edit`}>
                     <Edit className="h-3 w-3 mr-1" />
-                    ระบุราคาบ้านและเงินดาวน์
+                    {tx({ th: 'ระบุราคาบ้านและเงินดาวน์', en: 'Set price & down payment', my: 'ဈေးနှင့် ကြိုတင်ငွေ သတ်မှတ်' })}
                   </Link>
                 </Button>
               )}
@@ -418,51 +436,54 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-xs font-medium text-slate-500">ค่าเช่าต่อเดือน</span>
+              <span className="text-xs font-medium text-slate-500">{tx({ th: 'ค่าเช่าต่อเดือน', en: 'Monthly Rent', my: 'လစဉ်ငှားခ' })}</span>
               <p className="text-xl font-bold text-slate-900 mt-1">
-                ฿{rentAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                ฿{money(rentAmount)}
               </p>
               {serviceAmount > 0 && (
                 <span className="text-xs text-slate-400">
-                  + บริการ ฿{serviceAmount.toLocaleString('th-TH')}
+                  + {tx({ th: 'บริการ', en: 'Service', my: 'ဝန်ဆောင်ခ' })} ฿{money(serviceAmount, 0)}
                 </span>
               )}
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-xs font-medium text-slate-500">ภาษีหัก ณ ที่จ่าย</span>
+              <span className="text-xs font-medium text-slate-500">{tx({ th: 'ภาษีหัก ณ ที่จ่าย', en: 'Withholding Tax', my: 'ဖြတ်တောက်ခွန် (WHT)' })}</span>
               <p className="text-xl font-bold text-sky-700 mt-1">
-                {contract.wht_enabled ? `${whtRate}%` : 'ไม่มี'}
+                {contract.wht_enabled ? `${whtRate}%` : tx({ th: 'ไม่มี', en: 'None', my: 'မရှိ' })}
               </p>
               <span className="text-xs text-slate-400">
                 {contract.wht_enabled
-                  ? `- ฿${whtMonthly.toLocaleString('th-TH', { minimumFractionDigits: 2 })}/ด.`
-                  : 'ไม่ได้หักภาษี'}
+                  ? `- ฿${money(whtMonthly)}${tx(W.perMonth)}`
+                  : tx({ th: 'ไม่ได้หักภาษี', en: 'No tax withheld', my: 'အခွန်မဖြတ်ပါ' })}
               </span>
             </div>
 
             <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100 shadow-sm">
-              <span className="text-xs font-medium text-emerald-700">ยอดสุทธิต่อเดือน (Net)</span>
+              <span className="text-xs font-medium text-emerald-700">{tx({ th: 'ยอดสุทธิต่อเดือน (Net)', en: 'Net per Month', my: 'လစဉ် အသားတင် (Net)' })}</span>
               <p className="text-xl font-bold text-emerald-700 mt-1">
-                ฿{netMonthly.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                ฿{money(netMonthly)}
               </p>
               <span className="text-xs text-emerald-600">
-                กำหนดชำระทุกวันที่ {contract.payment_due_day || 5}
+                {tx({ th: 'กำหนดชำระทุกวันที่', en: 'Due every month on day', my: 'လစဉ် ပေးချေရမည့်ရက်' })} {contract.payment_due_day || 5}
               </span>
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
               <span className="text-xs font-medium text-slate-500">
-                {isHouse ? 'เงินดาวน์ / มัดจำ' : 'เงินมัดจำ / ล่วงหน้า'}
+                {isHouse
+                  ? tx({ th: 'เงินดาวน์ / มัดจำ', en: 'Down Payment / Deposit', my: 'ကြိုတင်ငွေ / စရံ' })
+                  : tx({ th: 'เงินมัดจำ / ล่วงหน้า', en: 'Deposit / Advance', my: 'စရံ / ကြိုတင်ငှားခ' })}
               </span>
               <p className="text-xl font-bold text-slate-900 mt-1">
                 ฿
-                {(
-                  Number(contract.deposit_amount || 0) + Number(contract.advance_rent_amount || 0)
-                ).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                {money(Number(contract.deposit_amount || 0) + Number(contract.advance_rent_amount || 0))}
               </p>
               <span className="text-xs text-slate-400">
-                {isHouse ? 'เงินดาวน์' : 'มัดจำ'} ฿{Number(contract.deposit_amount || 0).toLocaleString('th-TH')}
+                {isHouse
+                  ? tx({ th: 'เงินดาวน์', en: 'Down payment', my: 'ကြိုတင်ငွေ' })
+                  : tx({ th: 'มัดจำ', en: 'Deposit', my: 'စရံ' })}{' '}
+                ฿{money(Number(contract.deposit_amount || 0), 0)}
               </span>
             </div>
           </div>
@@ -475,58 +496,52 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary-600" />
-            ข้อมูลระยะเวลาสัญญาและสถานที่
+            {tx({ th: 'ข้อมูลระยะเวลาสัญญาและสถานที่', en: 'Contract Period & Location', my: 'စာချုပ်ကာလနှင့် နေရာ' })}
           </h2>
 
           <div className="grid grid-cols-2 gap-y-3 text-xs">
             <div>
-              <span className="text-slate-400 block">วันที่ทำสัญญา:</span>
+              <span className="text-slate-400 block">{tx({ th: 'วันที่ทำสัญญา:', en: 'Contract Date:', my: 'စာချုပ်ချုပ်သည့်ရက်:' })}</span>
               <span className="font-medium text-slate-800">
-                {contract.contract_date
-                  ? new Date(contract.contract_date).toLocaleDateString('th-TH')
-                  : '-'}
+                {dateStr(contract.contract_date)}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block">กำหนดชำระเงิน:</span>
+              <span className="text-slate-400 block">{tx({ th: 'กำหนดชำระเงิน:', en: 'Payment Due:', my: 'ပေးချေရမည့်ရက်:' })}</span>
               <span className="font-medium text-slate-800">
-                ทุกวันที่ {contract.payment_due_day || 5} ของเดือน
+                {tx({ th: `ทุกวันที่ ${contract.payment_due_day || 5} ของเดือน`, en: `Day ${contract.payment_due_day || 5} of every month`, my: `လစဉ် ${contract.payment_due_day || 5} ရက်နေ့` })}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block">วันเริ่มต้นสัญญา:</span>
+              <span className="text-slate-400 block">{tx({ th: 'วันเริ่มต้นสัญญา:', en: 'Start Date:', my: 'စတင်ရက်:' })}</span>
               <span className="font-medium text-emerald-700 font-semibold">
-                {contract.start_date
-                  ? new Date(contract.start_date).toLocaleDateString('th-TH')
-                  : '-'}
+                {dateStr(contract.start_date)}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block">วันสิ้นสุดสัญญา:</span>
+              <span className="text-slate-400 block">{tx({ th: 'วันสิ้นสุดสัญญา:', en: 'End Date:', my: 'ပြီးဆုံးရက်:' })}</span>
               <span className="font-medium text-rose-700 font-semibold">
-                {contract.end_date
-                  ? new Date(contract.end_date).toLocaleDateString('th-TH')
-                  : '-'}
+                {dateStr(contract.end_date)}
               </span>
             </div>
 
             <div className="col-span-2 pt-2 border-t border-slate-100">
-              <span className="text-slate-400 block">สถานที่ / สาขา:</span>
+              <span className="text-slate-400 block">{tx({ th: 'สถานที่ / สาขา:', en: 'Location / Branch:', my: 'နေရာ / ဆိုင်ခွဲ:' })}</span>
               <span className="font-medium text-slate-900 text-sm">
                 {contract.locations?.location_name}
               </span>
               <span className="text-slate-500 block">
-                รหัส: {contract.locations?.location_code} | จังหวัด:{' '}
+                {tx({ th: 'รหัส', en: 'Code', my: 'ကုဒ်' })}: {contract.locations?.location_code} | {tx({ th: 'จังหวัด', en: 'Province', my: 'ခရိုင်' })}:{' '}
                 {contract.locations?.province} {contract.locations?.district}
               </span>
             </div>
 
             {contract.rental_leads && (
               <div className="col-span-2 pt-2 border-t border-slate-100">
-                <span className="text-slate-400 block">ลีดที่เกี่ยวข้อง:</span>
+                <span className="text-slate-400 block">{tx({ th: 'ลีดที่เกี่ยวข้อง:', en: 'Related Lead:', my: 'ဆက်စပ် Lead:' })}</span>
                 <Link
                   href={`/rental-leads/${contract.rental_leads.id}`}
                   className="text-primary-600 hover:underline flex items-center gap-1 font-medium"
@@ -543,24 +558,24 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
             <Landmark className="h-4 w-4 text-primary-600" />
-            ข้อมูลคู่สัญญา & การเปิดสาขา
+            {tx({ th: 'ข้อมูลคู่สัญญา & การเปิดสาขา', en: 'Parties & Branch Setup', my: 'စာချုပ်ဝင်များနှင့် ဆိုင်ခွဲဖွင့်ခြင်း' })}
           </h2>
 
           <div className="space-y-3 text-xs">
             {contract.landlords && (
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
                 <span className="text-xs font-semibold text-indigo-700 uppercase block mb-1">
-                  ผู้ให้เช่า (Landlord)
+                  {tx({ th: 'ผู้ให้เช่า (Landlord)', en: 'Landlord', my: 'အိမ်ရှင် (Landlord)' })}
                 </span>
                 <p className="font-medium text-slate-900">
                   {contract.landlords.name || contract.landlords.company_name}
                 </p>
                 {contract.landlords.phone && (
-                  <p className="text-slate-500">โทร: {contract.landlords.phone}</p>
+                  <p className="text-slate-500">{tx(W.phone)}: {contract.landlords.phone}</p>
                 )}
                 {contract.landlords.bank_account_number && (
                   <p className="text-slate-600 font-mono mt-1">
-                    บัญชี: {contract.landlords.bank_name || 'ธนาคาร'}{' '}
+                    {tx({ th: 'บัญชี', en: 'Account', my: 'အကောင့်' })}: {contract.landlords.bank_name || tx({ th: 'ธนาคาร', en: 'Bank', my: 'ဘဏ်' })}{' '}
                     {contract.landlords.bank_account_number}
                   </p>
                 )}
@@ -570,13 +585,13 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
             {contract.customers && (
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
                 <span className="text-xs font-semibold text-teal-700 uppercase block mb-1">
-                  ลูกค้า / ผู้เช่า (Customer)
+                  {tx({ th: 'ลูกค้า / ผู้เช่า (Customer)', en: 'Customer / Tenant', my: 'ဖောက်သည် / အိမ်ငှား' })}
                 </span>
                 <p className="font-medium text-slate-900">
                   {contract.customers.name || contract.customers.company_name}
                 </p>
                 {contract.customers.phone && (
-                  <p className="text-slate-500">โทร: {contract.customers.phone}</p>
+                  <p className="text-slate-500">{tx(W.phone)}: {contract.customers.phone}</p>
                 )}
               </div>
             )}
@@ -604,44 +619,44 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                       <div className="flex items-center justify-between">
                         <span className="text-amber-900 font-semibold block text-xs uppercase tracking-wider flex items-center gap-1.5">
                           <Home className="h-3.5 w-3.5 text-amber-600" />
-                          ข้อเสนอสำหรับบ้าน / เช่าซื้อ:
+                          {tx({ th: 'ข้อเสนอสำหรับบ้าน / เช่าซื้อ:', en: 'House / Hire-purchase Terms:', my: 'အိမ် / အရစ်ကျဝယ် အဆိုပြုချက်:' })}
                         </span>
                         {estimatedInstallment > 0 && (
                           <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300">
-                            ผ่อน ~฿{estimatedInstallment.toLocaleString('th-TH')}/เดือน
+                            {tx({ th: 'ผ่อน', en: 'Installment', my: 'အရစ်ကျ' })} ~฿{money(estimatedInstallment, 0)}{tx(W.perMonth)}
                           </span>
                         )}
                       </div>
                       <div className="rounded-lg bg-amber-50/50 p-2.5 border border-amber-200 text-xs space-y-1.5">
                         {financial.property_price && (
                           <div className="flex justify-between">
-                            <span className="text-slate-600">ราคาบ้าน:</span>
+                            <span className="text-slate-600">{tx({ th: 'ราคาบ้าน:', en: 'House Price:', my: 'အိမ်ဈေး:' })}</span>
                             <span className="font-bold text-slate-900 font-mono">
-                              ฿{Number(financial.property_price).toLocaleString('th-TH')}
+                              ฿{money(Number(financial.property_price), 0)}
                             </span>
                           </div>
                         )}
                         {financial.down_payment && (
                           <div className="flex justify-between">
-                            <span className="text-slate-600">เงินดาวน์:</span>
+                            <span className="text-slate-600">{tx({ th: 'เงินดาวน์:', en: 'Down Payment:', my: 'ကြိုတင်ငွေ:' })}</span>
                             <span className="font-bold text-slate-900 font-mono">
-                              ฿{Number(financial.down_payment).toLocaleString('th-TH')}
+                              ฿{money(Number(financial.down_payment), 0)}
                             </span>
                           </div>
                         )}
                         {financial.interest_rate && (
                           <div className="flex justify-between">
-                            <span className="text-slate-600">อัตราดอกเบี้ย:</span>
+                            <span className="text-slate-600">{tx({ th: 'อัตราดอกเบี้ย:', en: 'Interest Rate:', my: 'အတိုးနှုန်း:' })}</span>
                             <span className="font-semibold text-slate-900 font-mono">
-                              {financial.interest_rate}% ต่อปี
+                              {financial.interest_rate}% {tx({ th: 'ต่อปี', en: 'p.a.', my: 'တစ်နှစ်လျှင်' })}
                             </span>
                           </div>
                         )}
                         {financial.installment_years && (
                           <div className="flex justify-between">
-                            <span className="text-slate-600">ระยะเวลาการผ่อน:</span>
+                            <span className="text-slate-600">{tx({ th: 'ระยะเวลาการผ่อน:', en: 'Installment Period:', my: 'အရစ်ကျကာလ:' })}</span>
                             <span className="font-semibold text-slate-900 font-mono">
-                              {financial.installment_years} ปี
+                              {financial.installment_years} {tx(W.years)}
                             </span>
                           </div>
                         )}
@@ -651,7 +666,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
 
                   <div className="pt-2 border-t border-slate-100 space-y-3">
                     <span className="text-slate-700 font-semibold block text-xs uppercase tracking-wider">
-                      รายการที่ต้องดำเนินการทางทะเบียน & เอกสาร:
+                      {tx({ th: 'รายการที่ต้องดำเนินการทางทะเบียน & เอกสาร:', en: 'Required Registrations & Documents:', my: 'လိုအပ်သော မှတ်ပုံတင်ခြင်းနှင့် စာရွက်စာတမ်းများ:' })}
                     </span>
 
                     {!isHouse ? (
@@ -659,7 +674,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-700">
                           <Building2 className="h-3.5 w-3.5 text-sky-600" />
-                          <span>สำหรับสาขา / สถานประกอบการ</span>
+                          <span>{tx({ th: 'สำหรับสาขา / สถานประกอบการ', en: 'For Branch / Business', my: 'ဆိုင်ခွဲ / လုပ်ငန်းဌာန အတွက်' })}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-2 pl-2 border-l-2 border-sky-200">
                           <span
@@ -672,7 +687,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                                 contract.need_branch_registration ? 'bg-emerald-500' : 'bg-slate-300'
                               }`}
                             />
-                            จดทะเบียนสาขา
+                            {tx({ th: 'จดทะเบียนสาขา', en: 'Branch Registration', my: 'ဆိုင်ခွဲ မှတ်ပုံတင်' })}
                           </span>
 
                           <span
@@ -685,7 +700,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                                 contract.need_vat_registration ? 'bg-emerald-500' : 'bg-slate-300'
                               }`}
                             />
-                            จดทะเบียน VAT
+                            {tx({ th: 'จดทะเบียน VAT', en: 'VAT Registration', my: 'VAT မှတ်ပုံတင်' })}
                           </span>
 
                           <span
@@ -698,7 +713,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                                 contract.need_employer_change ? 'bg-emerald-500' : 'bg-slate-300'
                               }`}
                             />
-                            เปลี่ยนนายจ้าง
+                            {tx({ th: 'เปลี่ยนนายจ้าง', en: 'Employer Change', my: 'အလုပ်ရှင်ပြောင်း' })}
                           </span>
 
                           <span
@@ -711,7 +726,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                                 contract.need_signboard ? 'bg-emerald-500' : 'bg-slate-300'
                               }`}
                             />
-                            ป้ายโฆษณา/สาขา
+                            {tx({ th: 'ป้ายโฆษณา/สาขา', en: 'Signboard', my: 'ဆိုင်းဘုတ်' })}
                           </span>
 
                           <span
@@ -724,7 +739,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                                 contract.need_excise_permit ? 'bg-emerald-500' : 'bg-slate-300'
                               }`}
                             />
-                            ยื่นกรมสรรพสามิต
+                            {tx({ th: 'ยื่นกรมสรรพสามิต', en: 'Excise Permit', my: 'ယစ်မျိုးခွန် လိုင်စင်' })}
                           </span>
 
                           <span
@@ -737,7 +752,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                                 hasForeignResident ? 'bg-emerald-500' : 'bg-slate-300'
                               }`}
                             />
-                            แจ้งคนต่างด้าว (ตม.30)
+                            {tx({ th: 'แจ้งคนต่างด้าว (ตม.30)', en: 'Foreigner Notification (TM.30)', my: 'နိုင်ငံခြားသား အကြောင်းကြားစာ (TM.30)' })}
                           </span>
                         </div>
                       </div>
@@ -746,7 +761,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
                           <Home className="h-3.5 w-3.5 text-amber-600" />
-                          <span>สำหรับบ้าน / ที่พักอาศัย</span>
+                          <span>{tx({ th: 'สำหรับบ้าน / ที่พักอาศัย', en: 'For House / Residence', my: 'အိမ် / နေထိုင်ရာ အတွက်' })}</span>
                         </div>
                         <div className="pl-2 border-l-2 border-amber-200">
                           <span
@@ -759,7 +774,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                                 hasForeignResident ? 'bg-amber-500' : 'bg-slate-300'
                               }`}
                             />
-                            แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)
+                            {tx({ th: 'แจ้งที่พักอาศัยคนต่างด้าว (ตม.30)', en: 'Foreigner Residence Notification (TM.30)', my: 'နိုင်ငံခြားသား နေထိုင်ရာ အကြောင်းကြားစာ (TM.30)' })}
                           </span>
                         </div>
                       </div>
@@ -768,7 +783,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
 
                   {cleanNote && (
                     <div className="pt-2 border-t border-slate-100 text-slate-600">
-                      <span className="text-slate-400 block mb-1">หมายเหตุ:</span>
+                      <span className="text-slate-400 block mb-1">{tx(W.note)}:</span>
                       <p className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 whitespace-pre-wrap text-xs">
                         {cleanNote}
                       </p>
@@ -787,7 +802,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
           <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4 text-sky-600" />
-              <h2 className="text-sm font-bold text-slate-800">สถานะขั้นตอนการเปิดสาขา</h2>
+              <h2 className="text-sm font-bold text-slate-800">{tx({ th: 'สถานะขั้นตอนการเปิดสาขา', en: 'Branch Opening Progress', my: 'ဆိုင်ခွဲဖွင့်ခြင်း အခြေအနေ' })}</h2>
               {openingProject && (
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
@@ -804,9 +819,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                     ]?.border ?? 'border-slate-200'
                   }`}
                 >
-                  {PROJECT_STATUS_LABELS[
-                    openingProject.status as keyof typeof PROJECT_STATUS_LABELS
-                  ] ?? openingProject.status}
+                  {labelOf(PROJECT_STATUS_TRI, openingProject.status, locale)}
                 </span>
               )}
             </div>
@@ -815,7 +828,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                 href={`/opening/${openingProject.id}`}
                 className="inline-flex items-center gap-1 text-xs font-medium text-sky-600 hover:text-sky-800 hover:underline transition-colors"
               >
-                ดู/อัปเดตโครงการ <ArrowRight className="h-3.5 w-3.5" />
+                {tx({ th: 'ดู/อัปเดตโครงการ', en: 'View / Update Project', my: 'စီမံကိန်း ကြည့်/ပြင်' })} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             ) : (
               allowWrite && (
@@ -823,7 +836,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                   href="/opening"
                   className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-800 hover:underline transition-colors"
                 >
-                  + สร้างโครงการเปิดสาขา
+                  + {tx({ th: 'สร้างโครงการเปิดสาขา', en: 'Create Opening Project', my: 'ဆိုင်ခွဲဖွင့် စီမံကိန်း ဖန်တီး' })}
                 </Link>
               )
             )}
@@ -833,9 +846,9 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
             {!openingProject ? (
               <div className="flex flex-col items-center justify-center py-6 text-center">
                 <CircleDashed className="h-8 w-8 text-slate-300 mb-2" />
-                <p className="text-sm text-slate-500 font-medium">ยังไม่มีโครงการเปิดสาขา</p>
+                <p className="text-sm text-slate-500 font-medium">{tx({ th: 'ยังไม่มีโครงการเปิดสาขา', en: 'No opening project yet', my: 'ဆိုင်ခွဲဖွင့် စီမံကိန်း မရှိသေးပါ' })}</p>
                 <p className="text-xs text-slate-400 mt-1">
-                  สร้างโครงการเพื่อติดตามสถานะขั้นตอนการเปิดสาขาทั้งหมด
+                  {tx({ th: 'สร้างโครงการเพื่อติดตามสถานะขั้นตอนการเปิดสาขาทั้งหมด', en: 'Create a project to track all branch opening steps', my: 'ဆိုင်ခွဲဖွင့်ခြင်း အဆင့်အားလုံးကို ခြေရာခံရန် စီမံကိန်း ဖန်တီးပါ' })}
                 </p>
               </div>
             ) : (() => {
@@ -865,7 +878,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
 
               const formatDate = (iso: string | null | undefined) => {
                 if (!iso) return null
-                return new Date(iso).toLocaleDateString('th-TH', {
+                return new Date(iso).toLocaleDateString(intl, {
                   day: '2-digit', month: 'short', year: '2-digit',
                 })
               }
@@ -885,10 +898,10 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
               return (
                 <div className="space-y-1.5">
                   <p className="text-xs text-slate-500 mb-3">
-                    โครงการ: <span className="font-semibold text-slate-700">{openingProject.project_no}</span>
+                    {tx({ th: 'โครงการ', en: 'Project', my: 'စီမံကိန်း' })}: <span className="font-semibold text-slate-700">{openingProject.project_no}</span>
                     {openingProject.updated_at && (
                       <span className="ml-2 text-slate-400">
-                        · อัปเดต {formatDate(openingProject.updated_at)}
+                        · {tx({ th: 'อัปเดต', en: 'Updated', my: 'ပြင်ဆင်ချိန်' })} {formatDate(openingProject.updated_at)}
                       </span>
                     )}
                   </p>
@@ -924,14 +937,14 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                                 : 'text-slate-400'
                             }`}
                           >
-                            {def.name}
+                            {labelOf(STAGE_NAME_TRI, def.code, locale) || def.name}
                           </span>
                           {dateStr && (
                             <span className="text-[10px] text-slate-400 ml-auto shrink-0">{dateStr}</span>
                           )}
                           {!dateStr && status !== 'todo' && (
                             <span className="text-[10px] text-amber-500 ml-auto shrink-0">
-                              {TASK_STATUS_LABELS[status as keyof typeof TASK_STATUS_LABELS] ?? status}
+                              {labelOf(TASK_STATUS_TRI, status, locale)}
                             </span>
                           )}
                         </div>
@@ -952,8 +965,11 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
               <span>
-                พบงวดชำระประเภท &quot;{partyRole === 'payable' ? 'รับจากลูกค้า' : 'จ่ายเจ้าของ'}&quot; ซ้ำซ้อน {mismatchedPayments.length} งวด
-                (ระบบแสดงเฉพาะ &quot;{partyRole === 'payable' ? 'จ่ายเจ้าของ' : 'รับจากลูกค้า'}&quot; ให้ตรงกับสัญญา)
+                {tx({
+                  th: `พบงวดชำระประเภท "${partyRole === 'payable' ? 'รับจากลูกค้า' : 'จ่ายเจ้าของ'}" ซ้ำซ้อน ${mismatchedPayments.length} งวด (ระบบแสดงเฉพาะ "${partyRole === 'payable' ? 'จ่ายเจ้าของ' : 'รับจากลูกค้า'}" ให้ตรงกับสัญญา)`,
+                  en: `Found ${mismatchedPayments.length} mismatched "${partyRole === 'payable' ? 'From Customer' : 'Pay Owner'}" installments (only "${partyRole === 'payable' ? 'Pay Owner' : 'From Customer'}" is shown to match this contract)`,
+                  my: `မကိုက်ညီသော "${partyRole === 'payable' ? 'ဖောက်သည်ထံမှလက်ခံ' : 'ပိုင်ရှင်ထံပေးချေ'}" အရစ် ${mismatchedPayments.length} ခု တွေ့ရှိသည် (စာချုပ်နှင့်ကိုက်ညီရန် "${partyRole === 'payable' ? 'ပိုင်ရှင်ထံပေးချေ' : 'ဖောက်သည်ထံမှလက်ခံ'}" ကိုသာ ပြသသည်)`,
+                })}
               </span>
             </div>
             <Button
@@ -963,7 +979,9 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
               disabled={isCleaning}
               className="text-amber-800 border-amber-300 hover:bg-amber-100 h-7 text-xs whitespace-nowrap self-end sm:self-auto"
             >
-              {isCleaning ? 'กำลังล้างข้อมูล...' : 'ล้างงวดซ้ำซ้อนออกทันที'}
+              {isCleaning
+                ? tx({ th: 'กำลังล้างข้อมูล...', en: 'Cleaning up...', my: 'ရှင်းလင်းနေသည်...' })
+                : tx({ th: 'ล้างงวดซ้ำซ้อนออกทันที', en: 'Remove mismatched installments', my: 'မကိုက်ညီသော အရစ်များ ဖယ်ရှား' })}
             </Button>
           </div>
         )}
@@ -972,10 +990,10 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-slate-900">
-                ตารางงวดชำระค่าเช่า (Payment Schedule)
+                {tx({ th: 'ตารางงวดชำระค่าเช่า (Payment Schedule)', en: 'Payment Schedule', my: 'ငှားခ ပေးချေမှု ဇယား' })}
               </h2>
               <Badge variant="secondary" className="text-xs">
-                {displayPayments.length} งวด
+                {displayPayments.length} {tx(W.installments)}
               </Badge>
               <Badge
                 variant="outline"
@@ -985,13 +1003,15 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                     : 'bg-teal-50 text-teal-700 border-teal-200'
                 }`}
               >
-                {partyRole === 'payable' ? 'จ่ายเจ้าของเท่านั้น' : 'รับจากลูกค้าเท่านั้น'}
+                {partyRole === 'payable'
+                  ? tx({ th: 'จ่ายเจ้าของเท่านั้น', en: 'Pay owner only', my: 'ပိုင်ရှင်ထံပေးချေမှုသာ' })
+                  : tx({ th: 'รับจากลูกค้าเท่านั้น', en: 'From customer only', my: 'ဖောက်သည်ထံမှ လက်ခံမှုသာ' })}
               </Badge>
             </div>
             <p className="text-xs text-slate-500 mt-1">
               {partyRole === 'payable'
-                ? 'งวดการชำระเงินตามระยะเวลาสัญญา: บริษัทจ่ายให้เจ้าของ (Payable)'
-                : 'งวดการชำระเงินตามระยะเวลาสัญญา: รับเงินจากลูกค้า (Receivable)'}
+                ? tx({ th: 'งวดการชำระเงินตามระยะเวลาสัญญา: บริษัทจ่ายให้เจ้าของ (Payable)', en: 'Installments over the contract term: company pays owner (Payable)', my: 'စာချုပ်ကာလအတွင်း အရစ်များ: ကုမ္ပဏီမှ ပိုင်ရှင်ထံ ပေးချေ (Payable)' })
+                : tx({ th: 'งวดการชำระเงินตามระยะเวลาสัญญา: รับเงินจากลูกค้า (Receivable)', en: 'Installments over the contract term: received from customer (Receivable)', my: 'စာချုပ်ကာလအတွင်း အရစ်များ: ဖောက်သည်ထံမှ လက်ခံ (Receivable)' })}
             </p>
           </div>
 
@@ -1005,7 +1025,9 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                 className="bg-primary-50 border-primary-200 text-primary-700 hover:bg-primary-100"
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                {isGenerating ? 'กำลังสร้างงวด...' : 'สร้างงวดค่าเช่าอัตโนมัติ'}
+                {isGenerating
+                  ? tx({ th: 'กำลังสร้างงวด...', en: 'Generating...', my: 'ဖန်တီးနေသည်...' })
+                  : tx({ th: 'สร้างงวดค่าเช่าอัตโนมัติ', en: 'Auto-generate Schedule', my: 'အရစ်ဇယား အလိုအလျောက် ဖန်တီး' })}
               </Button>
             )}
           </div>
@@ -1016,15 +1038,15 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
           <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center gap-4 text-xs">
             <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              ชำระแล้ว: {paidCount} งวด
+              {tx({ th: 'ชำระแล้ว', en: 'Paid', my: 'ပေးပြီး' })}: {paidCount} {tx(W.installments)}
             </span>
             <span className="flex items-center gap-1.5 text-rose-700 font-medium">
               <AlertTriangle className="h-3.5 w-3.5" />
-              ค้างชำระ: {overdueCount} งวด
+              {tx({ th: 'ค้างชำระ', en: 'Overdue', my: 'ရက်လွန်' })}: {overdueCount} {tx(W.installments)}
             </span>
             <span className="flex items-center gap-1.5 text-blue-700 font-medium">
               <Clock className="h-3.5 w-3.5" />
-              รอชำระ: {pendingCount} งวด
+              {tx({ th: 'รอชำระ', en: 'Pending', my: 'စောင့်ဆဲ' })}: {pendingCount} {tx(W.installments)}
             </span>
           </div>
         )}
@@ -1034,10 +1056,14 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
           <div className="p-8 text-center">
             <CreditCard className="mx-auto h-8 w-8 text-slate-300" />
             <h3 className="mt-2 text-sm font-semibold text-slate-800">
-              ยังไม่มีงวดชำระในสัญญานี้
+              {tx({ th: 'ยังไม่มีงวดชำระในสัญญานี้', en: 'No installments for this contract yet', my: 'ဤစာချုပ်အတွက် အရစ်များ မရှိသေးပါ' })}
             </h3>
             <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-              กดปุ่ม &quot;สร้างงวดค่าเช่าอัตโนมัติ&quot; ด้านบนเพื่อคำนวณและสร้างงวดตามระยะเวลาสัญญา {contract.start_date} ถึง {contract.end_date}
+              {tx({
+                th: `กดปุ่ม "สร้างงวดค่าเช่าอัตโนมัติ" ด้านบนเพื่อคำนวณและสร้างงวดตามระยะเวลาสัญญา ${contract.start_date} ถึง ${contract.end_date}`,
+                en: `Click "Auto-generate Schedule" above to create installments for the contract term ${contract.start_date} to ${contract.end_date}`,
+                my: `စာချုပ်ကာလ ${contract.start_date} မှ ${contract.end_date} အတွက် အရစ်များ ဖန်တီးရန် အပေါ်ရှိ "အရစ်ဇယား အလိုအလျောက် ဖန်တီး" ကို နှိပ်ပါ`,
+              })}
             </p>
             {allowWrite && (
               <Button
@@ -1047,7 +1073,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                 className="mt-4 bg-primary-600 hover:bg-primary-700 text-white"
               >
                 <RefreshCw className={`mr-2 h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                สร้างงวดค่าเช่าอัตโนมัติ
+                {tx({ th: 'สร้างงวดค่าเช่าอัตโนมัติ', en: 'Auto-generate Schedule', my: 'အရစ်ဇယား အလိုအလျောက် ဖန်တီး' })}
               </Button>
             )}
           </div>
@@ -1056,16 +1082,16 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">งวดเดือน</th>
-                  <th className="px-4 py-3">ประเภท</th>
-                  <th className="px-4 py-3">วันครบกำหนด</th>
-                  <th className="px-4 py-3 text-right">ยอดก่อนหัก (Gross)</th>
-                  <th className="px-4 py-3 text-right">หัก ณ ที่จ่าย (WHT)</th>
-                  <th className="px-4 py-3 text-right">ยอดสุทธิ (Net)</th>
-                  <th className="px-4 py-3 text-right">ชำระแล้ว</th>
-                  <th className="px-4 py-3 text-right">คงเหลือ</th>
-                  <th className="px-4 py-3 text-center">สถานะ</th>
-                  <th className="px-4 py-3 text-right">จัดการ</th>
+                  <th className="px-4 py-3">{tx({ th: 'งวดเดือน', en: 'Period', my: 'ကာလ' })}</th>
+                  <th className="px-4 py-3">{tx({ th: 'ประเภท', en: 'Type', my: 'အမျိုးအစား' })}</th>
+                  <th className="px-4 py-3">{tx({ th: 'วันครบกำหนด', en: 'Due Date', my: 'နောက်ဆုံးရက်' })}</th>
+                  <th className="px-4 py-3 text-right">{tx({ th: 'ยอดก่อนหัก (Gross)', en: 'Gross', my: 'စုစုပေါင်း (Gross)' })}</th>
+                  <th className="px-4 py-3 text-right">{tx({ th: 'หัก ณ ที่จ่าย (WHT)', en: 'WHT', my: 'ဖြတ်တောက်ခွန် (WHT)' })}</th>
+                  <th className="px-4 py-3 text-right">{tx({ th: 'ยอดสุทธิ (Net)', en: 'Net', my: 'အသားတင် (Net)' })}</th>
+                  <th className="px-4 py-3 text-right">{tx({ th: 'ชำระแล้ว', en: 'Paid', my: 'ပေးပြီး' })}</th>
+                  <th className="px-4 py-3 text-right">{tx({ th: 'คงเหลือ', en: 'Balance', my: 'ကျန်ငွေ' })}</th>
+                  <th className="px-4 py-3 text-center">{tx({ th: 'สถานะ', en: 'Status', my: 'အခြေအနေ' })}</th>
+                  <th className="px-4 py-3 text-right">{tx({ th: 'จัดการ', en: 'Actions', my: 'လုပ်ဆောင်ချက်' })}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -1092,30 +1118,30 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                               : 'bg-teal-50 text-teal-700'
                           }`}
                         >
-                          {p.payment_type === 'payable' ? 'จ่ายเจ้าของ' : 'รับจากลูกค้า'}
+                          {labelOf(PAYMENT_TYPE_TRI, p.payment_type, locale)}
                         </span>
                       </td>
 
                       <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                        {new Date(p.due_date).toLocaleDateString('th-TH')}
+                        {dateStr(p.due_date)}
                       </td>
 
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                        ฿{Number(p.gross_amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                        ฿{money(Number(p.gross_amount))}
                       </td>
 
                       <td className="px-4 py-3 text-right text-sky-700 whitespace-nowrap">
                         {Number(p.wht_amount) > 0
-                          ? `-฿${Number(p.wht_amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}`
+                          ? `-฿${money(Number(p.wht_amount))}`
                           : '-'}
                       </td>
 
                       <td className="px-4 py-3 text-right font-bold text-slate-900 whitespace-nowrap">
-                        ฿{Number(p.net_amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                        ฿{money(Number(p.net_amount))}
                       </td>
 
                       <td className="px-4 py-3 text-right text-emerald-600 font-medium whitespace-nowrap">
-                        ฿{Number(p.amount_paid).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                        ฿{money(Number(p.amount_paid))}
                       </td>
 
                       <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">
@@ -1125,9 +1151,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                           }
                         >
                           ฿
-                          {Number(p.balance_amount).toLocaleString('th-TH', {
-                            minimumFractionDigits: 2,
-                          })}
+                          {money(Number(p.balance_amount))}
                         </span>
                       </td>
 
@@ -1136,7 +1160,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                           variant="outline"
                           className={`${pBadge.bg} ${pBadge.text} ${pBadge.border} text-[10px] font-medium`}
                         >
-                          {PAYMENT_STATUS_LABELS[effStatus] || effStatus}
+                          {labelOf(PAYMENT_STATUS_TRI, effStatus, locale)}
                         </Badge>
                       </td>
 
@@ -1148,7 +1172,7 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
                           className="h-7 px-2 text-xs text-primary-600 hover:text-primary-700 hover:bg-primary-50"
                         >
                           <Link href={`/rent-payments/${p.id}`}>
-                            บันทึกชำระ / ดูสลิป
+                            {tx({ th: 'บันทึกชำระ / ดูสลิป', en: 'Record / View Slip', my: 'ပေးချေမှုမှတ်တမ်း / ပြေစာကြည့်' })}
                             <ExternalLink className="ml-1 h-3 w-3" />
                           </Link>
                         </Button>
@@ -1168,17 +1192,21 @@ export function ContractDetailView({ contract, userRole, openingProject }: Contr
         entityId={contract.id}
         userRole={userRole}
         defaultDocumentType="RENTAL_CONTRACT"
-        title="เอกสารแนบ (Contract)"
+        title={tx({ th: 'เอกสารแนบ (Contract)', en: 'Attachments (Contract)', my: 'ပူးတွဲစာရွက်များ (စာချုပ်)' })}
       />
 
       {/* Delete Confirm Dialog */}
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        title="ยืนยันการลบสัญญาเช่า"
-        description="คุณแน่ใจหรือไม่ว่าต้องการลบสัญญานี้? ข้อมูลนี้จะไม่สามารถกู้คืนได้ และหากมีงวดชำระเงินผูกอยู่จะไม่สามารถลบได้"
-        confirmText="ยืนยันลบ"
-        cancelText="ยกเลิก"
+        title={tx({ th: 'ยืนยันการลบสัญญาเช่า', en: 'Confirm Contract Deletion', my: 'စာချုပ်ဖျက်ရန် အတည်ပြု' })}
+        description={tx({
+          th: 'คุณแน่ใจหรือไม่ว่าต้องการลบสัญญานี้? ข้อมูลนี้จะไม่สามารถกู้คืนได้ และหากมีงวดชำระเงินผูกอยู่จะไม่สามารถลบได้',
+          en: 'Are you sure you want to delete this contract? This cannot be undone, and contracts with linked payments cannot be deleted.',
+          my: 'ဤစာချုပ်ကို ဖျက်ရန် သေချာပါသလား? ပြန်လည်ရယူ၍ မရပါ၊ ငွေပေးချေမှုများ ချိတ်ဆက်ထားပါက ဖျက်၍မရပါ။',
+        })}
+        confirmText={tx({ th: 'ยืนยันลบ', en: 'Delete', my: 'ဖျက်မည်' })}
+        cancelText={tx({ th: 'ยกเลิก', en: 'Cancel', my: 'မလုပ်တော့' })}
         variant="danger"
         loading={isDeleting}
         onConfirm={handleDelete}

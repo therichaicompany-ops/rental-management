@@ -33,52 +33,54 @@ import {
   type DocumentWithUploader,
 } from '@/lib/types/documents'
 import type { UserRole } from '@/lib/types/auth'
+import { useI18n } from '@/lib/i18n/context'
+import { Tri } from '@/lib/i18n/tx'
 import { hasFullAccess, canWrite } from '@/lib/auth/permissions'
 
 export type CustomerCategory = 'company' | 'thai_individual' | 'foreigner_individual'
 
 export interface DocumentSlotConfig {
   type: DocumentType
-  title: string
-  subTitle: string
+  title: Tri
+  subTitle: Tri
   required: boolean
 }
 
 export const FOREIGNER_DOCUMENT_SLOTS: DocumentSlotConfig[] = [
   {
     type: 'PASSPORT',
-    title: '1. หน้าพาสปอร์ต',
-    subTitle: 'สำเนา/รูปถ่ายหน้าข้อมูลหนังสือเดินทาง (Passport)',
+    title: { th: '1. หน้าพาสปอร์ต', en: '1. Passport Data Page', my: '၁။ နိုင်ငံကူးလက်မှတ် မျက်နှာဖုံး' },
+    subTitle: { th: 'สำเนา/รูปถ่ายหน้าข้อมูลหนังสือเดินทาง (Passport)', en: 'Copy or photo of Passport data page', my: 'နိုင်ငံကူးလက်မှတ် အချက်အလက်စာမျက်နှာ မိတ္တူ' },
     required: true,
   },
   {
     type: 'VISA',
-    title: '2. หน้าวีซ่า',
-    subTitle: 'สำเนา/รูปถ่ายหน้าวีซ่าที่ได้รับการประทับตราอนุญาตให้อยู่ในราชอาณาจักร',
+    title: { th: '2. หน้าวีซ่า', en: '2. Visa Page', my: '၂။ ဗီဇာ မျက်နှာ' },
+    subTitle: { th: 'สำเนา/รูปถ่ายหน้าวีซ่าที่ได้รับการประทับตราอนุญาตให้อยู่ในราชอาณาจักร', en: 'Valid Thai visa stamp copy or photo', my: 'တရားဝင် ထိုင်းဗီဇာ တံဆိပ်တုံး မိတ္တူ' },
     required: true,
   },
   {
     type: 'WORK_PERMIT',
-    title: '3. ใบอนุญาตทำงาน Work permit',
-    subTitle: 'สำเนา/รูปถ่ายใบอนุญาตทำงานในประเทศไทย (หน้าข้อมูลและวันหมดอายุ)',
+    title: { th: '3. ใบอนุญาตทำงาน Work permit', en: '3. Work Permit', my: '၃။ အလုပ်လုပ်ခွင့် လက်မှတ် (Work permit)' },
+    subTitle: { th: 'สำเนา/รูปถ่ายใบอนุญาตทำงานในประเทศไทย (หน้าข้อมูลและวันหมดอายุ)', en: 'Copy of Work Permit in Thailand (details & expiry page)', my: 'ထိုင်းနိုင်ငံ အလုပ်လုပ်ခွင့်လက်မှတ် မိတ္တူ' },
     required: true,
   },
   {
     type: 'SMART_CARD',
-    title: '4. Smart card (ถ้ามี)',
-    subTitle: 'บัตรประจำตัวคนต่างด้าวอิเล็กทรอนิกส์ หรือบัตร Smart Card',
+    title: { th: '4. Smart card (ถ้ามี)', en: '4. Smart Card (if any)', my: '၄။ Smart card (ရှိလျှင်)' },
+    subTitle: { th: 'บัตรประจำตัวคนต่างด้าวอิเล็กทรอนิกส์ หรือบัตร Smart Card', en: 'Alien electronic ID or Smart Card', my: 'နိုင်ငံခြားသား စမတ်ကတ်' },
     required: false,
   },
   {
     type: 'PINK_CARD',
-    title: '5. บัตรประจำตัวคนซึ่งไม่มีสัญชาติไทย (บัตรชมพู) (ถ้ามี)',
-    subTitle: 'บัตรประจำตัวบุคคลไม่มีสถานะทางทะเบียน (บัตรสีชมพู)',
+    title: { th: '5. บัตรประจำตัวคนซึ่งไม่มีสัญชาติไทย (บัตรชมพู) (ถ้ามี)', en: '5. Pink Card (if any)', my: '၅။ ပန်းရောင်ကတ် (ရှိလျှင်)' },
+    subTitle: { th: 'บัตรประจำตัวบุคคลไม่มีสถานะทางทะเบียน (บัตรสีชมพู)', en: 'Non-Thai identification card (Pink card)', my: 'မှတ်ပုံတင်မရှိသူများ သက်သေခံကတ် (ပန်းရောင်ကတ်)' },
     required: false,
   },
   {
     type: 'OVERSTAY_90_DAYS_NOTICE',
-    title: '6. ใบรับแจ้งการอยู่เกิน 90 วัน ของคนต่างด่าว (ถ้ามี)',
-    subTitle: 'ใบรับแจ้งการอยู่เกินกว่า 90 วัน จากสำนักงานตรวจคนเข้าเมือง (ตม.47)',
+    title: { th: '6. ใบรับแจ้งการอยู่เกิน 90 วัน ของคนต่างด่าว (ถ้ามี)', en: '6. 90-Day Report Notice (if any)', my: '၆။ ရက် ၉၀ အစီရင်ခံစာ (ရှိလျှင်)' },
+    subTitle: { th: 'ใบรับแจ้งการอยู่เกินกว่า 90 วัน จากสำนักงานตรวจคนเข้าเมือง (ตม.47)', en: 'Immigration receipt for 90-day stay notification (TM.47)', my: 'လဝက ရက် ၉၀ သတင်းပို့လက်ခံလွှာ (TM.47)' },
     required: false,
   },
 ]
@@ -86,8 +88,8 @@ export const FOREIGNER_DOCUMENT_SLOTS: DocumentSlotConfig[] = [
 export const THAI_DOCUMENT_SLOTS: DocumentSlotConfig[] = [
   {
     type: 'ID_CARD',
-    title: '1. สำเนาบัตรประชาชน',
-    subTitle: 'สำเนาบัตรประจำตัวประชาชน พร้อมลงลายมือชื่อรับรองสำเนาถูกต้อง',
+    title: { th: '1. สำเนาบัตรประชาชน', en: '1. Thai ID Card Copy', my: '၁။ နိုင်ငံသားမှတ်ပုံတင် မိတ္တူ' },
+    subTitle: { th: 'สำเนาบัตรประจำตัวประชาชน พร้อมลงลายมือชื่อรับรองสำเนาถูกต้อง', en: 'Certified copy of Thai National ID card', my: 'လက်မှတ်ရေးထိုးထားသော မှတ်ပုံတင်မိတ္တူ' },
     required: true,
   },
 ]
@@ -95,22 +97,22 @@ export const THAI_DOCUMENT_SLOTS: DocumentSlotConfig[] = [
 export const COMPANY_DOCUMENT_SLOTS: DocumentSlotConfig[] = [
   {
     type: 'COMPANY_CERTIFICATE',
-    title: '1. หนังสือรับรองบริษัท',
-    subTitle: 'หนังสือรับรองการจดทะเบียนนิติบุคคลจากกรมพัฒนาธุรกิจการค้า (อายุไม่เกิน 3-6 เดือน)',
+    title: { th: '1. หนังสือรับรองบริษัท', en: '1. Company Certificate', my: '၁။ ကုမ္ပဏီမှတ်ပုံတင်လက်မှတ်' },
+    subTitle: { th: 'หนังสือรับรองการจดทะเบียนนิติบุคคลจากกรมพัฒนาธุรกิจการค้า (อายุไม่เกิน 3-6 เดือน)', en: 'Affidavit / Certificate from DBD (not over 3-6 months old)', my: 'စီးပွားရေးဖွံ့ဖြိုးတိုးတက်မှုဦးစီးဌာန (DBD) ထုတ်ပေးသောလက်မှတ်' },
     required: true,
   },
   {
     type: 'DIRECTOR_ID_CARD',
-    title: '2. สำเนาบัตรประชาชนกรรมการ',
-    subTitle: 'สำเนาบัตรประจำตัวประชาชนของกรรมการผู้มีอำนาจลงนาม พร้อมลงนามรับรองสำเนาถูกต้อง',
+    title: { th: '2. สำเนาบัตรประชาชนกรรมการ', en: '2. Director ID Card', my: '၂။ ဒါရိုက်တာ မှတ်ပုံတင်မိတ္တူ' },
+    subTitle: { th: 'สำเนาบัตรประจำตัวประชาชนของกรรมการผู้มีอำนาจลงนาม พร้อมลงนามรับรองสำเนาถูกต้อง', en: 'Signed ID card copy of authorized director(s)', my: 'လုပ်ပိုင်ခွင့်ရှိ ဒါရိုက်တာ၏ မှတ်ပုံတင်မိတ္တူ' },
     required: true,
   },
 ]
 
 export const OTHER_DOCUMENT_SLOT: DocumentSlotConfig = {
   type: 'OTHER',
-  title: 'เอกสารแนบอื่นๆ (ถ้ามี)',
-  subTitle: 'เอกสารเพิ่มเติม เช่น สัญญาเช่าเดิม, หนังสือมอบอำนาจ, ทะเบียนบ้าน ฯลฯ',
+  title: { th: 'เอกสารแนบอื่นๆ (ถ้ามี)', en: 'Other Attachments (if any)', my: 'အခြား ပူးတွဲစာရွက်စာတမ်းများ (ရှိလျှင်)' },
+  subTitle: { th: 'เอกสารเพิ่มเติม เช่น สัญญาเช่าเดิม, หนังสือมอบอำนาจ, ทะเบียนบ้าน ฯลฯ', en: 'Additional files e.g. prior lease, power of attorney, house registration', my: 'အပိုဆောင်းဖိုင်များ (ယခင်စာချုပ်၊ ကိုယ်စားလှယ်လွှဲစာ စသည်)' },
   required: false,
 }
 
@@ -140,6 +142,7 @@ export function CustomerDocumentSlots({
   userRole,
   disabled = false,
 }: CustomerDocumentSlotsProps) {
+  const { t, locale, tx } = useI18n()
   const allowEdit = canWrite(userRole) && !disabled
   const allowDelete = hasFullAccess(userRole)
 
@@ -263,7 +266,7 @@ export function CustomerDocumentSlots({
       a.click()
       document.body.removeChild(a)
     } else {
-      alert(res.error || 'ไม่สามารถดาวน์โหลดไฟล์ได้')
+      alert(res.error || tx({ th: 'ไม่สามารถดาวน์โหลดไฟล์ได้', en: 'Failed to download file', my: 'ဖိုင် ဒေါင်းလုဒ်ဆွဲ၍မရပါ' }))
     }
   }
 
@@ -275,18 +278,18 @@ export function CustomerDocumentSlots({
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary-600" />
             <h3 className="text-sm font-bold text-slate-900">
-              {category === 'foreigner_individual' && 'เอกสารข้อมูลลูกค้า (ชาวต่างชาติ)'}
-              {category === 'thai_individual' && 'เอกสารข้อมูลลูกค้า (บุคคลธรรมดาสัญชาติไทย)'}
-              {category === 'company' && 'เอกสารข้อมูลลูกค้า (นิติบุคคล / บริษัท)'}
+              {category === 'foreigner_individual' && tx({ th: 'เอกสารข้อมูลลูกค้า (ชาวต่างชาติ)', en: 'Customer Documents (Foreign Individual)', my: 'ဖောက်သည် စာရွက်စာတမ်းများ (နိုင်ငံခြားသား)' })}
+              {category === 'thai_individual' && tx({ th: 'เอกสารข้อมูลลูกค้า (บุคคลธรรมดาสัญชาติไทย)', en: 'Customer Documents (Thai Individual)', my: 'ဖောက်သည် စာရွက်စာတမ်းများ (ထိုင်းနိုင်ငံသား)' })}
+              {category === 'company' && tx({ th: 'เอกสารข้อมูลลูกค้า (นิติบุคคล / บริษัท)', en: 'Customer Documents (Corporate / Company)', my: 'ဖောက်သည် စာရွက်စာတမ်းများ (ကုမ္ပဏီ)' })}
             </h3>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
             {category === 'foreigner_individual' &&
-              'แนบไฟล์เอกสารข้อ 1-3 จำเป็นต้องแนบไฟล์ (พาสปอร์ต, วีซ่า, Work permit)'}
+              tx({ th: 'แนบไฟล์เอกสารข้อ 1-3 จำเป็นต้องแนบไฟล์ (พาสปอร์ต, วีซ่า, Work permit)', en: 'Slots 1-3 are required (Passport, Visa, Work permit)', my: 'အမှတ် ၁ မှ ၃ ထိ မဖြစ်မနေ တင်ရပါမည် (Passport, Visa, Work permit)' })}
             {category === 'thai_individual' &&
-              'แนบไฟล์เอกสารประจำตัวบุคคล (จำเป็นต้องแนบสำเนาบัตรประชาชน)'}
+              tx({ th: 'แนบไฟล์เอกสารประจำตัวบุคคล (จำเป็นต้องแนบสำเนาบัตรประชาชน)', en: 'Personal identification (National ID card is required)', my: 'ကိုယ်ရေးသက်သေခံ စာရွက်စာတမ်း (မှတ်ပုံတင် မဖြစ်မနေလိုအပ်)' })}
             {category === 'company' &&
-              'แนบไฟล์เอกสารการจดทะเบียนนิติบุคคล (จำเป็นต้องแนบหนังสือรับรองบริษัท และบัตรประชาชนกรรมการ)'}
+              tx({ th: 'แนบไฟล์เอกสารการจดทะเบียนนิติบุคคล (จำเป็นต้องแนบหนังสือรับรองบริษัท และบัตรประชาชนกรรมการ)', en: 'Corporate registration (Company certificate and Director ID are required)', my: 'ကုမ္ပဏီမှတ်ပုံတင် အထောက်အထား (ကုမ္ပဏီလက်မှတ်နှင့် ဒါရိုက်တာမှတ်ပုံတင် လိုအပ်)' })}
           </p>
         </div>
 
@@ -302,13 +305,13 @@ export function CustomerDocumentSlots({
             {allRequiredFilled ? (
               <>
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <span>เอกสารจำเป็น: ครบถ้วน ({satisfiedCount}/{requiredSlots.length})</span>
+                <span>{tx({ th: 'เอกสารจำเป็น: ครบถ้วน', en: 'Required Docs: Complete', my: 'လိုအပ်သော စာရွက်စာတမ်း: ပြည့်စုံပါသည်' })} ({satisfiedCount}/{requiredSlots.length})</span>
               </>
             ) : (
               <>
                 <AlertCircle className="h-4 w-4 text-amber-600" />
                 <span>
-                  เอกสารจำเป็น: ยังขาดอีก {requiredSlots.length - satisfiedCount} รายการ (แนบแล้ว{' '}
+                  {tx({ th: 'เอกสารจำเป็น: ยังขาดอีก', en: 'Required Docs: Missing', my: 'လိုအပ်သော စာရွက်စာတမ်း: လိုအပ်နေသေး' })} {requiredSlots.length - satisfiedCount} {tx({ th: 'รายการ', en: 'item(s)', my: 'ခု' })} ({tx({ th: 'แนบแล้ว', en: 'Attached', my: 'တင်ပြီး' })}{' '}
                   {satisfiedCount}/{requiredSlots.length})
                 </span>
               </>
@@ -320,7 +323,7 @@ export function CustomerDocumentSlots({
       {loadingDocs && (
         <div className="flex items-center justify-center p-6 text-xs text-slate-500 gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-primary-500" />
-          <span>กำลังโหลดข้อมูลเอกสาร...</span>
+          <span>{tx({ th: 'กำลังโหลดข้อมูลเอกสาร...', en: 'Loading documents...', my: 'စာရွက်စာတမ်းများ ဖွင့်နေသည်...' })}</span>
         </div>
       )}
 
@@ -354,32 +357,32 @@ export function CustomerDocumentSlots({
                     {slot.type === 'ID_CARD' && <User className="h-4 w-4 text-primary-600 shrink-0" />}
                     {slot.type === 'COMPANY_CERTIFICATE' && <Building className="h-4 w-4 text-indigo-600 shrink-0" />}
                     {slot.type === 'DIRECTOR_ID_CARD' && <User className="h-4 w-4 text-primary-600 shrink-0" />}
-                    <span>{slot.title}</span>
+                    <span>{tx(slot.title)}</span>
                   </h4>
                   {slot.required ? (
                     isSatisfied ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 whitespace-nowrap">
-                        ✓ แนบแล้ว
+                        ✓ {tx({ th: 'แนบแล้ว', en: 'Attached', my: 'တင်ပြီး' })}
                       </span>
                     ) : (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 whitespace-nowrap">
-                        จำเป็นต้องแนบ *
+                        {tx({ th: 'จำเป็นต้องแนบ *', en: 'Required *', my: 'မဖြစ်မနေ *' })}
                       </span>
                     )
                   ) : (
                     <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
-                      {isSatisfied ? '✓ แนบแล้ว' : 'ถ้ามี'}
+                      {isSatisfied ? tx({ th: '✓ แนบแล้ว', en: '✓ Attached', my: '✓ တင်ပြီး' }) : tx({ th: 'ถ้ามี', en: 'Optional', my: 'ရှိလျှင်' })}
                     </span>
                   )}
                 </div>
 
-                <p className="text-[11px] text-slate-500 mb-3">{slot.subTitle}</p>
+                <p className="text-[11px] text-slate-500 mb-3">{tx(slot.subTitle)}</p>
 
                 {/* Validation error hint */}
                 {isMissing && (
                   <div className="flex items-center gap-1.5 text-xs text-rose-600 font-semibold mb-2.5">
                     <AlertCircle className="h-3.5 w-3.5" />
-                    <span>จำเป็นต้องแนบไฟล์เอกสารนี้</span>
+                    <span>{tx({ th: 'จำเป็นต้องแนบไฟล์เอกสารนี้', en: 'This document is required', my: 'ဤစာရွက်စာတမ်း မဖြစ်မနေ လိုအပ်ပါသည်' })}</span>
                   </div>
                 )}
 
@@ -408,7 +411,7 @@ export function CustomerDocumentSlots({
                                 {doc.file_name}
                               </p>
                               <p className="text-[10px] text-slate-400">
-                                {formatBytes(doc.file_size)} • อัปโหลดแล้ว
+                                {formatBytes(doc.file_size)} • {tx({ th: 'อัปโหลดแล้ว', en: 'Uploaded', my: 'တင်ပြီးပါပြီ' })}
                               </p>
                             </div>
                           </div>
@@ -419,7 +422,7 @@ export function CustomerDocumentSlots({
                               variant="ghost"
                               size="sm"
                               className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
-                              title="ดูตัวอย่าง"
+                              title={tx({ th: 'ดูตัวอย่าง', en: 'Preview', my: 'နမူနာကြည့်ရန်' })}
                               onClick={() =>
                                 setPreviewDoc({
                                   fileName: doc.file_name,
@@ -435,7 +438,7 @@ export function CustomerDocumentSlots({
                               variant="ghost"
                               size="sm"
                               className="h-7 w-7 p-0 text-slate-600 hover:text-slate-900"
-                              title="ดาวน์โหลด"
+                              title={tx({ th: 'ดาวน์โหลด', en: 'Download', my: 'ဒေါင်းလုဒ်' })}
                               onClick={() => handleDownloadExisting(doc)}
                             >
                               <Download className="h-3.5 w-3.5" />
@@ -446,7 +449,7 @@ export function CustomerDocumentSlots({
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                title="ลบไฟล์นี้"
+                                title={tx({ th: 'ลบไฟล์นี้', en: 'Delete file', my: 'ဖိုင် ဖျက်ရန်' })}
                                 onClick={() => setDeleteDocId(doc.id)}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -484,7 +487,7 @@ export function CustomerDocumentSlots({
                                 {file.name}
                               </p>
                               <p className="text-[10px] text-sky-700">
-                                {formatBytes(file.size)} • พร้อมอัปโหลดเมื่อกดบันทึก
+                                {formatBytes(file.size)} • {tx({ th: 'พร้อมอัปโหลดเมื่อกดบันทึก', en: 'Ready to upload on save', my: 'သိမ်းဆည်းသည့်အခါ တင်ပါမည်' })}
                               </p>
                             </div>
                           </div>
@@ -495,7 +498,7 @@ export function CustomerDocumentSlots({
                               variant="ghost"
                               size="sm"
                               className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
-                              title="ยกเลิกไฟล์นี้"
+                              title={tx({ th: 'ยกเลิกไฟล์นี้', en: 'Remove file', my: 'ဖျက်ပစ်ပါ' })}
                               onClick={() => handleRemoveStagedFile(slot.type, idx)}
                             >
                               <X className="h-3.5 w-3.5" />
@@ -526,11 +529,11 @@ export function CustomerDocumentSlots({
                     />
                     <Upload className="h-3.5 w-3.5 text-slate-400 group-hover:text-primary-600 transition-colors" />
                     <span className="text-xs font-semibold text-slate-600 group-hover:text-primary-700 transition-colors">
-                      {totalFiles > 0 ? '+ แนบไฟล์เพิ่ม' : 'คลิกเพื่อเลือกไฟล์แนบ'}
+                      {totalFiles > 0 ? tx({ th: '+ แนบไฟล์เพิ่ม', en: '+ Add More Files', my: '+ ဖိုင် ထပ်ထည့်ရန်' }) : tx({ th: 'คลิกเพื่อเลือกไฟล์แนบ', en: 'Click to select files', my: 'ဖိုင်ရွေးချယ်ရန် နှိပ်ပါ' })}
                     </span>
                   </label>
                   <p className="text-[10px] text-slate-400 text-center mt-1">
-                    PDF, JPG, PNG, WEBP (สูงสุด 10 MB)
+                    PDF, JPG, PNG, WEBP ({tx({ th: 'สูงสุด 10 MB', en: 'Max 10 MB', my: 'အများဆုံး ၁၀ MB' })})
                   </p>
                 </div>
               )}
@@ -543,9 +546,9 @@ export function CustomerDocumentSlots({
       <ConfirmDialog
         open={Boolean(deleteDocId)}
         onOpenChange={(open) => !open && setDeleteDocId(null)}
-        title="ยืนยันการลบไฟล์เอกสาร"
-        description="คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้ออกจากระบบ? การดำเนินการนี้ไม่สามารถกู้คืนได้"
-        confirmText="ลบไฟล์"
+        title={tx({ th: 'ยืนยันการลบไฟล์เอกสาร', en: 'Confirm Deleting File', my: 'ဖိုင်ဖျက်ရန် အတည်ပြုပါ' })}
+        description={tx({ th: 'คุณแน่ใจหรือไม่ว่าต้องการลบไฟล์นี้ออกจากระบบ? การดำเนินการนี้ไม่สามารถกู้คืนได้', en: 'Are you sure you want to delete this file? This cannot be undone.', my: 'ဤဖိုင်ကို ဖျက်ရန် သေချာပါသလား? ပြန်လည်ရယူ၍ မရနိုင်ပါ။' })}
+        confirmText={tx({ th: 'ลบไฟล์', en: 'Delete', my: 'ဖျက်ပစ်ပါ' })}
         loading={isDeleting}
         onConfirm={handleConfirmDelete}
       />

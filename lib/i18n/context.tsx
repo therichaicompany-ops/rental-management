@@ -6,6 +6,7 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE_NAME } from './config'
 import { th } from './dictionaries/th'
 import { en } from './dictionaries/en'
 import { my } from './dictionaries/my'
+import { pickTri, intlLocale, type Tri } from './tx'
 
 const DICTIONARIES: Record<Locale, TranslationDictionary> = {
   th,
@@ -18,6 +19,10 @@ interface I18nContextType {
   setLocale: (newLocale: Locale) => void
   t: TranslationDictionary
   isPending: boolean
+  /** Translate an inline { th, en, my } object */
+  tx: (m: Tri) => string
+  /** Intl locale tag (th-TH / en-GB / my-MM) for toLocaleString */
+  intl: string
 }
 
 const I18nContext = createContext<I18nContextType | null>(null)
@@ -80,6 +85,7 @@ export function I18nProvider({
   }
 
   const dictionary = DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE]
+  const tx = React.useCallback((m: Tri) => pickTri(m, locale), [locale])
 
   return (
     <I18nContext.Provider
@@ -88,6 +94,8 @@ export function I18nProvider({
         setLocale,
         t: dictionary,
         isPending,
+        tx,
+        intl: intlLocale(locale),
       }}
     >
       {children}
@@ -104,6 +112,8 @@ export function useI18n(): I18nContextType {
       setLocale: () => {},
       t: th,
       isPending: false,
+      tx: (m: Tri) => pickTri(m, DEFAULT_LOCALE),
+      intl: intlLocale(DEFAULT_LOCALE),
     }
   }
   return context
